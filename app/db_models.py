@@ -33,6 +33,37 @@ class ApiKey(SQLModel, table=True):
     active: bool = True
 
 
+class Instrument(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(index=True)
+    manufacturer: Optional[str] = None
+    model: Optional[str] = None
+    site: Optional[str] = None
+    active: bool = True
+    created_at: datetime = Field(default_factory=utcnow)
+    created_by: str = Field(default="system")
+
+
+class Method(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    instrument_id: int = Field(index=True, foreign_key="instrument.id")
+    name: str = Field(index=True)
+    technique: Optional[str] = None
+    active: bool = True
+    created_at: datetime = Field(default_factory=utcnow)
+    created_by: str = Field(default="system")
+
+
+class Analyte(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    method_id: int = Field(index=True, foreign_key="method.id")
+    name: str = Field(index=True)
+    units: Optional[str] = None
+    active: bool = True
+    created_at: datetime = Field(default_factory=utcnow)
+    created_by: str = Field(default="system")
+
+
 class StreamConfig(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     stream_id: str = Field(index=True)

@@ -180,6 +180,68 @@ class StreamConfigOut(StreamConfigIn):
     effective_from: datetime
 
 
+class InstrumentIn(BaseModel):
+    name: str
+    manufacturer: Optional[str] = None
+    model: Optional[str] = None
+    site: Optional[str] = None
+    active: bool = True
+
+
+class InstrumentOut(InstrumentIn):
+    id: int
+    created_at: datetime
+    created_by: str
+
+
+class InstrumentUpdate(BaseModel):
+    name: Optional[str] = None
+    manufacturer: Optional[str] = None
+    model: Optional[str] = None
+    site: Optional[str] = None
+    active: Optional[bool] = None
+
+
+class MethodIn(BaseModel):
+    name: str
+    instrument_id: int
+    technique: Optional[str] = None
+    active: bool = True
+
+
+class MethodOut(MethodIn):
+    id: int
+    created_at: datetime
+    created_by: str
+
+
+class MethodUpdate(BaseModel):
+    name: Optional[str] = None
+    instrument_id: Optional[int] = None
+    technique: Optional[str] = None
+    active: Optional[bool] = None
+
+
+class AnalyteIn(BaseModel):
+    name: str
+    method_id: int
+    units: Optional[str] = None
+    active: bool = True
+
+
+class AnalyteOut(AnalyteIn):
+    id: int
+    created_at: datetime
+    created_by: str
+
+
+class AnalyteUpdate(BaseModel):
+    name: Optional[str] = None
+    method_id: Optional[int] = None
+    units: Optional[str] = None
+    active: Optional[bool] = None
+
+
 class PriorConfigIn(BaseModel):
     stream_id: str
     mu0: float

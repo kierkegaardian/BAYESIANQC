@@ -16,12 +16,15 @@ from app.db import get_engine, init_db
 from app.db_models import (
     AlertRecord,
     ApiKey,
+    Analyte,
     AuditEntry,
     Capa,
     CapaLink,
     IngestionReceipt,
+    Instrument,
     Investigation,
     InvestigationAlertLink,
+    Method,
     PosteriorState,
     PriorConfig,
     QCEvent,
@@ -49,6 +52,9 @@ def reset_db():
             PosteriorState,
             PriorConfig,
             StreamConfig,
+            Analyte,
+            Method,
+            Instrument,
             ApiKey,
         ]:
             session.exec(delete(table))

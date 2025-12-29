@@ -9,13 +9,16 @@ from sqlmodel import Session, select
 from app.db_models import (
     AlertRecord,
     ApiKey,
+    Analyte,
     AuditEntry,
     Capa,
     CapaLink,
     DEFAULT_RULE_SET,
     IngestionReceipt,
+    Instrument,
     Investigation,
     InvestigationAlertLink,
+    Method,
     PriorConfig,
     QCEvent,
     QCRecord,
@@ -34,6 +37,47 @@ def utcnow() -> datetime:
 
 
 def seed_defaults(session: Session) -> None:
+    instrument = session.exec(select(Instrument).where(Instrument.name == "Architect")).first()
+    if not instrument:
+        instrument = Instrument(
+            name="Architect",
+            manufacturer="Abbott",
+            model="Architect",
+            site="Main Lab",
+            created_by="seed",
+        )
+        session.add(instrument)
+        session.commit()
+        session.refresh(instrument)
+
+    method = session.exec(
+        select(Method).where(Method.name == "HPLC", Method.instrument_id == instrument.id)
+    ).first()
+    if not method:
+        method = Method(
+            name="HPLC",
+            instrument_id=instrument.id,
+            technique="HPLC",
+            created_by="seed",
+        )
+        session.add(method)
+        session.commit()
+        session.refresh(method)
+
+    analyte = session.exec(
+        select(Analyte).where(Analyte.name == "HbA1c", Analyte.method_id == method.id)
+    ).first()
+    if not analyte:
+        analyte = Analyte(
+            name="HbA1c",
+            method_id=method.id,
+            units="%",
+            created_by="seed",
+        )
+        session.add(analyte)
+        session.commit()
+        session.refresh(analyte)
+
     stream_exists = session.exec(select(StreamConfig).where(StreamConfig.stream_id == "hba1c-arch")).first()
     if not stream_exists:
         stream = StreamConfig(
@@ -68,11 +112,16 @@ def seed_defaults(session: Session) -> None:
         session.add(prior)
         session.commit()
 
-    api_key_exists = session.exec(select(ApiKey)).first()
-    if not api_key_exists:
-        default_key = "local-dev-key"
-        key_hash = hashlib.sha256(default_key.encode("utf-8")).hexdigest()
-        session.add(ApiKey(key_hash=key_hash, role=Role.QC_ANALYST, description="local dev key"))
+    default_key = "local-dev-key"
+    key_hash = hashlib.sha256(default_key.encode("utf-8")).hexdigest()
+    api_key = session.exec(select(ApiKey).where(ApiKey.key_hash == key_hash)).first()
+    if api_key:
+        if api_key.role != Role.ADMIN:
+            api_key.role = Role.ADMIN
+            session.add(api_key)
+            session.commit()
+    else:
+        session.add(ApiKey(key_hash=key_hash, role=Role.ADMIN, description="local dev key"))
         session.commit()
 
 
