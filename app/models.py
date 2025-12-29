@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -23,20 +23,34 @@ class Permission(str, Enum):
     OVERRIDE = "override"
 
 
-class QCStream(BaseModel):
-    id: str
-    analyte: str
-    method: str
-    instrument: str
-    site: Optional[str]
-    matrix: Optional[str]
-    qc_level: str
-    control_material_lot: str
-    units: str
-    target_value: float
-    action_limit_sd: float = Field(3.0, description="Action limit expressed in SD multiples")
-    warning_limit_sd: float = Field(2.0, description="Warning limit expressed in SD multiples")
-    sigma: float = Field(..., gt=0, description="Baseline sigma for the stream")
+class EventType(str, Enum):
+    CALIBRATION = "calibration"
+    MAINTENANCE = "maintenance"
+    REAGENT_LOT_CHANGE = "reagent_lot_change"
+    CONTROL_MATERIAL_LOT_CHANGE = "control_material_lot_change"
+    SOFTWARE_UPDATE = "software_update"
+    ENVIRONMENTAL_ALERT = "environmental_alert"
+
+
+class AlertStatus(str, Enum):
+    OPEN = "open"
+    ACKNOWLEDGED = "acknowledged"
+    CLOSED = "closed"
+
+
+class InvestigationStatus(str, Enum):
+    OPEN = "open"
+    IN_REVIEW = "in_review"
+    CLOSED = "closed"
+
+
+class CapaStatus(str, Enum):
+    DRAFT = "draft"
+    OPEN = "open"
+    IMPLEMENTING = "implementing"
+    EFFECTIVENESS_CHECK = "effectiveness_check"
+    CLOSED = "closed"
+    REOPENED = "reopened"
 
 
 class EntrySource(str, Enum):
@@ -79,6 +93,10 @@ class FrequentistSignal(BaseModel):
 class BayesianRisk(BaseModel):
     probability_outside_limits: float
     risk_score: int
+    posterior_mean: Optional[float] = None
+    posterior_sigma: Optional[float] = None
+    predictive_sigma: Optional[float] = None
+    credible_interval: Optional[Tuple[float, float]] = None
 
 
 class QCRecordOut(BaseModel):
@@ -88,23 +106,18 @@ class QCRecordOut(BaseModel):
     disposition: str
 
 
-class AuditEntry(BaseModel):
+class AuditEntryOut(BaseModel):
     timestamp: datetime
     actor: str
     action: str
+    entity_type: str
+    entity_id: Optional[str] = None
     before: Optional[dict]
     after: dict
     reason: Optional[str]
 
 
-class AuditLog(BaseModel):
-    entries: List[AuditEntry] = Field(default_factory=list)
-
-    def append(self, entry: AuditEntry) -> None:
-        self.entries.append(entry)
-
-
-class Alert(BaseModel):
+class AlertOut(BaseModel):
     id: str
     stream_id: str
     created_at: datetime
@@ -112,6 +125,11 @@ class Alert(BaseModel):
     bayesian_risk: BayesianRisk
     disposition: str
     acknowledged: bool = False
+    status: Optional[AlertStatus] = None
+    acknowledged_at: Optional[datetime] = None
+    acknowledged_by: Optional[str] = None
+    assigned_to: Optional[str] = None
+    due_at: Optional[datetime] = None
 
 
 class DuplicateStatus(str, Enum):
@@ -124,5 +142,118 @@ class IngestionResult(BaseModel):
     status: str
     duplicate: DuplicateStatus
     qc: QCRecordOut
-    alert_created: Optional[Alert]
-    audit_entry: AuditEntry
+    alert_created: Optional[AlertOut]
+    audit_entry: AuditEntryOut
+    idempotency_key: Optional[str] = None
+
+
+class StreamConfigIn(BaseModel):
+    stream_id: str
+    analyte: str
+    method: str
+    instrument: str
+    site: Optional[str] = None
+    matrix: Optional[str] = None
+    qc_level: str
+    control_material_lot: str
+    units: str
+    target_value: float
+    sigma: float
+    action_limit_sd: float = 3.0
+    warning_limit_sd: float = 2.0
+    min_value: Optional[float] = None
+    max_value: Optional[float] = None
+    allowed_units: Optional[List[str]] = None
+    unit_conversions: Optional[dict] = None
+    baseline_start: Optional[datetime] = None
+    baseline_end: Optional[datetime] = None
+    risk_threshold_warn: int = 50
+    risk_threshold_hold: int = 80
+    rule_set: Optional[dict] = None
+    effective_from: Optional[datetime] = None
+
+
+class StreamConfigOut(StreamConfigIn):
+    version: int
+    created_at: datetime
+    created_by: str
+    effective_from: datetime
+
+
+class PriorConfigIn(BaseModel):
+    stream_id: str
+    mu0: float
+    kappa0: float
+    alpha0: float
+    beta0: float
+    effective_from: Optional[datetime] = None
+
+
+class PriorConfigOut(PriorConfigIn):
+    version: int
+    created_at: datetime
+    created_by: str
+    effective_from: datetime
+
+
+class QCEventIn(BaseModel):
+    event_type: EventType
+    timestamp: datetime
+    stream_id: Optional[str] = None
+    instrument_id: Optional[str] = None
+    analyte: Optional[str] = None
+    method_id: Optional[str] = None
+    metadata: Optional[dict] = None
+
+
+class QCEventOut(QCEventIn):
+    id: int
+    created_at: datetime
+    created_by: str
+
+
+class AlertUpdate(BaseModel):
+    status: Optional[AlertStatus] = None
+    acknowledged_by: Optional[str] = None
+    assigned_to: Optional[str] = None
+    due_at: Optional[datetime] = None
+
+
+class InvestigationIn(BaseModel):
+    problem_statement: str
+    suspected_cause: Optional[str] = None
+    containment: Optional[str] = None
+    data_reviewed: Optional[str] = None
+    outcome: Optional[str] = None
+    decision: Optional[str] = None
+    status: Optional[InvestigationStatus] = None
+    alert_id: Optional[str] = None
+
+
+class InvestigationOut(InvestigationIn):
+    id: int
+    status: InvestigationStatus
+    created_at: datetime
+    updated_at: datetime
+    created_by: str
+
+
+class CapaIn(BaseModel):
+    status: Optional[CapaStatus] = None
+    root_cause_category: Optional[str] = None
+    corrective_actions: Optional[List[dict]] = None
+    preventive_actions: Optional[List[dict]] = None
+    owners: Optional[List[str]] = None
+    due_at: Optional[datetime] = None
+    verification_plan: Optional[str] = None
+    effectiveness_criteria: Optional[dict] = None
+    alert_id: Optional[str] = None
+    investigation_id: Optional[int] = None
+
+
+class CapaOut(CapaIn):
+    id: int
+    status: CapaStatus
+    created_at: datetime
+    updated_at: datetime
+    created_by: str

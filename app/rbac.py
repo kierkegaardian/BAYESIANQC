@@ -1,9 +1,13 @@
 from __future__ import annotations
 
-from typing import Dict, List
+import hashlib
+from typing import Dict, List, Optional
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
+from sqlmodel import Session, select
 
+from app.db import get_session
+from app.db_models import ApiKey
 from app.models import Permission, Role
 
 
@@ -18,15 +22,25 @@ ROLE_PERMISSIONS: Dict[Role, List[Permission]] = {
 
 
 class UserContext:
-    def __init__(self, role: Role):
+    def __init__(self, role: Role, api_key_id: Optional[int] = None):
         self.role = role
+        self.api_key_id = api_key_id
 
     def can(self, permission: Permission) -> bool:
         return permission in ROLE_PERMISSIONS.get(self.role, [])
 
 
-def get_current_user(role: Role = Role.QC_ANALYST) -> UserContext:
-    return UserContext(role=role)
+def get_current_user(
+    api_key: Optional[str] = Header(default=None, alias="X-API-Key"),
+    session: Session = Depends(get_session),
+) -> UserContext:
+    if not api_key:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing API key")
+    key_hash = hashlib.sha256(api_key.encode("utf-8")).hexdigest()
+    record = session.exec(select(ApiKey).where(ApiKey.key_hash == key_hash, ApiKey.active == True)).first()
+    if not record:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key")
+    return UserContext(role=record.role, api_key_id=record.id)
 
 
 def require_permission(permission: Permission):

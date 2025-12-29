@@ -1,0 +1,2 @@
+stream_id,result_value,timestamp,analyte,qc_level,instrument_id,method_id,operator_id,reagent_lot,control_material_lot,calibration_status,run_id,units,flags,entry_source,comments
+hba1c-arch,6.0,2025-01-01T12:00:00Z,HbA1c,Level 1,Architect,HPLC,tech1,RL-001,LOT-001,ok,run-123,%,[],"manual","manual entry"

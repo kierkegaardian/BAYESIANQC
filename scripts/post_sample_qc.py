@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import os
 from datetime import datetime, timezone
 
 import httpx
@@ -33,13 +34,19 @@ def main() -> None:
         default="http://127.0.0.1:8010",
         help="API base URL (default: http://127.0.0.1:8010)",
     )
+    parser.add_argument(
+        "--api-key",
+        default=os.getenv("BAYESIANQC_API_KEY", "local-dev-key"),
+        help="API key for X-API-Key header (default: env BAYESIANQC_API_KEY or local-dev-key)",
+    )
     args = parser.parse_args()
 
     url = f"{args.base_url.rstrip('/')}/qc/records"
     payload = build_payload()
 
+    headers = {"X-API-Key": args.api_key}
     with httpx.Client() as client:
-        response = client.post(url, json=payload, timeout=10.0)
+        response = client.post(url, json=payload, headers=headers, timeout=10.0)
 
     print(f"POST {url}")
     print(f"Status: {response.status_code}")

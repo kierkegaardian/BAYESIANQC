@@ -1,3 +1,6 @@
 __pycache__/
 *.pyc
 .venv/
+bayesianqc.db
+test_bayesianqc.db
+uvicorn.log
