@@ -11,9 +11,19 @@ This repository captures requirements for a Bayesian-enabled laboratory quality 
    ```
 2. Run the FastAPI app:
    ```bash
-   uvicorn app.main:app --reload
+   uvicorn app.main:app --reload --port 8010
    ```
-3. Try ingesting QC data (manual or automated) against the seeded HbA1c stream using the `/qc/records` endpoint. The API returns frequentist signals (1-3s/2-2s), Bayesian-style risk, disposition, duplicate detection, and an audit entry. A placeholder alert is generated for action/warning states.
+3. Open `http://127.0.0.1:8010/docs` or ingest QC data (manual or automated) against the seeded HbA1c stream using the `/qc/records` endpoint. The API returns frequentist signals (1-3s/2-2s), Bayesian-style risk, disposition, duplicate detection, and an audit entry. A placeholder alert is generated for action/warning states.
+
+## Sample payload helper
+Post a fresh timestamped payload against the running API:
+```bash
+python scripts/post_sample_qc.py
+```
+To target a different host or port:
+```bash
+python scripts/post_sample_qc.py --base-url http://127.0.0.1:8010
+```
 
 ## Testing
 - Install dependencies with `pip install -r requirements.txt` (inside your virtualenv).
