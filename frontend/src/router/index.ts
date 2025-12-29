@@ -125,7 +125,7 @@ const routes = [
         meta: {
           helpTitle: "Charts",
           helpText:
-            "Choose a stream and date range, then click Load to render QC trends and alerts.",
+            "Choose a stream and date range, then click Load to render QC trends, alerts, and control-material lot segments.",
         },
       },
     ],

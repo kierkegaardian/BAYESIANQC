@@ -278,6 +278,41 @@ def alert_severity(signals: list, risk_score: int, config: StreamConfig) -> str:
     return "info"
 
 
+def _lot_segments(records: list[QCRecord]) -> list[dict]:
+    if not records:
+        return []
+    segments: list[dict] = []
+    current_lot = records[0].control_material_lot or "unknown"
+    start_time = records[0].timestamp
+    last_time = records[0].timestamp
+    count = 0
+    for record in records:
+        lot = record.control_material_lot or "unknown"
+        if lot != current_lot:
+            segments.append(
+                {
+                    "control_material_lot": current_lot,
+                    "start": start_time.isoformat(),
+                    "end": last_time.isoformat(),
+                    "count": count,
+                }
+            )
+            current_lot = lot
+            start_time = record.timestamp
+            count = 0
+        count += 1
+        last_time = record.timestamp
+    segments.append(
+        {
+            "control_material_lot": current_lot,
+            "start": start_time.isoformat(),
+            "end": last_time.isoformat(),
+            "count": count,
+        }
+    )
+    return segments
+
+
 def _audit_out(entry) -> AuditEntryOut:
     return AuditEntryOut(
         timestamp=entry.timestamp,
@@ -1197,6 +1232,8 @@ async def stream_chart(
     if end:
         record_query = record_query.where(QCRecord.timestamp <= end)
     records = session.exec(record_query.order_by(QCRecord.timestamp.desc()).limit(limit)).all()
+    record_series = records[::-1]
+    lot_segments = _lot_segments(record_series)
 
     event_query = select(QCEvent).where(QCEvent.stream_id == stream_id)
     if start:
@@ -1212,7 +1249,8 @@ async def stream_chart(
         alert_query = alert_query.where(AlertRecord.created_at <= end)
     alerts = session.exec(alert_query.order_by(AlertRecord.created_at.desc()).limit(limit)).all()
     return {
-        "records": [r.model_dump(mode="json") for r in records[::-1]],
+        "records": [r.model_dump(mode="json") for r in record_series],
         "events": [e.model_dump(mode="json") for e in events[::-1]],
         "alerts": [a.model_dump(mode="json") for a in alerts[::-1]],
+        "lot_segments": lot_segments,
     }

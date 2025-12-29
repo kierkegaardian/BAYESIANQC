@@ -82,7 +82,7 @@ Every UI page includes a Help button with page purpose and basic usage notes.
 - `PATCH /capas/{capa_id}` Update a CAPA (requires `X-API-Key` + approve permission).
 - `GET /audit` Audit log entries.
 - `GET /reports/summary` Summary counts for alerts/investigations/CAPAs.
-- `GET /streams/{stream_id}/chart` Chart data for a stream (records + events + alerts).
+- `GET /streams/{stream_id}/chart` Chart data for a stream (records + events + alerts + lot segments).
 
 ## Testing
 - Install dependencies with `pip install -r requirements.txt` (inside your virtualenv).
