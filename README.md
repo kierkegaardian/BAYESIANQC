@@ -2,6 +2,9 @@
 
 This repository captures requirements for a Bayesian-enabled laboratory quality control platform **and** a working prototype API that exercises core ingestion, rule evaluation, Bayesian-style risk scoring, alert creation, and audit logging for manual and automated QC data.
 
+## Bayesian justification
+Bayesian priors represent the expected in-control mean/variance for a QC stream. Each incoming QC value updates a persistent posterior state (Normal-Inverse-Gamma update). Using that posterior, the system computes the predictive probability that the next value falls outside configured action limits (target +/- action_limit_sd * sigma), converts it into a 0-100 risk score, and uses it to influence disposition thresholds. In parallel, frequentist Westgard-style rules (1-3s, 2-2s, R-4s, 4-1s, 10x) are evaluated. Notifications are triggered when either rule violations occur or the Bayesian risk score crosses configured warning/hold thresholds.
+
 ## Quick start
 1. Create a virtual environment and install dependencies:
    ```bash
@@ -93,3 +96,17 @@ Every UI page includes a Help button with page purpose and basic usage notes.
 
 ## Documents
 - [Software Requirements Specification](docs/SRS.md): Full, structured requirements including manual QC entry, workflow, and compliance expectations.
+
+## Roadmap
+
+### Data & Persistence
+- **Historical Risk Scores:** Persist the raw Bayesian Risk Score (0-100) for *every* data point (not just alerts) to enable historical risk trending.
+- **Enhanced Audit:** Deepen audit logging to capture pre/post states for complex configuration changes (e.g., priors).
+
+### Visualization & UI
+- **Risk Trendline:** Add a secondary Y-axis to the Levey-Jennings chart to visualize the "Risk Score" trajectory over time.
+- **Configuration UI:** Build dedicated UI forms for managing `StreamConfig` and `PriorConfig` (currently API-driven).
+
+### Integration & Architecture
+- **Webhooks:** Implement a webhook system to push "Risk Alerts" to a parent LIMS, decoupling the response cycle.
+- **OIDC/Auth:** Upgrade from static API keys to OIDC/OAuth2 for better integration with enterprise identity providers.
