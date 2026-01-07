@@ -1,5 +1,14 @@
+const DEFAULT_API_HOST =
+  typeof window !== "undefined" && window.location.hostname
+    ? window.location.hostname
+    : "127.0.0.1";
+const DEFAULT_API_PROTOCOL =
+  typeof window !== "undefined" && window.location.protocol === "https:"
+    ? "https"
+    : "http";
 const API_BASE =
-  import.meta.env.VITE_API_URL || "http://127.0.0.1:8010";
+  import.meta.env.VITE_API_URL ||
+  `${DEFAULT_API_PROTOCOL}://${DEFAULT_API_HOST}:8010`;
 
 const API_KEY_STORAGE = "bayesianqc_api_key";
 
@@ -35,7 +44,23 @@ async function request<T>(
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || `Request failed with ${response.status}`);
+    let message = text;
+    if (text) {
+      try {
+        const parsed = JSON.parse(text) as { detail?: unknown };
+        if (parsed && typeof parsed === "object" && "detail" in parsed) {
+          const detail = parsed.detail;
+          if (typeof detail === "string") {
+            message = detail;
+          } else {
+            message = JSON.stringify(detail);
+          }
+        }
+      } catch {
+        // Keep raw text when it isn't JSON.
+      }
+    }
+    throw new Error(message || `Request failed with ${response.status}`);
   }
   const contentType = response.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {

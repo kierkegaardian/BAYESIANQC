@@ -51,6 +51,8 @@ npm run dev
 The UI runs on `http://127.0.0.1:5173` and expects the API at `http://127.0.0.1:8010`.
 Override the API base with `VITE_API_URL` in `frontend/.env.local`.
 Every UI page includes a Help button with page purpose and basic usage notes.
+Chart view now centers on the stream mean, shows color-coded 1/2/3 sigma bands using stream config limits, and uses a broken Y-axis when outliers exceed control limits (with an optional log-scale toggle).
+Click chart points to resolve them (exclude from stats) or reinstate them.
 
 ## Endpoint map
 - `GET /` Landing page with links and basic usage.
@@ -58,6 +60,7 @@ Every UI page includes a Help button with page purpose and basic usage notes.
 - `GET /redoc` Reference docs.
 - `POST /qc/records` Ingest a QC record (requires `X-API-Key`).
 - `POST /qc/records/csv` Ingest QC records from CSV (requires `X-API-Key`).
+- `PATCH /qc/records/{record_id}/resolution` Resolve/reinstate a QC record (requires `X-API-Key` + approve permission).
 - `GET /instruments` List instruments.
 - `POST /instruments` Create an instrument (requires `X-API-Key` + edit permission).
 - `PATCH /instruments/{instrument_id}` Update an instrument (requires `X-API-Key` + edit permission).

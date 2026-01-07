@@ -60,6 +60,8 @@ from app.models import (
     QCEventOut,
     QCRecordIn,
     QCRecordOut,
+    QCRecordResolutionIn,
+    QCRecordResolutionOut,
     StreamConfigIn,
     StreamConfigOut,
 )
@@ -90,9 +92,20 @@ cors_origins = [
     for origin in os.getenv("BAYESIANQC_CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",")
     if origin.strip()
 ]
+cors_origin_regex = os.getenv("BAYESIANQC_CORS_ORIGIN_REGEX")
+if cors_origin_regex is None:
+    cors_origin_regex = (
+        r"^http://(localhost|127\.0\.0\.1|"
+        r"10\.\d+\.\d+\.\d+|"
+        r"192\.168\.\d+\.\d+|"
+        r"172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+):5173$"
+    )
+elif not cors_origin_regex.strip():
+    cors_origin_regex = None
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
+    allow_origin_regex=cors_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -379,6 +392,19 @@ def _event_out(event: QCEvent) -> QCEventOut:
     )
 
 
+def _qc_record_resolution_out(record: QCRecord) -> QCRecordResolutionOut:
+    return QCRecordResolutionOut(
+        id=record.id,
+        stream_id=record.stream_id,
+        timestamp=record.timestamp,
+        result_value=record.result_value,
+        include_in_stats=record.include_in_stats,
+        resolved_at=record.resolved_at,
+        resolved_by=record.resolved_by,
+        resolved_reason=record.resolved_reason,
+    )
+
+
 def _investigation_out(investigation: Investigation, alert_id: Optional[str] = None) -> InvestigationOut:
     return InvestigationOut(
         id=investigation.id,
@@ -587,6 +613,44 @@ async def ingest_qc_records_csv(
         except Exception as exc:  # noqa: BLE001 - report row-level errors
             errors.append({"row": idx, "error": str(exc)})
     return {"accepted": len(results), "errors": errors, "results": results}
+
+
+@app.patch("/qc/records/{record_id}/resolution", response_model=QCRecordResolutionOut)
+async def resolve_qc_record(
+    record_id: int,
+    payload: QCRecordResolutionIn,
+    user: UserContext = Depends(require_permission(Permission.APPROVE)),
+    session: Session = Depends(get_session),
+):
+    record = session.exec(select(QCRecord).where(QCRecord.id == record_id)).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="QC record not found")
+    before = record.model_dump(mode="json")
+    if payload.include_in_stats:
+        record.include_in_stats = True
+        record.resolved_at = None
+        record.resolved_by = None
+        record.resolved_reason = None
+    else:
+        record.include_in_stats = False
+        record.resolved_at = datetime.now(timezone.utc)
+        record.resolved_by = user.role.value
+        record.resolved_reason = payload.resolved_reason
+    session.add(record)
+    session.commit()
+    session.refresh(record)
+    record_audit(
+        session=session,
+        actor=user.role.value,
+        action="resolve_qc_record",
+        entity_type="qc_record",
+        entity_id=str(record.id),
+        before=before,
+        after=record.model_dump(mode="json"),
+        reason=payload.resolved_reason,
+    )
+    bayesian.rebuild_posterior_state(session, record.stream_id)
+    return _qc_record_resolution_out(record)
 
 
 @app.get("/instruments", response_model=list[InstrumentOut])

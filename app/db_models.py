@@ -136,6 +136,10 @@ class QCRecord(SQLModel, table=True):
     flags: Optional[list[str]] = Field(default=None, sa_column=Column(JSON))
     entry_source: EntrySource = Field(sa_column=Column(SAEnum(EntrySource)))
     comments: Optional[str] = None
+    include_in_stats: bool = True
+    resolved_at: Optional[datetime] = None
+    resolved_by: Optional[str] = None
+    resolved_reason: Optional[str] = None
     raw_payload: dict = Field(sa_column=Column(JSON))
     duplicate_status: DuplicateStatus = Field(sa_column=Column(SAEnum(DuplicateStatus)))
     created_at: datetime = Field(default_factory=utcnow)

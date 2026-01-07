@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import math
+from typing import Optional
 
 from sqlmodel import Session, select
 
-from app.db_models import PosteriorState, StreamConfig
+from app.db_models import PosteriorState, QCRecord, StreamConfig
 from app.models import BayesianRisk
 from app.storage import get_active_prior
 
@@ -13,6 +14,70 @@ def _normal_cdf(x: float, mean: float, std: float) -> float:
     if std <= 0:
         return 0.5
     return 0.5 * (1 + math.erf((x - mean) / (std * math.sqrt(2))))
+
+
+def _update_posterior(
+    mu0: float,
+    kappa0: float,
+    alpha0: float,
+    beta0: float,
+    record_value: float,
+) -> tuple[float, float, float, float]:
+    kappa_n = kappa0 + 1
+    mu_n = (kappa0 * mu0 + record_value) / kappa_n
+    alpha_n = alpha0 + 0.5
+    beta_n = beta0 + 0.5 * kappa0 * ((record_value - mu0) ** 2) / kappa_n
+    return mu_n, kappa_n, alpha_n, beta_n
+
+
+def rebuild_posterior_state(session: Session, stream_id: str) -> Optional[PosteriorState]:
+    records = session.exec(
+        select(QCRecord)
+        .where(QCRecord.stream_id == stream_id, QCRecord.include_in_stats == True)
+        .order_by(QCRecord.timestamp.asc())
+    ).all()
+    state = session.exec(select(PosteriorState).where(PosteriorState.stream_id == stream_id)).first()
+    if not records:
+        if state:
+            session.delete(state)
+            session.commit()
+        return None
+
+    prior = get_active_prior(session, stream_id, records[0].timestamp)
+    if prior is None:
+        if state:
+            session.delete(state)
+            session.commit()
+        return None
+
+    mu_n, kappa_n, alpha_n, beta_n = prior.mu0, prior.kappa0, prior.alpha0, prior.beta0
+    for record in records:
+        mu_n, kappa_n, alpha_n, beta_n = _update_posterior(
+            mu_n, kappa_n, alpha_n, beta_n, record.result_value
+        )
+
+    if state:
+        state.mu_n = mu_n
+        state.kappa_n = kappa_n
+        state.alpha_n = alpha_n
+        state.beta_n = beta_n
+        state.n_obs = len(records)
+        state.updated_at = records[-1].timestamp
+        session.add(state)
+    else:
+        session.add(
+            PosteriorState(
+                stream_id=stream_id,
+                mu_n=mu_n,
+                kappa_n=kappa_n,
+                alpha_n=alpha_n,
+                beta_n=beta_n,
+                n_obs=len(records),
+                updated_at=records[-1].timestamp,
+            )
+        )
+    session.commit()
+    return state
 
 
 def infer_risk(
@@ -32,10 +97,9 @@ def infer_risk(
     else:
         mu0, kappa0, alpha0, beta0 = prior.mu0, prior.kappa0, prior.alpha0, prior.beta0
 
-    kappa_n = kappa0 + 1
-    mu_n = (kappa0 * mu0 + record_value) / kappa_n
-    alpha_n = alpha0 + 0.5
-    beta_n = beta0 + 0.5 * kappa0 * ((record_value - mu0) ** 2) / kappa_n
+    mu_n, kappa_n, alpha_n, beta_n = _update_posterior(
+        mu0, kappa0, alpha0, beta0, record_value
+    )
 
     posterior_sigma = math.sqrt(beta_n / (alpha_n - 1)) if alpha_n > 1 else None
     predictive_sigma = math.sqrt(beta_n * (kappa_n + 1) / (alpha_n * kappa_n)) if alpha_n > 0 else None

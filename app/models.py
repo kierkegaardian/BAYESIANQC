@@ -106,6 +106,22 @@ class QCRecordOut(BaseModel):
     disposition: str
 
 
+class QCRecordResolutionIn(BaseModel):
+    include_in_stats: bool
+    resolved_reason: Optional[str] = None
+
+
+class QCRecordResolutionOut(BaseModel):
+    id: int
+    stream_id: str
+    timestamp: datetime
+    result_value: float
+    include_in_stats: bool
+    resolved_at: Optional[datetime] = None
+    resolved_by: Optional[str] = None
+    resolved_reason: Optional[str] = None
+
+
 class AuditEntryOut(BaseModel):
     timestamp: datetime
     actor: str

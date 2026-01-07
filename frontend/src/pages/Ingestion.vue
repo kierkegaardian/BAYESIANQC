@@ -123,7 +123,11 @@ async function submitRecord() {
     await api.post("/qc/records", payload, headers);
     ElMessage.success("Record ingested");
   } catch (error) {
-    ElMessage.error("Failed to ingest record");
+    const message =
+      error instanceof Error && error.message
+        ? error.message
+        : "Failed to ingest record";
+    ElMessage.error(message);
   }
 }
 
@@ -135,7 +139,9 @@ async function uploadCsv(options: any) {
     uploadSummary.value = `Accepted: ${response.accepted}, Errors: ${response.errors.length}`;
     ElMessage.success("CSV processed");
   } catch (error) {
-    ElMessage.error("CSV upload failed");
+    const message =
+      error instanceof Error && error.message ? error.message : "CSV upload failed";
+    ElMessage.error(message);
   }
 }
 

@@ -48,3 +48,27 @@ def get_session():
 def init_db() -> None:
     engine = get_engine()
     SQLModel.metadata.create_all(engine)
+    _ensure_sqlite_columns(engine)
+
+
+def _ensure_sqlite_columns(engine: Engine) -> None:
+    if not str(engine.url).startswith("sqlite"):
+        return
+    connection = engine.raw_connection()
+    cursor = connection.cursor()
+    try:
+        cursor.execute("PRAGMA table_info(qcrecord)")
+        columns = {row[1] for row in cursor.fetchall()}
+        if "include_in_stats" not in columns:
+            cursor.execute("ALTER TABLE qcrecord ADD COLUMN include_in_stats BOOLEAN DEFAULT 1")
+        if "resolved_at" not in columns:
+            cursor.execute("ALTER TABLE qcrecord ADD COLUMN resolved_at DATETIME")
+        if "resolved_by" not in columns:
+            cursor.execute("ALTER TABLE qcrecord ADD COLUMN resolved_by VARCHAR")
+        if "resolved_reason" not in columns:
+            cursor.execute("ALTER TABLE qcrecord ADD COLUMN resolved_reason VARCHAR")
+        cursor.execute("UPDATE qcrecord SET include_in_stats = 1 WHERE include_in_stats IS NULL")
+        connection.commit()
+    finally:
+        cursor.close()
+        connection.close()

@@ -226,6 +226,7 @@ def baseline_stats(session: Session, config: StreamConfig, at_time: datetime) ->
             select(QCRecord)
             .where(
                 QCRecord.stream_id == config.stream_id,
+                QCRecord.include_in_stats == True,
                 QCRecord.timestamp >= config.baseline_start,
                 QCRecord.timestamp <= config.baseline_end,
             )
@@ -261,7 +262,11 @@ def detect_duplicate(session: Session, record: QCRecord) -> DuplicateStatus:
 def get_recent_records(session: Session, stream_id: str, before: datetime, limit: int) -> list[QCRecord]:
     return session.exec(
         select(QCRecord)
-        .where(QCRecord.stream_id == stream_id, QCRecord.timestamp < before)
+        .where(
+            QCRecord.stream_id == stream_id,
+            QCRecord.include_in_stats == True,
+            QCRecord.timestamp < before,
+        )
         .order_by(QCRecord.timestamp.desc())
         .limit(limit)
     ).all()[::-1]

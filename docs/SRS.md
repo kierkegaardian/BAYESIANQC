@@ -39,6 +39,7 @@ This Software Requirements Specification (SRS) captures functional and non-funct
 - **REQ-FREQ-02**: Support warning limits and action limits (e.g., ±2 SD, ±3 SD) as configurable.
 - **REQ-FREQ-03**: Support CUSUM and EWMA charts as optional chart types per stream.
 - **REQ-FREQ-04**: Support rolling-window and fixed-baseline options for mean/SD estimation, configurable per stream.
+- **REQ-FREQ-05**: Allow QC points to be marked as excluded from statistical calculations while remaining visible on charts with clear visual distinction and audit trail.
 
 ### 6.2 Limit Calculation and Baseline Management
 - **REQ-FREQ-10**: Support baseline selection by date range, by run count, and by “stable period” criteria.
