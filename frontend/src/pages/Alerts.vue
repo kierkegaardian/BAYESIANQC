@@ -40,22 +40,24 @@
 import { onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { api } from "../api/client";
+import type { AlertOut, AlertUpdate } from "../api/contracts";
 
-const alerts = ref<any[]>([]);
+const alerts = ref<AlertOut[]>([]);
 
 async function loadAlerts() {
-  alerts.value = await api.get("/alerts");
+  alerts.value = await api.get<AlertOut[]>("/alerts");
 }
 
-async function saveAlert(row: any) {
+async function saveAlert(row: AlertOut) {
   try {
-    await api.patch(`/alerts/${row.id}`, {
-      status: row.status,
-      assigned_to: row.assigned_to,
+    const payload: AlertUpdate = {
+      status: row.status ?? null,
+      assigned_to: row.assigned_to ?? null,
       acknowledged_by: row.acknowledged_by || "ui-user",
-    });
+    };
+    await api.patch(`/alerts/${row.id}`, payload);
     ElMessage.success("Alert updated");
-  } catch (error) {
+  } catch {
     ElMessage.error("Failed to update alert");
   }
 }

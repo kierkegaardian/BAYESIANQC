@@ -116,16 +116,23 @@
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
 import { api } from "../api/client";
+import type {
+  AnalyteOut,
+  InstrumentOut,
+  MethodOut,
+  StreamConfigIn,
+  StreamConfigOut,
+} from "../api/contracts";
 
-const instruments = ref<any[]>([]);
-const methods = ref<any[]>([]);
-const analytes = ref<any[]>([]);
-const streams = ref<any[]>([]);
+const instruments = ref<InstrumentOut[]>([]);
+const methods = ref<MethodOut[]>([]);
+const analytes = ref<AnalyteOut[]>([]);
+const streams = ref<StreamConfigOut[]>([]);
 const dialogOpen = ref(false);
 const versionsOpen = ref(false);
-const versions = ref<any[]>([]);
+const versions = ref<StreamConfigOut[]>([]);
 
-const form = reactive({
+const form = reactive<StreamConfigIn>({
   stream_id: "",
   instrument: "",
   method: "",
@@ -139,8 +146,8 @@ const form = reactive({
   action_limit_sd: 3,
   risk_threshold_warn: 50,
   risk_threshold_hold: 80,
-  min_value: null as number | null,
-  max_value: null as number | null,
+  min_value: null,
+  max_value: null,
 });
 
 const filteredMethods = computed(() => {
@@ -185,10 +192,10 @@ watch(
 );
 
 async function loadData() {
-  instruments.value = await api.get("/instruments");
-  methods.value = await api.get("/methods");
-  analytes.value = await api.get("/analytes");
-  streams.value = await api.get("/streams");
+  instruments.value = await api.get<InstrumentOut[]>("/instruments");
+  methods.value = await api.get<MethodOut[]>("/methods");
+  analytes.value = await api.get<AnalyteOut[]>("/analytes");
+  streams.value = await api.get<StreamConfigOut[]>("/streams");
 }
 
 function openCreate() {
@@ -215,15 +222,17 @@ async function saveStream() {
     await api.post("/streams", form);
     ElMessage.success("Stream created");
     dialogOpen.value = false;
-    streams.value = await api.get("/streams");
-  } catch (error) {
+    streams.value = await api.get<StreamConfigOut[]>("/streams");
+  } catch {
     ElMessage.error("Failed to create stream");
   }
 }
 
-async function viewVersions(row: any) {
+async function viewVersions(row: StreamConfigOut) {
   versionsOpen.value = true;
-  versions.value = await api.get(`/streams/${row.stream_id}/configs`);
+  versions.value = await api.get<StreamConfigOut[]>(
+    `/streams/${row.stream_id}/configs`
+  );
 }
 
 onMounted(loadData);

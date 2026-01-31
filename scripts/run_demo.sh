@@ -23,7 +23,7 @@ start_frontend() {
     echo "Frontend already running (PID $(cat "${FRONTEND_PID}"))."
     return
   fi
-  (cd "${ROOT_DIR}/frontend" && nohup npm run dev -- --host 0.0.0.0 --port 5173 \
+  (cd "${ROOT_DIR}/frontend" && nohup npm run dev -- --host 0.0.0.0 --port 5177 \
     > "${FRONTEND_LOG}" 2>&1 & echo $! > "${FRONTEND_PID}")
   echo "Frontend started (PID $(cat "${FRONTEND_PID}"))."
 }
@@ -31,4 +31,4 @@ start_frontend() {
 start_backend
 start_frontend
 
-echo "Open http://localhost:5173 (or your LAN IP) for the UI."
+echo "Open http://localhost:5177 (or your LAN IP) for the UI."

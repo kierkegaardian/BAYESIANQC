@@ -31,15 +31,16 @@
 <script setup lang="ts">
 import { onMounted, reactive } from "vue";
 import { api } from "../api/client";
+import type { ReportSummaryOut } from "../api/contracts";
 
-const summary = reactive({
+const summary = reactive<ReportSummaryOut>({
   alerts: { total: 0, open: 0, acknowledged: 0 },
   investigations: { total: 0, open: 0 },
   capas: { total: 0, open: 0 },
 });
 
 async function loadSummary() {
-  const data = await api.get("/reports/summary");
+  const data = await api.get<ReportSummaryOut>("/reports/summary");
   summary.alerts = data.alerts;
   summary.investigations = data.investigations;
   summary.capas = data.capas;

@@ -54,14 +54,20 @@
 import { onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { api } from "../api/client";
+import type { AnalyteIn, AnalyteOut, MethodOut } from "../api/contracts";
 
-const methods = ref<any[]>([]);
-const analytes = ref<any[]>([]);
+type AnalyteForm = Omit<AnalyteIn, "method_id" | "units"> & {
+  method_id: number | null;
+  units: string;
+};
+
+const methods = ref<MethodOut[]>([]);
+const analytes = ref<AnalyteOut[]>([]);
 const dialogOpen = ref(false);
 const dialogTitle = ref("Add Analyte");
 const editingId = ref<number | null>(null);
 
-const form = reactive({
+const form = reactive<AnalyteForm>({
   name: "",
   method_id: null as number | null,
   units: "",
@@ -76,8 +82,8 @@ function resetForm() {
 }
 
 async function loadData() {
-  methods.value = await api.get("/methods");
-  analytes.value = await api.get("/analytes");
+  methods.value = await api.get<MethodOut[]>("/methods");
+  analytes.value = await api.get<AnalyteOut[]>("/analytes");
 }
 
 function openCreate() {
@@ -87,27 +93,27 @@ function openCreate() {
   dialogOpen.value = true;
 }
 
-function openEdit(row: any) {
+function openEdit(row: AnalyteOut) {
   editingId.value = row.id;
   dialogTitle.value = "Edit Analyte";
   form.name = row.name;
   form.method_id = row.method_id;
-  form.units = row.units || "";
+  form.units = row.units ?? "";
   form.active = row.active;
   dialogOpen.value = true;
 }
 
 async function saveAnalyte() {
   try {
-    if (editingId.value) {
+    if (editingId.value !== null) {
       await api.patch(`/analytes/${editingId.value}`, form);
     } else {
       await api.post("/analytes", form);
     }
     ElMessage.success("Analyte saved");
     dialogOpen.value = false;
-    analytes.value = await api.get("/analytes");
-  } catch (error) {
+    analytes.value = await api.get<AnalyteOut[]>("/analytes");
+  } catch {
     ElMessage.error("Failed to save analyte");
   }
 }

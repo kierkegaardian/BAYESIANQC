@@ -64,12 +64,28 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
+import type { UploadRequestOptions } from "element-plus/es/components/upload/src/upload";
 import { api } from "../api/client";
+import type {
+  CsvIngestResult,
+  EntrySource,
+  QCRecordIn,
+  StreamConfigOut,
+} from "../api/contracts";
 
-const streams = ref<any[]>([]);
+type IngestionForm = {
+  stream_id: string;
+  result_value: number;
+  timestamp: Date;
+  entry_source: EntrySource;
+  comments: string;
+  idempotency_key: string;
+};
+
+const streams = ref<StreamConfigOut[]>([]);
 const uploadSummary = ref<string | null>(null);
 
-const form = reactive({
+const form = reactive<IngestionForm>({
   stream_id: "",
   result_value: 0,
   timestamp: new Date(),
@@ -89,7 +105,7 @@ watch(
 );
 
 async function loadStreams() {
-  streams.value = await api.get("/streams");
+  streams.value = await api.get<StreamConfigOut[]>("/streams");
 }
 
 async function submitRecord() {
@@ -98,7 +114,7 @@ async function submitRecord() {
     ElMessage.error("Select a stream first");
     return;
   }
-  const payload = {
+  const payload: QCRecordIn = {
     stream_id: stream.stream_id,
     result_value: form.result_value,
     timestamp: new Date(form.timestamp).toISOString(),
@@ -131,11 +147,14 @@ async function submitRecord() {
   }
 }
 
-async function uploadCsv(options: any) {
+async function uploadCsv(options: UploadRequestOptions) {
   try {
     const formData = new FormData();
     formData.append("file", options.file);
-    const response = await api.upload("/qc/records/csv", formData);
+    const response = await api.upload<CsvIngestResult>(
+      "/qc/records/csv",
+      formData
+    );
     uploadSummary.value = `Accepted: ${response.accepted}, Errors: ${response.errors.length}`;
     ElMessage.success("CSV processed");
   } catch (error) {

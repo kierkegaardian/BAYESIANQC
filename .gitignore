@@ -4,6 +4,7 @@ __pycache__/
 bayesianqc.db
 test_bayesianqc.db
 uvicorn.log
+openapi.json
 node_modules/
 dist/
 .vite/

@@ -4,7 +4,9 @@ from datetime import datetime
 from enum import Enum
 from typing import List, Optional, Tuple
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, JsonValue, field_validator
+
+from app.domain import Disposition, SignalSeverity
 
 
 class Role(str, Enum):
@@ -86,7 +88,7 @@ class QCRecordIn(BaseModel):
 
 class FrequentistSignal(BaseModel):
     rule: str
-    severity: str
+    severity: SignalSeverity
     evidence: str
 
 
@@ -103,7 +105,7 @@ class QCRecordOut(BaseModel):
     record: QCRecordIn
     signals: List[FrequentistSignal]
     bayesian_risk: BayesianRisk
-    disposition: str
+    disposition: Disposition
 
 
 class QCRecordResolutionIn(BaseModel):
@@ -128,8 +130,8 @@ class AuditEntryOut(BaseModel):
     action: str
     entity_type: str
     entity_id: Optional[str] = None
-    before: Optional[dict]
-    after: dict
+    before: Optional[dict[str, JsonValue]]
+    after: dict[str, JsonValue]
     reason: Optional[str]
 
 
@@ -139,7 +141,7 @@ class AlertOut(BaseModel):
     created_at: datetime
     signals: List[FrequentistSignal]
     bayesian_risk: BayesianRisk
-    disposition: str
+    disposition: Disposition
     acknowledged: bool = False
     status: Optional[AlertStatus] = None
     acknowledged_at: Optional[datetime] = None
@@ -163,7 +165,7 @@ class IngestionResult(BaseModel):
     idempotency_key: Optional[str] = None
 
 
-class StreamConfigIn(BaseModel):
+class StreamConfigBase(BaseModel):
     stream_id: str
     analyte: str
     method: str
@@ -180,16 +182,19 @@ class StreamConfigIn(BaseModel):
     min_value: Optional[float] = None
     max_value: Optional[float] = None
     allowed_units: Optional[List[str]] = None
-    unit_conversions: Optional[dict] = None
+    unit_conversions: Optional[dict[str, JsonValue]] = None
     baseline_start: Optional[datetime] = None
     baseline_end: Optional[datetime] = None
     risk_threshold_warn: int = 50
     risk_threshold_hold: int = 80
-    rule_set: Optional[dict] = None
+    rule_set: Optional[dict[str, JsonValue]] = None
+
+
+class StreamConfigIn(StreamConfigBase):
     effective_from: Optional[datetime] = None
 
 
-class StreamConfigOut(StreamConfigIn):
+class StreamConfigOut(StreamConfigBase):
     version: int
     created_at: datetime
     created_by: str
@@ -258,16 +263,19 @@ class AnalyteUpdate(BaseModel):
     active: Optional[bool] = None
 
 
-class PriorConfigIn(BaseModel):
+class PriorConfigBase(BaseModel):
     stream_id: str
     mu0: float
     kappa0: float
     alpha0: float
     beta0: float
+
+
+class PriorConfigIn(PriorConfigBase):
     effective_from: Optional[datetime] = None
 
 
-class PriorConfigOut(PriorConfigIn):
+class PriorConfigOut(PriorConfigBase):
     version: int
     created_at: datetime
     created_by: str
@@ -281,7 +289,7 @@ class QCEventIn(BaseModel):
     instrument_id: Optional[str] = None
     analyte: Optional[str] = None
     method_id: Optional[str] = None
-    metadata: Optional[dict] = None
+    metadata: Optional[dict[str, JsonValue]] = None
 
 
 class QCEventOut(QCEventIn):
@@ -297,18 +305,21 @@ class AlertUpdate(BaseModel):
     due_at: Optional[datetime] = None
 
 
-class InvestigationIn(BaseModel):
+class InvestigationBase(BaseModel):
     problem_statement: str
     suspected_cause: Optional[str] = None
     containment: Optional[str] = None
     data_reviewed: Optional[str] = None
     outcome: Optional[str] = None
     decision: Optional[str] = None
-    status: Optional[InvestigationStatus] = None
     alert_id: Optional[str] = None
 
 
-class InvestigationOut(InvestigationIn):
+class InvestigationIn(InvestigationBase):
+    status: Optional[InvestigationStatus] = None
+
+
+class InvestigationOut(InvestigationBase):
     id: int
     status: InvestigationStatus
     created_at: datetime
@@ -316,20 +327,23 @@ class InvestigationOut(InvestigationIn):
     created_by: str
 
 
-class CapaIn(BaseModel):
-    status: Optional[CapaStatus] = None
+class CapaBase(BaseModel):
     root_cause_category: Optional[str] = None
-    corrective_actions: Optional[List[dict]] = None
-    preventive_actions: Optional[List[dict]] = None
+    corrective_actions: Optional[List[dict[str, JsonValue]]] = None
+    preventive_actions: Optional[List[dict[str, JsonValue]]] = None
     owners: Optional[List[str]] = None
     due_at: Optional[datetime] = None
     verification_plan: Optional[str] = None
-    effectiveness_criteria: Optional[dict] = None
+    effectiveness_criteria: Optional[dict[str, JsonValue]] = None
     alert_id: Optional[str] = None
     investigation_id: Optional[int] = None
 
 
-class CapaOut(CapaIn):
+class CapaIn(CapaBase):
+    status: Optional[CapaStatus] = None
+
+
+class CapaOut(CapaBase):
     id: int
     status: CapaStatus
     created_at: datetime

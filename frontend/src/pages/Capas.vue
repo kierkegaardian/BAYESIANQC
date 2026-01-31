@@ -70,13 +70,26 @@
 import { onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { api } from "../api/client";
+import type { CapaIn, CapaOut, CapaStatus } from "../api/contracts";
 
-const capas = ref<any[]>([]);
+type CapaForm = {
+  alert_id: string;
+  investigation_id: string;
+  root_cause_category: string;
+  corrective_actions: string;
+  preventive_actions: string;
+  owners: string;
+  due_at: Date | null;
+  verification_plan: string;
+  status: CapaStatus;
+};
+
+const capas = ref<CapaOut[]>([]);
 const dialogOpen = ref(false);
 const dialogTitle = ref("New CAPA");
 const editingId = ref<number | null>(null);
 
-const form = reactive({
+const form = reactive<CapaForm>({
   alert_id: "",
   investigation_id: "",
   root_cause_category: "",
@@ -101,7 +114,7 @@ function resetForm() {
 }
 
 async function loadCapas() {
-  capas.value = await api.get("/capas");
+  capas.value = await api.get<CapaOut[]>("/capas");
 }
 
 function openCreate() {
@@ -111,31 +124,31 @@ function openCreate() {
   dialogOpen.value = true;
 }
 
-function openEdit(row: any) {
+function openEdit(row: CapaOut) {
   editingId.value = row.id;
   dialogTitle.value = "Edit CAPA";
-  form.alert_id = row.alert_id || "";
-  form.investigation_id = row.investigation_id || "";
-  form.root_cause_category = row.root_cause_category || "";
-  form.corrective_actions = JSON.stringify(row.corrective_actions || []);
-  form.preventive_actions = JSON.stringify(row.preventive_actions || []);
-  form.owners = (row.owners || []).join(", ");
+  form.alert_id = row.alert_id ?? "";
+  form.investigation_id = row.investigation_id?.toString() ?? "";
+  form.root_cause_category = row.root_cause_category ?? "";
+  form.corrective_actions = JSON.stringify(row.corrective_actions ?? []);
+  form.preventive_actions = JSON.stringify(row.preventive_actions ?? []);
+  form.owners = (row.owners ?? []).join(", ");
   form.due_at = row.due_at ? new Date(row.due_at) : null;
-  form.verification_plan = row.verification_plan || "";
-  form.status = row.status || "draft";
+  form.verification_plan = row.verification_plan ?? "";
+  form.status = row.status;
   dialogOpen.value = true;
 }
 
-function parseJsonList(value: string) {
-  try {
-    return JSON.parse(value);
-  } catch {
-    return [];
+function parseJsonList(value: string): Record<string, unknown>[] {
+  const parsed = JSON.parse(value);
+  if (!Array.isArray(parsed)) {
+    throw new Error("Expected a JSON array");
   }
+  return parsed as Record<string, unknown>[];
 }
 
 async function saveCapa() {
-  const payload = {
+  const payload: CapaIn = {
     alert_id: form.alert_id || null,
     investigation_id: form.investigation_id ? Number(form.investigation_id) : null,
     root_cause_category: form.root_cause_category || null,
@@ -147,7 +160,7 @@ async function saveCapa() {
     status: form.status,
   };
   try {
-    if (editingId.value) {
+    if (editingId.value !== null) {
       await api.patch(`/capas/${editingId.value}`, payload);
     } else {
       await api.post("/capas", payload);
@@ -156,7 +169,9 @@ async function saveCapa() {
     dialogOpen.value = false;
     await loadCapas();
   } catch (error) {
-    ElMessage.error("Failed to save CAPA");
+    const message =
+      error instanceof Error && error.message ? error.message : "Failed to save CAPA";
+    ElMessage.error(message);
   }
 }
 

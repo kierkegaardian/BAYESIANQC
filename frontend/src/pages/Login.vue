@@ -22,6 +22,7 @@ import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { api, setApiKey } from "../api/client";
+import type { ReportSummaryOut } from "../api/contracts";
 
 const router = useRouter();
 const apiKey = ref("local-dev-key");
@@ -29,7 +30,7 @@ const apiKey = ref("local-dev-key");
 async function login() {
   try {
     setApiKey(apiKey.value.trim());
-    await api.get("/reports/summary");
+    await api.get<ReportSummaryOut>("/reports/summary");
     ElMessage.success("Connected to API");
     router.push("/");
   } catch (error) {

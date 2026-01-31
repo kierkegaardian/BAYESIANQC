@@ -48,7 +48,7 @@ cd frontend
 npm install
 npm run dev
 ```
-The UI runs on `http://127.0.0.1:5173` and expects the API at `http://127.0.0.1:8010`.
+The UI runs on `http://127.0.0.1:5177` and expects the API at `http://127.0.0.1:8010`.
 Override the API base with `VITE_API_URL` in `frontend/.env.local`.
 Every UI page includes a Help button with page purpose and basic usage notes.
 Chart view now centers on the stream mean, shows color-coded 1/2/3 sigma bands using stream config limits, and uses a broken Y-axis when outliers exceed control limits (with an optional log-scale toggle).
@@ -109,7 +109,29 @@ Click chart points to resolve them (exclude from stats) or reinstate them.
 ### Visualization & UI
 - **Risk Trendline:** Add a secondary Y-axis to the Levey-Jennings chart to visualize the "Risk Score" trajectory over time.
 - **Configuration UI:** Build dedicated UI forms for managing `StreamConfig` and `PriorConfig` (currently API-driven).
+- **Uncertainty Visualization (Fan Charts):**
+  - *Goal:* Visualize the evolution of belief over time by overlaying Credible Intervals (CI) for the mean and Predictive Intervals (PI) for future results on the Levey-Jennings chart.
+  - *Research:*
+    - "Fan Charts" (e.g., Bank of England inflation forecasts) for displaying widening/narrowing uncertainty.
+    - Differentiating between "uncertainty of the mean" (narrow band) and "uncertainty of the next result" (wide band, comparable to SD limits).
+    - Methods to optimize frontend rendering of shaded bands using ECharts `custom` series or `area` plots.
 
 ### Integration & Architecture
-- **Webhooks:** Implement a webhook system to push "Risk Alerts" to a parent LIMS, decoupling the response cycle.
+- **Webhooks & Notifications:**
+  - Implement a webhook system to push "Risk Alerts" to a parent LIMS.
+  - *Research:* Asynchronous task queues (e.g., Celery, ARQ) to handle email/Slack dispatch without blocking the ingestion API response.
 - **OIDC/Auth:** Upgrade from static API keys to OIDC/OAuth2 for better integration with enterprise identity providers.
+
+### Advanced Bayesian Models
+- **Drift Detection (Time-Varying Mean):**
+  - *Goal:* Detect gradual shifts in the process mean before they trigger traditional "Shift" rules.
+  - *Research:*
+    - **Dynamic Linear Models (DLM):** specifically the "Local Level Model" (random walk plus noise).
+    - **Kalman Filter:** The classic recursive solution for linear Gaussian systems, which is mathematically equivalent to the Bayesian DLM for this use case.
+    - Reference: *Bayesian Forecasting and Dynamic Models* by Harrison & West.
+- **Lot-to-Lot Variation (Hierarchical Modeling):**
+  - *Goal:* "Borrow strength" (shrinkage) across control material lots so that new lots with few data points yield stable risk estimates based on historical performance of previous lots.
+  - *Research:*
+    - **Bayesian Hierarchical / Multilevel Models:** Modeling `Result ~ Normal(Lot_Mean, Sigma)` where `Lot_Mean ~ Normal(Global_Mean, Tau)`.
+    - **Partial Pooling:** How to balance between "no pooling" (treating every lot as independent) and "complete pooling" (ignoring lot differences).
+    - Reference: *Bayesian Data Analysis* (Gelman et al.), specifically chapters on Hierarchical Models.

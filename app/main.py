@@ -3,18 +3,30 @@ from __future__ import annotations
 import csv
 import json
 import os
+from collections.abc import Sequence
 from datetime import datetime, timezone
 from io import StringIO
-from typing import Optional
+from typing import Any, Optional
 from uuid import uuid4
 
 from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from fastapi.responses import HTMLResponse
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app import bayesian, frequentist
+from app.api_models import (
+    AlertSummary,
+    CapaSummary,
+    CsvIngestResult,
+    CsvRowError,
+    InvestigationSummary,
+    LotSegmentOut,
+    QCRecordChartOut,
+    ReportSummaryOut,
+    StreamChartOut,
+)
 from app.db import get_engine, get_session, init_db
 from app.db_models import (
     AlertRecord,
@@ -31,6 +43,7 @@ from app.db_models import (
     QCRecord,
     StreamConfig,
 )
+from app.domain import Disposition, SignalSeverity
 from app.models import (
     AnalyteIn,
     AnalyteOut,
@@ -39,10 +52,12 @@ from app.models import (
     AlertStatus,
     AlertUpdate,
     AuditEntryOut,
+    BayesianRisk,
     CapaIn,
     CapaOut,
     CapaStatus,
     DuplicateStatus,
+    EventType,
     IngestionResult,
     InstrumentIn,
     InstrumentOut,
@@ -62,6 +77,7 @@ from app.models import (
     QCRecordOut,
     QCRecordResolutionIn,
     QCRecordResolutionOut,
+    FrequentistSignal,
     StreamConfigIn,
     StreamConfigOut,
 )
@@ -89,7 +105,7 @@ app = FastAPI(title="Bayesian QC Prototype", version="0.2.0", docs_url=None, red
 
 cors_origins = [
     origin.strip()
-    for origin in os.getenv("BAYESIANQC_CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",")
+    for origin in os.getenv("BAYESIANQC_CORS_ORIGINS", "http://localhost:5177,http://127.0.0.1:5177").split(",")
     if origin.strip()
 ]
 cors_origin_regex = os.getenv("BAYESIANQC_CORS_ORIGIN_REGEX")
@@ -98,7 +114,7 @@ if cors_origin_regex is None:
         r"^http://(localhost|127\.0\.0\.1|"
         r"10\.\d+\.\d+\.\d+|"
         r"192\.168\.\d+\.\d+|"
-        r"172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+):5173$"
+        r"172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+):5177$"
     )
 elif not cors_origin_regex.strip():
     cors_origin_regex = None
@@ -219,8 +235,11 @@ async def custom_docs():
         "Use Swagger UI to explore endpoints and send requests. Click a route, choose "
         "'Try it out', and add the X-API-Key header (default: local-dev-key) before executing."
     )
+    openapi_url = app.openapi_url
+    if openapi_url is None:
+        raise RuntimeError("OpenAPI URL is not configured")
     html = get_swagger_ui_html(
-        openapi_url=app.openapi_url,
+        openapi_url=openapi_url,
         title="BayesianQC API Docs",
     ).body.decode("utf-8")
     return HTMLResponse(_inject_help(html, content))
@@ -232,8 +251,11 @@ async def custom_redoc():
         "Use this page for read-only reference of schemas, endpoints, and models. "
         "All API calls still require X-API-Key when sent from your client."
     )
+    openapi_url = app.openapi_url
+    if openapi_url is None:
+        raise RuntimeError("OpenAPI URL is not configured")
     html = get_redoc_html(
-        openapi_url=app.openapi_url,
+        openapi_url=openapi_url,
         title="BayesianQC API Reference",
     ).body.decode("utf-8")
     return HTMLResponse(_inject_help(html, content))
@@ -256,7 +278,7 @@ def normalize_units(value: float, units: str, config: StreamConfig) -> tuple[flo
     raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Units do not match stream configuration")
 
 
-def parse_csv_row(row: dict) -> QCRecordIn:
+def parse_csv_row(row: dict[str, str | None]) -> QCRecordIn:
     cleaned = {key: value for key, value in row.items() if value not in ("", None)}
     if "flags" in cleaned:
         try:
@@ -273,28 +295,28 @@ def validate_bounds(value: float, config: StreamConfig) -> None:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Result above configured maximum")
 
 
-def determine_disposition(signals: list, risk_score: int, config: StreamConfig) -> str:
-    if any(s.severity == "action" for s in signals):
-        return "reject"
+def determine_disposition(signals: Sequence[FrequentistSignal], risk_score: int, config: StreamConfig) -> Disposition:
+    if any(s.severity == SignalSeverity.ACTION for s in signals):
+        return Disposition.REJECT
     if risk_score >= config.risk_threshold_hold:
-        return "hold-for-review"
+        return Disposition.HOLD_FOR_REVIEW
     if signals or risk_score >= config.risk_threshold_warn:
-        return "monitor"
-    return "accept"
+        return Disposition.MONITOR
+    return Disposition.ACCEPT
 
 
-def alert_severity(signals: list, risk_score: int, config: StreamConfig) -> str:
-    if any(s.severity == "action" for s in signals) or risk_score >= config.risk_threshold_hold:
+def alert_severity(signals: Sequence[FrequentistSignal], risk_score: int, config: StreamConfig) -> str:
+    if any(s.severity == SignalSeverity.ACTION for s in signals) or risk_score >= config.risk_threshold_hold:
         return "action"
     if signals or risk_score >= config.risk_threshold_warn:
         return "warn"
     return "info"
 
 
-def _lot_segments(records: list[QCRecord]) -> list[dict]:
+def _lot_segments(records: Sequence[QCRecord]) -> list[LotSegmentOut]:
     if not records:
         return []
-    segments: list[dict] = []
+    segments: list[LotSegmentOut] = []
     current_lot = records[0].control_material_lot or "unknown"
     start_time = records[0].timestamp
     last_time = records[0].timestamp
@@ -302,31 +324,20 @@ def _lot_segments(records: list[QCRecord]) -> list[dict]:
     for record in records:
         lot = record.control_material_lot or "unknown"
         if lot != current_lot:
-            segments.append(
-                {
-                    "control_material_lot": current_lot,
-                    "start": start_time.isoformat(),
-                    "end": last_time.isoformat(),
-                    "count": count,
-                }
-            )
+            segments.append(LotSegmentOut(control_material_lot=current_lot, start=start_time, end=last_time, count=count))
             current_lot = lot
             start_time = record.timestamp
             count = 0
         count += 1
         last_time = record.timestamp
-    segments.append(
-        {
-            "control_material_lot": current_lot,
-            "start": start_time.isoformat(),
-            "end": last_time.isoformat(),
-            "count": count,
-        }
-    )
+    segments.append(LotSegmentOut(control_material_lot=current_lot, start=start_time, end=last_time, count=count))
     return segments
 
 
-def _audit_out(entry) -> AuditEntryOut:
+def _audit_out(entry: AuditEntry) -> AuditEntryOut:
+    after = entry.after
+    if after is None:
+        raise RuntimeError("Audit entry missing after snapshot")
     return AuditEntryOut(
         timestamp=entry.timestamp,
         actor=entry.actor,
@@ -334,7 +345,7 @@ def _audit_out(entry) -> AuditEntryOut:
         entity_type=entry.entity_type,
         entity_id=entry.entity_id,
         before=entry.before,
-        after=entry.after,
+        after=after,
         reason=entry.reason,
     )
 
@@ -345,9 +356,9 @@ def _alert_out(alert: AlertRecord) -> AlertOut:
         id=alert.alert_id,
         stream_id=alert.stream_id,
         created_at=alert.created_at,
-        signals=alert.signals,
-        bayesian_risk=alert.bayesian_risk,
-        disposition=alert.disposition,
+        signals=[FrequentistSignal.model_validate(signal) for signal in alert.signals],
+        bayesian_risk=BayesianRisk.model_validate(alert.bayesian_risk),
+        disposition=Disposition(alert.disposition),
         acknowledged=acknowledged,
         status=alert.status,
         acknowledged_at=alert.acknowledged_at,
@@ -373,11 +384,13 @@ def _analyte_out(analyte: Analyte) -> AnalyteOut:
     return AnalyteOut(**analyte.model_dump())
 
 
-def _prior_out(config) -> PriorConfigOut:
+def _prior_out(config: PriorConfig) -> PriorConfigOut:
     return PriorConfigOut(**config.model_dump())
 
 
 def _event_out(event: QCEvent) -> QCEventOut:
+    if event.id is None:
+        raise RuntimeError("QC event missing id")
     return QCEventOut(
         id=event.id,
         event_type=event.event_type,
@@ -393,6 +406,8 @@ def _event_out(event: QCEvent) -> QCEventOut:
 
 
 def _qc_record_resolution_out(record: QCRecord) -> QCRecordResolutionOut:
+    if record.id is None:
+        raise RuntimeError("QC record missing id")
     return QCRecordResolutionOut(
         id=record.id,
         stream_id=record.stream_id,
@@ -406,6 +421,8 @@ def _qc_record_resolution_out(record: QCRecord) -> QCRecordResolutionOut:
 
 
 def _investigation_out(investigation: Investigation, alert_id: Optional[str] = None) -> InvestigationOut:
+    if investigation.id is None:
+        raise RuntimeError("Investigation missing id")
     return InvestigationOut(
         id=investigation.id,
         status=investigation.status,
@@ -423,6 +440,8 @@ def _investigation_out(investigation: Investigation, alert_id: Optional[str] = N
 
 
 def _capa_out(capa: Capa, alert_id: Optional[str] = None, investigation_id: Optional[int] = None) -> CapaOut:
+    if capa.id is None:
+        raise RuntimeError("CAPA missing id")
     return CapaOut(
         id=capa.id,
         status=capa.status,
@@ -561,7 +580,7 @@ def process_ingestion(
                 stream_id=record.stream_id,
                 qc_record_id=record.id,
                 severity=alert_severity(signals, risk.risk_score, config),
-                disposition=disposition,
+                disposition=disposition.value,
                 signals=[s.model_dump(mode="json") for s in signals],
                 bayesian_risk=risk.model_dump(mode="json"),
             ),
@@ -586,33 +605,34 @@ async def ingest_qc_record(
     idempotency_key: Optional[str] = Header(default=None, alias="Idempotency-Key"),
     user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
     session: Session = Depends(get_session),
-):
+) -> IngestionResult:
     if idempotency_key:
         receipt = get_idempotent_response(session, idempotency_key)
         if receipt:
-            return receipt.response
+            return IngestionResult.model_validate(receipt.response)
     return process_ingestion(payload, session, user, idempotency_key)
 
 
-@app.post("/qc/records/csv")
+@app.post("/qc/records/csv", response_model=CsvIngestResult)
 async def ingest_qc_records_csv(
     file: UploadFile = File(...),
     user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
     session: Session = Depends(get_session),
-):
+) -> CsvIngestResult:
     if not file.filename or not file.filename.lower().endswith(".csv"):
         raise HTTPException(status_code=400, detail="CSV file required")
     content = (await file.read()).decode("utf-8")
     reader = csv.DictReader(StringIO(content))
-    results = []
-    errors = []
+    results: list[IngestionResult] = []
+    errors: list[CsvRowError] = []
     for idx, row in enumerate(reader, start=1):
         try:
             payload = parse_csv_row(row)
-            results.append(process_ingestion(payload, session, user, idempotency_key=None).model_dump())
+            results.append(process_ingestion(payload, session, user, idempotency_key=None))
         except Exception as exc:  # noqa: BLE001 - report row-level errors
-            errors.append({"row": idx, "error": str(exc)})
-    return {"accepted": len(results), "errors": errors, "results": results}
+            session.rollback()
+            errors.append(CsvRowError(row=idx, error=str(exc)))
+    return CsvIngestResult(accepted=len(results), errors=errors, results=results)
 
 
 @app.patch("/qc/records/{record_id}/resolution", response_model=QCRecordResolutionOut)
@@ -659,7 +679,7 @@ async def list_instruments(
     user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
     session: Session = Depends(get_session),
 ):
-    query = select(Instrument).order_by(Instrument.name.asc())
+    query = select(Instrument).order_by(col(Instrument.name).asc())
     if active is not None:
         query = query.where(Instrument.active == active)
     instruments = session.exec(query).all()
@@ -725,7 +745,7 @@ async def list_methods(
     user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
     session: Session = Depends(get_session),
 ):
-    query = select(Method).order_by(Method.name.asc())
+    query = select(Method).order_by(col(Method.name).asc())
     if instrument_id is not None:
         query = query.where(Method.instrument_id == instrument_id)
     if active is not None:
@@ -800,7 +820,7 @@ async def list_analytes(
     user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
     session: Session = Depends(get_session),
 ):
-    query = select(Analyte).order_by(Analyte.name.asc())
+    query = select(Analyte).order_by(col(Analyte.name).asc())
     if method_id is not None:
         query = query.where(Analyte.method_id == method_id)
     if active is not None:
@@ -874,7 +894,11 @@ async def list_streams(
     session: Session = Depends(get_session),
 ):
     configs = session.exec(
-        select(StreamConfig).order_by(StreamConfig.stream_id, StreamConfig.effective_from.desc(), StreamConfig.version.desc())
+        select(StreamConfig).order_by(
+            col(StreamConfig.stream_id),
+            col(StreamConfig.effective_from).desc(),
+            col(StreamConfig.version).desc(),
+        )
     ).all()
     latest = {}
     for cfg in configs:
@@ -963,7 +987,9 @@ async def list_priors(
     session: Session = Depends(get_session),
 ):
     priors = session.exec(
-        select(PriorConfig).where(PriorConfig.stream_id == stream_id).order_by(PriorConfig.version.desc())
+        select(PriorConfig)
+        .where(PriorConfig.stream_id == stream_id)
+        .order_by(col(PriorConfig.version).desc())
     ).all()
     return [_prior_out(prior) for prior in priors]
 
@@ -1003,12 +1029,12 @@ async def ingest_event(
 @app.get("/qc/events", response_model=list[QCEventOut])
 async def list_events(
     stream_id: Optional[str] = None,
-    event_type: Optional[str] = None,
+    event_type: Optional[EventType] = None,
     limit: int = 200,
     user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
     session: Session = Depends(get_session),
 ):
-    query = select(QCEvent).order_by(QCEvent.timestamp.desc())
+    query = select(QCEvent).order_by(col(QCEvent.timestamp).desc())
     if stream_id:
         query = query.where(QCEvent.stream_id == stream_id)
     if event_type:
@@ -1022,7 +1048,7 @@ async def list_alerts(
     user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
     session: Session = Depends(get_session),
 ):
-    alerts = session.exec(select(AlertRecord).order_by(AlertRecord.created_at.desc())).all()
+    alerts = session.exec(select(AlertRecord).order_by(col(AlertRecord.created_at).desc())).all()
     return [_alert_out(alert) for alert in alerts]
 
 
@@ -1062,16 +1088,18 @@ async def update_alert_status(
 
 @app.get("/investigations", response_model=list[InvestigationOut])
 async def list_investigations(
-    status_filter: Optional[str] = None,
+    status_filter: Optional[InvestigationStatus] = None,
     user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
     session: Session = Depends(get_session),
 ):
-    query = select(Investigation).order_by(Investigation.created_at.desc())
+    query = select(Investigation).order_by(col(Investigation.created_at).desc())
     if status_filter:
         query = query.where(Investigation.status == status_filter)
     investigations = session.exec(query).all()
     results = []
     for investigation in investigations:
+        if investigation.id is None:
+            raise RuntimeError("Investigation missing id")
         alert_id = _investigation_alert_id(session, investigation.id)
         results.append(_investigation_out(investigation, alert_id=alert_id))
     return results
@@ -1143,6 +1171,8 @@ async def update_investigation_record(
         after=investigation.model_dump(mode="json"),
         reason=None,
     )
+    if investigation.id is None:
+        raise RuntimeError("Investigation missing id")
     alert_id_str = _investigation_alert_id(session, investigation.id)
     return _investigation_out(investigation, alert_id=alert_id_str)
 
@@ -1226,22 +1256,26 @@ async def update_capa_record(
         after=capa.model_dump(mode="json"),
         reason=None,
     )
+    if capa.id is None:
+        raise RuntimeError("CAPA missing id")
     alert_id_str, investigation_id = _capa_links(session, capa.id)
     return _capa_out(capa, alert_id=alert_id_str, investigation_id=investigation_id)
 
 
 @app.get("/capas", response_model=list[CapaOut])
 async def list_capas(
-    status_filter: Optional[str] = None,
+    status_filter: Optional[CapaStatus] = None,
     user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
     session: Session = Depends(get_session),
 ):
-    query = select(Capa).order_by(Capa.created_at.desc())
+    query = select(Capa).order_by(col(Capa.created_at).desc())
     if status_filter:
         query = query.where(Capa.status == status_filter)
     capas = session.exec(query).all()
     results = []
     for capa in capas:
+        if capa.id is None:
+            raise RuntimeError("CAPA missing id")
         alert_id, investigation_id = _capa_links(session, capa.id)
         results.append(_capa_out(capa, alert_id=alert_id, investigation_id=investigation_id))
     return results
@@ -1252,36 +1286,36 @@ async def list_audit(
     user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
     session: Session = Depends(get_session),
 ):
-    entries = session.exec(select(AuditEntry).order_by(AuditEntry.timestamp.desc())).all()
+    entries = session.exec(select(AuditEntry).order_by(col(AuditEntry.timestamp).desc())).all()
     return [_audit_out(entry) for entry in entries]
 
 
-@app.get("/reports/summary")
+@app.get("/reports/summary", response_model=ReportSummaryOut)
 async def report_summary(
     user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
     session: Session = Depends(get_session),
-):
-    alert_counts = session.exec(select(AlertRecord)).all()
-    investigation_counts = session.exec(select(Investigation)).all()
-    capa_counts = session.exec(select(Capa)).all()
-    return {
-        "alerts": {
-            "total": len(alert_counts),
-            "open": len([a for a in alert_counts if a.status == AlertStatus.OPEN]),
-            "acknowledged": len([a for a in alert_counts if a.status == AlertStatus.ACKNOWLEDGED]),
-        },
-        "investigations": {
-            "total": len(investigation_counts),
-            "open": len([i for i in investigation_counts if i.status != InvestigationStatus.CLOSED]),
-        },
-        "capas": {
-            "total": len(capa_counts),
-            "open": len([c for c in capa_counts if c.status not in {CapaStatus.CLOSED, CapaStatus.DRAFT}]),
-        },
-    }
+) -> ReportSummaryOut:
+    alert_rows = session.exec(select(AlertRecord)).all()
+    investigation_rows = session.exec(select(Investigation)).all()
+    capa_rows = session.exec(select(Capa)).all()
+    return ReportSummaryOut(
+        alerts=AlertSummary(
+            total=len(alert_rows),
+            open=len([a for a in alert_rows if a.status == AlertStatus.OPEN]),
+            acknowledged=len([a for a in alert_rows if a.status == AlertStatus.ACKNOWLEDGED]),
+        ),
+        investigations=InvestigationSummary(
+            total=len(investigation_rows),
+            open=len([i for i in investigation_rows if i.status != InvestigationStatus.CLOSED]),
+        ),
+        capas=CapaSummary(
+            total=len(capa_rows),
+            open=len([c for c in capa_rows if c.status not in {CapaStatus.CLOSED, CapaStatus.DRAFT}]),
+        ),
+    )
 
 
-@app.get("/streams/{stream_id}/chart")
+@app.get("/streams/{stream_id}/chart", response_model=StreamChartOut)
 async def stream_chart(
     stream_id: str,
     limit: int = 200,
@@ -1289,14 +1323,29 @@ async def stream_chart(
     end: Optional[datetime] = None,
     user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
     session: Session = Depends(get_session),
-):
+) -> StreamChartOut:
     record_query = select(QCRecord).where(QCRecord.stream_id == stream_id)
     if start:
         record_query = record_query.where(QCRecord.timestamp >= start)
     if end:
         record_query = record_query.where(QCRecord.timestamp <= end)
-    records = session.exec(record_query.order_by(QCRecord.timestamp.desc()).limit(limit)).all()
+    records = session.exec(record_query.order_by(col(QCRecord.timestamp).desc()).limit(limit)).all()
     record_series = records[::-1]
+    record_points: list[QCRecordChartOut] = []
+    for record in record_series:
+        if record.id is None:
+            raise RuntimeError("QC record missing id")
+        record_points.append(
+            QCRecordChartOut(
+                id=record.id,
+                timestamp=record.timestamp,
+                result_value=record.result_value,
+                control_material_lot=record.control_material_lot,
+                include_in_stats=record.include_in_stats,
+                resolved_reason=record.resolved_reason,
+                resolved_at=record.resolved_at,
+            )
+        )
     lot_segments = _lot_segments(record_series)
 
     event_query = select(QCEvent).where(QCEvent.stream_id == stream_id)
@@ -1304,17 +1353,17 @@ async def stream_chart(
         event_query = event_query.where(QCEvent.timestamp >= start)
     if end:
         event_query = event_query.where(QCEvent.timestamp <= end)
-    events = session.exec(event_query.order_by(QCEvent.timestamp.desc()).limit(limit)).all()
+    events = session.exec(event_query.order_by(col(QCEvent.timestamp).desc()).limit(limit)).all()
 
     alert_query = select(AlertRecord).where(AlertRecord.stream_id == stream_id)
     if start:
         alert_query = alert_query.where(AlertRecord.created_at >= start)
     if end:
         alert_query = alert_query.where(AlertRecord.created_at <= end)
-    alerts = session.exec(alert_query.order_by(AlertRecord.created_at.desc()).limit(limit)).all()
-    return {
-        "records": [r.model_dump(mode="json") for r in record_series],
-        "events": [e.model_dump(mode="json") for e in events[::-1]],
-        "alerts": [a.model_dump(mode="json") for a in alerts[::-1]],
-        "lot_segments": lot_segments,
-    }
+    alerts = session.exec(alert_query.order_by(col(AlertRecord.created_at).desc()).limit(limit)).all()
+    return StreamChartOut(
+        records=record_points,
+        events=[_event_out(event) for event in events[::-1]],
+        alerts=[_alert_out(alert) for alert in alerts[::-1]],
+        lot_segments=lot_segments,
+    )

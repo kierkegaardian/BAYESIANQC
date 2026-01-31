@@ -57,13 +57,23 @@
 import { onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { api } from "../api/client";
+import type { InvestigationIn, InvestigationOut, InvestigationStatus } from "../api/contracts";
 
-const investigations = ref<any[]>([]);
+type InvestigationForm = {
+  alert_id: string;
+  problem_statement: string;
+  suspected_cause: string;
+  outcome: string;
+  decision: string;
+  status: InvestigationStatus;
+};
+
+const investigations = ref<InvestigationOut[]>([]);
 const dialogOpen = ref(false);
 const dialogTitle = ref("New Investigation");
 const editingId = ref<number | null>(null);
 
-const form = reactive({
+const form = reactive<InvestigationForm>({
   alert_id: "",
   problem_statement: "",
   suspected_cause: "",
@@ -82,7 +92,7 @@ function resetForm() {
 }
 
 async function loadInvestigations() {
-  investigations.value = await api.get("/investigations");
+  investigations.value = await api.get<InvestigationOut[]>("/investigations");
 }
 
 function openCreate() {
@@ -92,29 +102,37 @@ function openCreate() {
   dialogOpen.value = true;
 }
 
-function openEdit(row: any) {
+function openEdit(row: InvestigationOut) {
   editingId.value = row.id;
   dialogTitle.value = "Edit Investigation";
-  form.alert_id = row.alert_id || "";
+  form.alert_id = row.alert_id ?? "";
   form.problem_statement = row.problem_statement;
-  form.suspected_cause = row.suspected_cause || "";
-  form.outcome = row.outcome || "";
-  form.decision = row.decision || "";
-  form.status = row.status || "open";
+  form.suspected_cause = row.suspected_cause ?? "";
+  form.outcome = row.outcome ?? "";
+  form.decision = row.decision ?? "";
+  form.status = row.status;
   dialogOpen.value = true;
 }
 
 async function saveInvestigation() {
   try {
-    if (editingId.value) {
-      await api.patch(`/investigations/${editingId.value}`, form);
+    const payload: InvestigationIn = {
+      alert_id: form.alert_id || null,
+      problem_statement: form.problem_statement,
+      suspected_cause: form.suspected_cause || null,
+      outcome: form.outcome || null,
+      decision: form.decision || null,
+      status: form.status,
+    };
+    if (editingId.value !== null) {
+      await api.patch(`/investigations/${editingId.value}`, payload);
     } else {
-      await api.post("/investigations", form);
+      await api.post("/investigations", payload);
     }
     ElMessage.success("Investigation saved");
     dialogOpen.value = false;
     await loadInvestigations();
-  } catch (error) {
+  } catch {
     ElMessage.error("Failed to save investigation");
   }
 }

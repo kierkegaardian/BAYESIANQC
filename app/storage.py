@@ -4,7 +4,7 @@ import hashlib
 from datetime import datetime, timezone
 from typing import Optional, Tuple
 
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.db_models import (
     AlertRecord,
@@ -50,13 +50,17 @@ def seed_defaults(session: Session) -> None:
         session.commit()
         session.refresh(instrument)
 
+    instrument_id = instrument.id
+    if instrument_id is None:
+        raise RuntimeError("Seed instrument missing id")
+
     method = session.exec(
-        select(Method).where(Method.name == "HPLC", Method.instrument_id == instrument.id)
+        select(Method).where(Method.name == "HPLC", Method.instrument_id == instrument_id)
     ).first()
     if not method:
         method = Method(
             name="HPLC",
-            instrument_id=instrument.id,
+            instrument_id=instrument_id,
             technique="HPLC",
             created_by="seed",
         )
@@ -64,13 +68,17 @@ def seed_defaults(session: Session) -> None:
         session.commit()
         session.refresh(method)
 
+    method_id = method.id
+    if method_id is None:
+        raise RuntimeError("Seed method missing id")
+
     analyte = session.exec(
-        select(Analyte).where(Analyte.name == "HbA1c", Analyte.method_id == method.id)
+        select(Analyte).where(Analyte.name == "HbA1c", Analyte.method_id == method_id)
     ).first()
     if not analyte:
         analyte = Analyte(
             name="HbA1c",
-            method_id=method.id,
+            method_id=method_id,
             units="%",
             created_by="seed",
         )
@@ -127,7 +135,9 @@ def seed_defaults(session: Session) -> None:
 
 def create_stream_config(session: Session, payload: StreamConfigIn, created_by: str) -> StreamConfig:
     current_version = session.exec(
-        select(StreamConfig.version).where(StreamConfig.stream_id == payload.stream_id).order_by(StreamConfig.version.desc())
+        select(StreamConfig.version)
+        .where(StreamConfig.stream_id == payload.stream_id)
+        .order_by(col(StreamConfig.version).desc())
     ).first()
     next_version = (current_version or 0) + 1
     config = StreamConfig(
@@ -167,26 +177,32 @@ def get_active_stream_config(session: Session, stream_id: str, at_time: datetime
     config = session.exec(
         select(StreamConfig)
         .where(StreamConfig.stream_id == stream_id, StreamConfig.effective_from <= at_time)
-        .order_by(StreamConfig.effective_from.desc(), StreamConfig.version.desc())
+        .order_by(col(StreamConfig.effective_from).desc(), col(StreamConfig.version).desc())
     ).first()
     if config:
         return config
     return session.exec(
         select(StreamConfig)
         .where(StreamConfig.stream_id == stream_id)
-        .order_by(StreamConfig.effective_from.asc(), StreamConfig.version.asc())
+        .order_by(col(StreamConfig.effective_from).asc(), col(StreamConfig.version).asc())
     ).first()
 
 
 def list_stream_configs(session: Session, stream_id: str) -> list[StreamConfig]:
-    return session.exec(
-        select(StreamConfig).where(StreamConfig.stream_id == stream_id).order_by(StreamConfig.version.desc())
-    ).all()
+    return list(
+        session.exec(
+            select(StreamConfig)
+            .where(StreamConfig.stream_id == stream_id)
+            .order_by(col(StreamConfig.version).desc())
+        ).all()
+    )
 
 
 def create_prior_config(session: Session, stream_id: str, payload: PriorConfigIn, created_by: str) -> PriorConfig:
     current_version = session.exec(
-        select(PriorConfig.version).where(PriorConfig.stream_id == stream_id).order_by(PriorConfig.version.desc())
+        select(PriorConfig.version)
+        .where(PriorConfig.stream_id == stream_id)
+        .order_by(col(PriorConfig.version).desc())
     ).first()
     next_version = (current_version or 0) + 1
     config = PriorConfig(
@@ -209,18 +225,18 @@ def get_active_prior(session: Session, stream_id: str, at_time: datetime) -> Opt
     prior = session.exec(
         select(PriorConfig)
         .where(PriorConfig.stream_id == stream_id, PriorConfig.effective_from <= at_time)
-        .order_by(PriorConfig.effective_from.desc(), PriorConfig.version.desc())
+        .order_by(col(PriorConfig.effective_from).desc(), col(PriorConfig.version).desc())
     ).first()
     if prior:
         return prior
     return session.exec(
         select(PriorConfig)
         .where(PriorConfig.stream_id == stream_id)
-        .order_by(PriorConfig.effective_from.asc(), PriorConfig.version.asc())
+        .order_by(col(PriorConfig.effective_from).asc(), col(PriorConfig.version).asc())
     ).first()
 
 
-def baseline_stats(session: Session, config: StreamConfig, at_time: datetime) -> Optional[Tuple[float, float]]:
+def baseline_stats(session: Session, config: StreamConfig, at_time: datetime) -> Tuple[float, float]:
     if config.baseline_start and config.baseline_end:
         rows = session.exec(
             select(QCRecord)
@@ -230,7 +246,7 @@ def baseline_stats(session: Session, config: StreamConfig, at_time: datetime) ->
                 QCRecord.timestamp >= config.baseline_start,
                 QCRecord.timestamp <= config.baseline_end,
             )
-            .order_by(QCRecord.timestamp)
+            .order_by(col(QCRecord.timestamp))
         ).all()
         if len(rows) >= 2:
             values = [r.result_value for r in rows]
@@ -260,16 +276,17 @@ def detect_duplicate(session: Session, record: QCRecord) -> DuplicateStatus:
 
 
 def get_recent_records(session: Session, stream_id: str, before: datetime, limit: int) -> list[QCRecord]:
-    return session.exec(
+    rows = session.exec(
         select(QCRecord)
         .where(
             QCRecord.stream_id == stream_id,
             QCRecord.include_in_stats == True,
             QCRecord.timestamp < before,
         )
-        .order_by(QCRecord.timestamp.desc())
+        .order_by(col(QCRecord.timestamp).desc())
         .limit(limit)
-    ).all()[::-1]
+    ).all()
+    return list(rows)[::-1]
 
 
 def get_idempotent_response(session: Session, key: str) -> Optional[IngestionReceipt]:
@@ -334,7 +351,9 @@ def create_investigation(session: Session, investigation: Investigation, alert_i
     session.add(investigation)
     session.commit()
     session.refresh(investigation)
-    if alert_id:
+    if alert_id is not None:
+        if investigation.id is None:
+            raise RuntimeError("Investigation missing id")
         session.add(InvestigationAlertLink(investigation_id=investigation.id, alert_id=alert_id))
         session.commit()
     return investigation
@@ -352,7 +371,9 @@ def create_capa(session: Session, capa: Capa, alert_id: Optional[int], investiga
     session.add(capa)
     session.commit()
     session.refresh(capa)
-    if alert_id or investigation_id:
+    if alert_id is not None or investigation_id is not None:
+        if capa.id is None:
+            raise RuntimeError("CAPA missing id")
         session.add(CapaLink(capa_id=capa.id, alert_id=alert_id, investigation_id=investigation_id))
         session.commit()
     return capa

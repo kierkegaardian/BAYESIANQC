@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --noEmit",
+    "gen:api": "../.venv/bin/python ../scripts/generate_openapi_json.py --out ../openapi.json && openapi-typescript ../openapi.json -o src/api/schema.ts"
   },
   "dependencies": {
     "echarts": "^5.5.0",
@@ -16,6 +18,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.1.2",
+    "openapi-typescript": "^7.6.1",
     "typescript": "^5.5.4",
     "vite": "^5.4.11",
     "vue-tsc": "^2.0.28"

@@ -58,7 +58,7 @@ const router = useRouter();
 
 const activePath = computed(() => route.path);
 const routeTitle = computed(
-  () => (route.meta?.helpTitle as string) || "BayesianQC"
+  () => route.meta.helpTitle ?? "BayesianQC"
 );
 const apiBase = getApiBase();
 

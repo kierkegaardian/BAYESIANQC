@@ -51,13 +51,20 @@
 import { onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { api } from "../api/client";
+import type { InstrumentIn, InstrumentOut } from "../api/contracts";
 
-const instruments = ref([]);
+type InstrumentForm = InstrumentIn & {
+  manufacturer: string;
+  model: string;
+  site: string;
+};
+
+const instruments = ref<InstrumentOut[]>([]);
 const dialogOpen = ref(false);
 const dialogTitle = ref("Add Instrument");
 const editingId = ref<number | null>(null);
 
-const form = reactive({
+const form = reactive<InstrumentForm>({
   name: "",
   manufacturer: "",
   model: "",
@@ -74,7 +81,7 @@ function resetForm() {
 }
 
 async function loadInstruments() {
-  instruments.value = await api.get("/instruments");
+  instruments.value = await api.get<InstrumentOut[]>("/instruments");
 }
 
 function openCreate() {
@@ -84,20 +91,20 @@ function openCreate() {
   dialogOpen.value = true;
 }
 
-function openEdit(row: any) {
+function openEdit(row: InstrumentOut) {
   editingId.value = row.id;
   dialogTitle.value = "Edit Instrument";
   form.name = row.name;
-  form.manufacturer = row.manufacturer || "";
-  form.model = row.model || "";
-  form.site = row.site || "";
+  form.manufacturer = row.manufacturer ?? "";
+  form.model = row.model ?? "";
+  form.site = row.site ?? "";
   form.active = row.active;
   dialogOpen.value = true;
 }
 
 async function saveInstrument() {
   try {
-    if (editingId.value) {
+    if (editingId.value !== null) {
       await api.patch(`/instruments/${editingId.value}`, form);
     } else {
       await api.post("/instruments", form);
@@ -105,7 +112,7 @@ async function saveInstrument() {
     ElMessage.success("Instrument saved");
     dialogOpen.value = false;
     await loadInstruments();
-  } catch (error) {
+  } catch {
     ElMessage.error("Failed to save instrument");
   }
 }

@@ -53,11 +53,20 @@
 import { onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { api } from "../api/client";
+import type { EventType, QCEventIn, QCEventOut } from "../api/contracts";
 
-const events = ref<any[]>([]);
+type EventForm = {
+  stream_id: string;
+  event_type: EventType;
+  timestamp: Date;
+  instrument_id: string;
+  metadata: string;
+};
+
+const events = ref<QCEventOut[]>([]);
 const dialogOpen = ref(false);
 
-const form = reactive({
+const form = reactive<EventForm>({
   stream_id: "",
   event_type: "calibration",
   timestamp: new Date(),
@@ -66,7 +75,7 @@ const form = reactive({
 });
 
 async function loadEvents() {
-  events.value = await api.get("/qc/events");
+  events.value = await api.get<QCEventOut[]>("/qc/events");
 }
 
 function openCreate() {
@@ -78,16 +87,20 @@ function openCreate() {
   dialogOpen.value = true;
 }
 
-function parseJson(value: string) {
-  try {
-    return JSON.parse(value);
-  } catch {
-    return {};
+function parseJson(value: string): Record<string, unknown> | null {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
   }
+  const parsed: unknown = JSON.parse(trimmed);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("Metadata must be a JSON object");
+  }
+  return parsed as Record<string, unknown>;
 }
 
 async function saveEvent() {
-  const payload = {
+  const payload: QCEventIn = {
     stream_id: form.stream_id || null,
     event_type: form.event_type,
     timestamp: new Date(form.timestamp).toISOString(),
@@ -100,7 +113,9 @@ async function saveEvent() {
     dialogOpen.value = false;
     await loadEvents();
   } catch (error) {
-    ElMessage.error("Failed to create event");
+    const message =
+      error instanceof Error && error.message ? error.message : "Failed to create event";
+    ElMessage.error(message);
   }
 }
 

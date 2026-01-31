@@ -17,10 +17,10 @@ import { useRoute } from "vue-router";
 const route = useRoute();
 const open = ref(false);
 
-const title = computed(() => (route.meta?.helpTitle as string) || "Help");
+const title = computed(() => route.meta.helpTitle ?? "Help");
 const helpText = computed(
   () =>
-    (route.meta?.helpText as string) ||
+    route.meta.helpText ||
     "This page provides tools for managing BayesianQC data. Use the navigation menu to explore."
 );
 </script>

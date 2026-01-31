@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import sqlite3
+from collections.abc import Iterator
 from typing import Optional
 
 from sqlalchemy import event
@@ -39,7 +40,7 @@ def get_engine() -> Engine:
     return _ENGINE
 
 
-def get_session():
+def get_session() -> Iterator[Session]:
     engine = get_engine()
     with Session(engine) as session:
         yield session

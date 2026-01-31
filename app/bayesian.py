@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import math
+from datetime import datetime
 from typing import Optional
 
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.db_models import PosteriorState, QCRecord, StreamConfig
 from app.models import BayesianRisk
@@ -34,7 +35,7 @@ def rebuild_posterior_state(session: Session, stream_id: str) -> Optional[Poster
     records = session.exec(
         select(QCRecord)
         .where(QCRecord.stream_id == stream_id, QCRecord.include_in_stats == True)
-        .order_by(QCRecord.timestamp.asc())
+        .order_by(col(QCRecord.timestamp).asc())
     ).all()
     state = session.exec(select(PosteriorState).where(PosteriorState.stream_id == stream_id)).first()
     if not records:
@@ -65,17 +66,16 @@ def rebuild_posterior_state(session: Session, stream_id: str) -> Optional[Poster
         state.updated_at = records[-1].timestamp
         session.add(state)
     else:
-        session.add(
-            PosteriorState(
-                stream_id=stream_id,
-                mu_n=mu_n,
-                kappa_n=kappa_n,
-                alpha_n=alpha_n,
-                beta_n=beta_n,
-                n_obs=len(records),
-                updated_at=records[-1].timestamp,
-            )
+        state = PosteriorState(
+            stream_id=stream_id,
+            mu_n=mu_n,
+            kappa_n=kappa_n,
+            alpha_n=alpha_n,
+            beta_n=beta_n,
+            n_obs=len(records),
+            updated_at=records[-1].timestamp,
         )
+        session.add(state)
     session.commit()
     return state
 
@@ -83,7 +83,7 @@ def rebuild_posterior_state(session: Session, stream_id: str) -> Optional[Poster
 def infer_risk(
     session: Session,
     record_value: float,
-    record_timestamp,
+    record_timestamp: datetime,
     stream_id: str,
     config: StreamConfig,
 ) -> BayesianRisk:

@@ -54,14 +54,20 @@
 import { onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { api } from "../api/client";
+import type { InstrumentOut, MethodIn, MethodOut } from "../api/contracts";
 
-const instruments = ref<any[]>([]);
-const methods = ref<any[]>([]);
+type MethodForm = Omit<MethodIn, "instrument_id" | "technique"> & {
+  instrument_id: number | null;
+  technique: string;
+};
+
+const instruments = ref<InstrumentOut[]>([]);
+const methods = ref<MethodOut[]>([]);
 const dialogOpen = ref(false);
 const dialogTitle = ref("Add Method");
 const editingId = ref<number | null>(null);
 
-const form = reactive({
+const form = reactive<MethodForm>({
   name: "",
   instrument_id: null as number | null,
   technique: "",
@@ -76,8 +82,8 @@ function resetForm() {
 }
 
 async function loadData() {
-  instruments.value = await api.get("/instruments");
-  methods.value = await api.get("/methods");
+  instruments.value = await api.get<InstrumentOut[]>("/instruments");
+  methods.value = await api.get<MethodOut[]>("/methods");
 }
 
 function openCreate() {
@@ -87,27 +93,27 @@ function openCreate() {
   dialogOpen.value = true;
 }
 
-function openEdit(row: any) {
+function openEdit(row: MethodOut) {
   editingId.value = row.id;
   dialogTitle.value = "Edit Method";
   form.name = row.name;
   form.instrument_id = row.instrument_id;
-  form.technique = row.technique || "";
+  form.technique = row.technique ?? "";
   form.active = row.active;
   dialogOpen.value = true;
 }
 
 async function saveMethod() {
   try {
-    if (editingId.value) {
+    if (editingId.value !== null) {
       await api.patch(`/methods/${editingId.value}`, form);
     } else {
       await api.post("/methods", form);
     }
     ElMessage.success("Method saved");
     dialogOpen.value = false;
-    methods.value = await api.get("/methods");
-  } catch (error) {
+    methods.value = await api.get<MethodOut[]>("/methods");
+  } catch {
     ElMessage.error("Failed to save method");
   }
 }

@@ -57,7 +57,7 @@ def reset_db():
             Instrument,
             ApiKey,
         ]:
-            session.exec(delete(table))
+            session.execute(delete(table))
         session.commit()
         seed_defaults(session)
     yield

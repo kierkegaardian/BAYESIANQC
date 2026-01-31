@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Optional
 
 from sqlalchemy import Column, Enum as SAEnum, JSON
 from sqlmodel import Field, SQLModel
@@ -86,12 +86,12 @@ class StreamConfig(SQLModel, table=True):
     min_value: Optional[float] = None
     max_value: Optional[float] = None
     allowed_units: Optional[list[str]] = Field(default=None, sa_column=Column(JSON))
-    unit_conversions: Optional[dict] = Field(default=None, sa_column=Column(JSON))
+    unit_conversions: Optional[dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
     baseline_start: Optional[datetime] = None
     baseline_end: Optional[datetime] = None
     risk_threshold_warn: int = 50
     risk_threshold_hold: int = 80
-    rule_set: dict = Field(default_factory=lambda: DEFAULT_RULE_SET.copy(), sa_column=Column(JSON))
+    rule_set: dict[str, Any] = Field(default_factory=lambda: DEFAULT_RULE_SET.copy(), sa_column=Column(JSON))
 
 
 class PriorConfig(SQLModel, table=True):
@@ -140,7 +140,7 @@ class QCRecord(SQLModel, table=True):
     resolved_at: Optional[datetime] = None
     resolved_by: Optional[str] = None
     resolved_reason: Optional[str] = None
-    raw_payload: dict = Field(sa_column=Column(JSON))
+    raw_payload: dict[str, Any] = Field(sa_column=Column(JSON))
     duplicate_status: DuplicateStatus = Field(sa_column=Column(SAEnum(DuplicateStatus)))
     created_at: datetime = Field(default_factory=utcnow)
     idempotency_key: Optional[str] = Field(default=None, index=True)
@@ -154,7 +154,7 @@ class QCEvent(SQLModel, table=True):
     instrument_id: Optional[str] = None
     analyte: Optional[str] = None
     method_id: Optional[str] = None
-    event_metadata: Optional[dict] = Field(default=None, sa_column=Column(JSON))
+    event_metadata: Optional[dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
     created_by: str = Field(default="system")
     created_at: datetime = Field(default_factory=utcnow)
 
@@ -168,8 +168,8 @@ class AlertRecord(SQLModel, table=True):
     status: AlertStatus = Field(default=AlertStatus.OPEN, sa_column=Column(SAEnum(AlertStatus)))
     severity: str
     disposition: str
-    signals: list[dict] = Field(sa_column=Column(JSON))
-    bayesian_risk: dict = Field(sa_column=Column(JSON))
+    signals: list[dict[str, Any]] = Field(sa_column=Column(JSON))
+    bayesian_risk: dict[str, Any] = Field(sa_column=Column(JSON))
     acknowledged_at: Optional[datetime] = None
     acknowledged_by: Optional[str] = None
     assigned_to: Optional[str] = None
@@ -202,12 +202,12 @@ class Capa(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     status: CapaStatus = Field(default=CapaStatus.DRAFT, sa_column=Column(SAEnum(CapaStatus)))
     root_cause_category: Optional[str] = None
-    corrective_actions: Optional[list[dict]] = Field(default=None, sa_column=Column(JSON))
-    preventive_actions: Optional[list[dict]] = Field(default=None, sa_column=Column(JSON))
+    corrective_actions: Optional[list[dict[str, Any]]] = Field(default=None, sa_column=Column(JSON))
+    preventive_actions: Optional[list[dict[str, Any]]] = Field(default=None, sa_column=Column(JSON))
     owners: Optional[list[str]] = Field(default=None, sa_column=Column(JSON))
     due_at: Optional[datetime] = None
     verification_plan: Optional[str] = None
-    effectiveness_criteria: Optional[dict] = Field(default=None, sa_column=Column(JSON))
+    effectiveness_criteria: Optional[dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
     created_by: str = Field(default="system")
@@ -227,8 +227,8 @@ class AuditEntry(SQLModel, table=True):
     action: str
     entity_type: str
     entity_id: Optional[str] = None
-    before: Optional[dict] = Field(default=None, sa_column=Column(JSON))
-    after: Optional[dict] = Field(default=None, sa_column=Column(JSON))
+    before: Optional[dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
+    after: Optional[dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
     reason: Optional[str] = None
 
 
@@ -236,5 +236,5 @@ class IngestionReceipt(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     idempotency_key: str = Field(index=True, unique=True)
     created_at: datetime = Field(default_factory=utcnow)
-    response: dict = Field(sa_column=Column(JSON))
+    response: dict[str, Any] = Field(sa_column=Column(JSON))
     qc_record_id: Optional[int] = Field(default=None, index=True)

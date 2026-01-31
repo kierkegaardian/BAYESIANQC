@@ -19,37 +19,127 @@
       </el-select>
       <el-date-picker v-model="startDate" type="date" placeholder="Start date" />
       <el-date-picker v-model="endDate" type="date" placeholder="End date" />
-      <el-switch v-model="useLogScale" active-text="Log scale" inactive-text="Linear" />
+      <el-radio-group v-model="chartMode" size="small">
+        <el-radio-button label="results">Results</el-radio-button>
+        <el-radio-button label="risk">Risk</el-radio-button>
+        <el-radio-button label="both">Both</el-radio-button>
+      </el-radio-group>
+      <el-switch
+        v-show="chartMode !== 'risk'"
+        v-model="useLogScale"
+        active-text="Log scale"
+        inactive-text="Linear"
+      />
       <el-button type="primary" @click="loadChart">Load</el-button>
     </div>
 
-    <el-card>
-      <div ref="chartRef" style="height: 420px"></div>
+    <el-card v-show="chartMode !== 'risk'" style="margin-bottom: 16px">
+      <div ref="resultsChartRef" style="height: 420px"></div>
+    </el-card>
+
+    <el-card v-show="chartMode !== 'results'">
+      <div class="muted" style="margin-bottom: 10px">
+        Risk chart plots alert Bayesian risk scores (0–100).
+      </div>
+      <div ref="riskChartRef" style="height: 260px"></div>
     </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import * as echarts from "echarts";
+import type {
+  ECElementEvent,
+  LineSeriesOption,
+  MarkAreaComponentOption,
+  MarkLineComponentOption,
+  ScatterSeriesOption,
+} from "echarts";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { api } from "../api/client";
+import type {
+  LotSegmentOut,
+  QCRecordChartOut,
+  QCRecordResolutionIn,
+  StreamChartOut,
+  StreamConfigOut,
+} from "../api/contracts";
 
-const chartRef = ref<HTMLDivElement | null>(null);
-let chart: echarts.ECharts | null = null;
+type ChartMode = "results" | "risk" | "both";
+const chartMode = ref<ChartMode>("results");
 
-const streams = ref<any[]>([]);
+const resultsChartRef = ref<HTMLDivElement | null>(null);
+const riskChartRef = ref<HTMLDivElement | null>(null);
+let resultsChart: echarts.ECharts | null = null;
+let riskChart: echarts.ECharts | null = null;
+
+let cachedChartData: StreamChartOut | null = null;
+let cachedStream: StreamConfigOut | undefined;
+let cachedResultsOption: echarts.EChartsOption | null = null;
+let cachedRiskOption: echarts.EChartsOption | null = null;
+
+type ChartPoint = {
+  value: [string, number | null];
+  lot?: string | null;
+  record_id: number;
+  include_in_stats?: boolean | null;
+  resolved_reason?: string | null;
+  resolved_at?: string | null;
+  itemStyle?: { color?: string };
+};
+
+type OutlierPoint = Omit<ChartPoint, "value"> & {
+  value: [string, number];
+  symbolRotate: number;
+  itemStyle: { color: string };
+  label: {
+    show: true;
+    formatter: string;
+    position: "top" | "bottom";
+    color: string;
+    fontWeight: number;
+  };
+};
+
+function isChartPoint(value: unknown): value is ChartPoint {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const recordId = (value as { record_id?: unknown }).record_id;
+  const tuple = (value as { value?: unknown }).value;
+  return (
+    typeof recordId === "number" &&
+    Array.isArray(tuple) &&
+    tuple.length === 2 &&
+    typeof tuple[0] === "string"
+  );
+}
+
+type TooltipItem = { data?: unknown; value?: unknown };
+
+function asFormatterItems(params: unknown): TooltipItem[] {
+  if (Array.isArray(params)) {
+    return params.filter((item): item is TooltipItem => !!item && typeof item === "object");
+  }
+  if (params && typeof params === "object") {
+    return [params as TooltipItem];
+  }
+  return [];
+}
+
+const streams = ref<StreamConfigOut[]>([]);
 const streamId = ref("");
 const startDate = ref<Date | null>(null);
 const endDate = ref<Date | null>(null);
 const useLogScale = ref(false);
 const suppressLogReload = ref(false);
 
-function deriveLotSegments(records: any[]) {
+function deriveLotSegments(records: QCRecordChartOut[]): LotSegmentOut[] {
   if (!records.length) {
     return [];
   }
-  const segments = [];
+  const segments: LotSegmentOut[] = [];
   let currentLot = records[0].control_material_lot || "unknown";
   let start = records[0].timestamp;
   let last = records[0].timestamp;
@@ -79,7 +169,7 @@ function deriveLotSegments(records: any[]) {
   return segments;
 }
 
-function padSegmentEnd(start: string, end: string) {
+function padSegmentEnd(start: string, end: string): string {
   if (start !== end) {
     return end;
   }
@@ -88,7 +178,7 @@ function padSegmentEnd(start: string, end: string) {
 }
 
 async function loadStreams() {
-  streams.value = await api.get("/streams");
+  streams.value = await api.get<StreamConfigOut[]>("/streams");
   if (!streamId.value && streams.value.length) {
     streamId.value = streams.value[0].stream_id;
   }
@@ -100,10 +190,11 @@ async function updateResolution(
   reason?: string
 ) {
   try {
-    await api.patch(`/qc/records/${recordId}/resolution`, {
+    const payload: QCRecordResolutionIn = {
       include_in_stats: includeInStats,
       resolved_reason: reason || null,
-    });
+    };
+    await api.patch(`/qc/records/${recordId}/resolution`, payload);
     ElMessage.success(
       includeInStats ? "Record reinstated" : "Record resolved"
     );
@@ -117,57 +208,61 @@ async function updateResolution(
   }
 }
 
-function attachChartHandlers() {
-  if (!chart) {
+async function handleChartClick(params: ECElementEvent): Promise<void> {
+  if (
+    params?.seriesName !== "Result" &&
+    params?.seriesName !== "High outliers" &&
+    params?.seriesName !== "Low outliers"
+  ) {
     return;
   }
-  chart.off("click");
-  chart.on("click", async (params: any) => {
-    if (
-      params?.seriesName !== "Result" &&
-      params?.seriesName !== "High outliers" &&
-      params?.seriesName !== "Low outliers"
-    ) {
-      return;
-    }
-    const recordId = Number(params?.data?.record_id);
-    if (!recordId) {
-      return;
-    }
-    const includeInStats = params?.data?.include_in_stats !== false;
-    if (includeInStats) {
-      const result = await ElMessageBox.prompt(
-        "Why should this point be excluded from stats?",
-        "Resolve QC Point",
-        {
-          confirmButtonText: "Resolve",
-          cancelButtonText: "Cancel",
-          inputPlaceholder: "e.g. reagent lot change or known variation",
-        }
-      ).catch(() => null);
-      if (!result) {
-        return;
-      }
-      await updateResolution(recordId, false, result.value);
-      return;
-    }
-    const confirm = await ElMessageBox.confirm(
-      "Re-include this point in statistics and Bayesian updates?",
-      "Reinstate QC Point",
+  if (!isChartPoint(params.data)) {
+    return;
+  }
+  const recordId = params.data.record_id;
+  const includeInStats = params.data.include_in_stats !== false;
+  if (includeInStats) {
+    const result = await ElMessageBox.prompt(
+      "Why should this point be excluded from stats?",
+      "Resolve QC Point",
       {
-        confirmButtonText: "Reinstate",
+        confirmButtonText: "Resolve",
         cancelButtonText: "Cancel",
-        type: "warning",
+        inputPlaceholder: "e.g. reagent lot change or known variation",
       }
     ).catch(() => null);
-    if (!confirm) {
+    if (!result) {
       return;
     }
-    await updateResolution(recordId, true);
+    await updateResolution(recordId, false, result.value);
+    return;
+  }
+  const confirm = await ElMessageBox.confirm(
+    "Re-include this point in statistics and Bayesian updates?",
+    "Reinstate QC Point",
+    {
+      confirmButtonText: "Reinstate",
+      cancelButtonText: "Cancel",
+      type: "warning",
+    }
+  ).catch(() => null);
+  if (!confirm) {
+    return;
+  }
+  await updateResolution(recordId, true);
+}
+
+function attachResultsChartHandlers() {
+  if (!resultsChart) {
+    return;
+  }
+  resultsChart.off("click");
+  resultsChart.on("click", (params: ECElementEvent) => {
+    void handleChartClick(params);
   });
 }
 
-function buildControlSeries(stream: any) {
+function buildControlSeries(stream: StreamConfigOut | undefined) {
   if (!stream) {
     return null;
   }
@@ -185,7 +280,7 @@ function buildControlSeries(stream: any) {
 
   const actionDelta = actionSd * sigma;
 
-  const markAreaData = [
+  const markAreaData: MarkAreaComponentOption["data"] = [
     [
       {
         yAxis: mean - actionSd * sigma,
@@ -209,7 +304,7 @@ function buildControlSeries(stream: any) {
     ],
   ];
 
-  const markLineData = [
+  const markLineData: MarkLineComponentOption["data"] = [
     {
       yAxis: mean,
       lineStyle: { color: "#0f172a", width: 1.5 },
@@ -237,7 +332,7 @@ function buildControlSeries(stream: any) {
     },
   ];
 
-  const controlSeries: echarts.SeriesOption = {
+  const controlSeries: LineSeriesOption = {
     name: "Control Limits",
     type: "line",
     data: [],
@@ -250,7 +345,7 @@ function buildControlSeries(stream: any) {
     emphasis: { disabled: true },
   };
 
-  const yAxis = {
+  const yAxis: echarts.YAXisComponentOption = {
     type: "value",
     name: "Result",
     min: mean - actionDelta,
@@ -291,6 +386,25 @@ function buildParams() {
   return params.toString();
 }
 
+async function ensureCharts(): Promise<void> {
+  await nextTick();
+  if ((chartMode.value === "results" || chartMode.value === "both") && resultsChartRef.value) {
+    if (!resultsChart) {
+      resultsChart = echarts.init(resultsChartRef.value);
+      attachResultsChartHandlers();
+    } else {
+      resultsChart.resize();
+    }
+  }
+  if ((chartMode.value === "risk" || chartMode.value === "both") && riskChartRef.value) {
+    if (!riskChart) {
+      riskChart = echarts.init(riskChartRef.value);
+    } else {
+      riskChart.resize();
+    }
+  }
+}
+
 async function loadChart() {
   if (!streamId.value) {
     return;
@@ -298,12 +412,17 @@ async function loadChart() {
   if (!streams.value.length) {
     await loadStreams();
   }
+  await ensureCharts();
   const stream = streams.value.find((item) => item.stream_id === streamId.value);
   const query = buildParams();
-  const data = await api.get(`/streams/${streamId.value}/chart?${query}`);
-  const records = data.records || [];
-  const alerts = data.alerts || [];
-  const segments = data.lot_segments?.length
+  const data = await api.get<StreamChartOut>(
+    `/streams/${streamId.value}/chart?${query}`
+  );
+  cachedChartData = data;
+  cachedStream = stream;
+  const records = data.records;
+  const alerts = data.alerts;
+  const segments = data.lot_segments.length
     ? data.lot_segments
     : deriveLotSegments(records);
 
@@ -311,7 +430,7 @@ async function loadChart() {
   const limitMin = controlConfig?.minValue;
   const limitMax = controlConfig?.maxValue;
   const logScaleAllowed =
-    records.every((record: any) => record.result_value > 0) &&
+    records.every((record) => record.result_value > 0) &&
     (limitMin === undefined || limitMin > 0);
   const logScaleActive = useLogScale.value && logScaleAllowed;
   if (useLogScale.value && !logScaleAllowed) {
@@ -323,12 +442,9 @@ async function loadChart() {
     !logScaleActive &&
     limitMin !== undefined &&
     limitMax !== undefined &&
-    records.some(
-      (record: any) =>
-        record.result_value < limitMin || record.result_value > limitMax
-    );
+    records.some((record) => record.result_value < limitMin || record.result_value > limitMax);
 
-  const seriesData = records.map((record: any) => ({
+  const seriesData: ChartPoint[] = records.map((record) => ({
     value: [
       record.timestamp,
       allowBreaks &&
@@ -348,25 +464,25 @@ async function loadChart() {
         ? { color: "#94a3b8" }
         : undefined,
   }));
-  const alertPoints = alerts.map((alert: any) => [
+  const alertPoints: Array<[string, number]> = alerts.map((alert) => [
     alert.created_at,
     alert.bayesian_risk?.risk_score ?? 0,
   ]);
 
-  const segmentAreas = segments.map((segment: any) => [
+  const segmentAreas: MarkAreaComponentOption["data"] = segments.map((segment) => [
     {
       xAxis: segment.start,
       label: { formatter: `Lot ${segment.control_material_lot}` },
     },
     { xAxis: padSegmentEnd(segment.start, segment.end) },
-  ]);
+  ] as const);
 
-  const lotLines = segments.slice(1).map((segment: any) => ({
+  const lotLines = segments.slice(1).map((segment) => ({
     xAxis: segment.start,
     label: { formatter: `Lot ${segment.control_material_lot}` },
   }));
 
-  const resultSeries: echarts.SeriesOption = {
+  const resultSeries: LineSeriesOption = {
     name: "Result",
     type: "line",
     data: seriesData,
@@ -388,7 +504,7 @@ async function loadChart() {
     resultSeries.markLine = {
       silent: true,
       symbol: "none",
-      data: lotLines.map((segment: any) => ({
+      data: lotLines.map((segment) => ({
         ...segment,
         lineStyle: { color: "#94a3b8", type: "dashed" },
         label: { color: "#475569", fontSize: 11 },
@@ -396,8 +512,8 @@ async function loadChart() {
     };
   }
 
-  const highOutliers: any[] = [];
-  const lowOutliers: any[] = [];
+  const highOutliers: OutlierPoint[] = [];
+  const lowOutliers: OutlierPoint[] = [];
   if (allowBreaks && limitMin !== undefined && limitMax !== undefined) {
     for (const record of records) {
       if (record.result_value > limitMax || record.result_value < limitMin) {
@@ -420,7 +536,7 @@ async function loadChart() {
             color: labelColor,
             fontWeight: 600,
           },
-        };
+        } satisfies OutlierPoint;
         if (isHigh) {
           highOutliers.push(outlier);
         } else {
@@ -471,10 +587,9 @@ async function loadChart() {
   const logAxis = {
     type: "log",
     name: "Result",
-    scale: true,
     min: "dataMin",
     max: "dataMax",
-  };
+  } satisfies echarts.YAXisComponentOption;
 
   if (!logScaleActive && controlConfig && (hasHighOutliers || hasLowOutliers)) {
     const left = "6%";
@@ -488,7 +603,7 @@ async function loadChart() {
           name: "High",
           min: highAxisRange?.min,
           max: highAxisRange?.max,
-        }
+        } satisfies echarts.YAXisComponentOption
       );
       mainAxisIndex = pushAxis(
         { left, right, top: "26%", height: "48%", containLabel: true },
@@ -503,7 +618,7 @@ async function loadChart() {
           name: "Low",
           min: lowAxisRange?.min,
           max: lowAxisRange?.max,
-        }
+        } satisfies echarts.YAXisComponentOption
       );
     } else if (hasHighOutliers) {
       highAxisIndex = pushAxis(
@@ -514,7 +629,7 @@ async function loadChart() {
           name: "High",
           min: highAxisRange?.min,
           max: highAxisRange?.max,
-        }
+        } satisfies echarts.YAXisComponentOption
       );
       mainAxisIndex = pushAxis(
         { left, right, top: "30%", height: "62%", containLabel: true },
@@ -535,7 +650,7 @@ async function loadChart() {
           name: "Low",
           min: lowAxisRange?.min,
           max: lowAxisRange?.max,
-        }
+        } satisfies echarts.YAXisComponentOption
       );
     }
   } else {
@@ -544,7 +659,9 @@ async function loadChart() {
     if (logScaleActive) {
       yAxes.push(logAxis);
     } else {
-      yAxes.push(controlConfig?.yAxis || { type: "value", name: "Result" });
+      yAxes.push(
+        controlConfig?.yAxis ?? ({ type: "value", name: "Result" } satisfies echarts.YAXisComponentOption)
+      );
     }
   }
 
@@ -562,7 +679,7 @@ async function loadChart() {
   ];
 
   if (highOutliers.length && highAxisIndex !== null) {
-    series.push({
+    const outliers: ScatterSeriesOption = {
       name: "High outliers",
       type: "scatter",
       data: highOutliers,
@@ -570,11 +687,12 @@ async function loadChart() {
       symbolSize: 12,
       xAxisIndex: highAxisIndex,
       yAxisIndex: highAxisIndex,
-    });
+    };
+    series.push(outliers);
   }
 
   if (lowOutliers.length && lowAxisIndex !== null) {
-    series.push({
+    const outliers: ScatterSeriesOption = {
       name: "Low outliers",
       type: "scatter",
       data: lowOutliers,
@@ -582,64 +700,126 @@ async function loadChart() {
       symbolSize: 12,
       xAxisIndex: lowAxisIndex,
       yAxisIndex: lowAxisIndex,
-    });
+    };
+    series.push(outliers);
   }
 
-  series.push({
-    name: "Alerts (risk)",
+  const axisPointer =
+    !logScaleActive && controlConfig && (hasHighOutliers || hasLowOutliers)
+      ? { link: [{ xAxisIndex: xAxes.map((_, index) => index) }] }
+      : undefined;
+
+  const resultsOption: echarts.EChartsOption = {
+    grid: grids,
+    xAxis: xAxes,
+    yAxis: yAxes,
+    axisPointer,
+    series,
+    tooltip: {
+      trigger: "axis",
+      formatter: (params: unknown) => {
+        const items = asFormatterItems(params);
+        const recordItem = items.find((item) => isChartPoint(item.data));
+        if (!recordItem || !isChartPoint(recordItem.data)) {
+          return "";
+        }
+        const lot = recordItem.data.lot;
+        const value = recordItem.data.value[1];
+        const timestamp = recordItem.data.value[0];
+        const includeInStats = recordItem.data.include_in_stats !== false;
+        const resolvedReason = recordItem.data.resolved_reason;
+        const parts: string[] = [];
+        if (timestamp) {
+          parts.push(new Date(timestamp).toLocaleString());
+        }
+        if (value !== undefined) {
+          parts.push(`Result: ${value}`);
+        }
+        if (lot) {
+          parts.push(`Lot: ${lot}`);
+        }
+        if (!includeInStats) {
+          parts.push("Resolved: excluded from stats");
+          if (resolvedReason) {
+            parts.push(`Reason: ${resolvedReason}`);
+          }
+        }
+        return parts.join("<br/>");
+      },
+    },
+  };
+  cachedResultsOption = resultsOption;
+  if (resultsChart && (chartMode.value === "results" || chartMode.value === "both")) {
+    resultsChart.setOption(resultsOption);
+  }
+
+  const thresholdLines: MarkLineComponentOption["data"] = [];
+  if (stream) {
+    thresholdLines.push(
+      {
+        yAxis: stream.risk_threshold_warn,
+        lineStyle: { color: "#f59e0b", type: "dashed" },
+        label: { formatter: `Warn ${stream.risk_threshold_warn}`, color: "#f59e0b" },
+      },
+      {
+        yAxis: stream.risk_threshold_hold,
+        lineStyle: { color: "#ef4444", type: "dashed" },
+        label: { formatter: `Hold ${stream.risk_threshold_hold}`, color: "#ef4444" },
+      }
+    );
+  }
+
+  const riskSeries: ScatterSeriesOption = {
+    name: "Alert risk score",
     type: "scatter",
     data: alertPoints,
-    xAxisIndex: mainAxisIndex,
-    yAxisIndex: mainAxisIndex,
     symbolSize: 10,
     itemStyle: { color: "#dc2626" },
-  });
+  };
 
-  if (chart) {
-    const axisPointer =
-      !logScaleActive && controlConfig && (hasHighOutliers || hasLowOutliers)
-        ? { link: [{ xAxisIndex: xAxes.map((_, index) => index) }] }
-        : undefined;
-    chart.setOption({
-      grid: grids,
-      xAxis: xAxes,
-      yAxis: yAxes,
-      axisPointer,
-      series,
-      tooltip: {
-        trigger: "axis",
-        formatter: (items: any[]) => {
-          const recordItem = items?.find(
-            (item) => item?.data?.record_id
-          );
-          if (!recordItem) {
-            return "";
-          }
-          const lot = recordItem?.data?.lot;
-          const value = recordItem?.data?.value?.[1];
-          const timestamp = recordItem?.data?.value?.[0];
-          const includeInStats = recordItem?.data?.include_in_stats !== false;
-          const resolvedReason = recordItem?.data?.resolved_reason;
-          const parts = [];
-          if (timestamp) {
-            parts.push(new Date(timestamp).toLocaleString());
-          }
-          if (value !== undefined) {
-            parts.push(`Result: ${value}`);
-          }
-          if (lot) {
-            parts.push(`Lot: ${lot}`);
-          }
-          if (!includeInStats) {
-            parts.push("Resolved: excluded from stats");
-            if (resolvedReason) {
-              parts.push(`Reason: ${resolvedReason}`);
-            }
-          }
-          return parts.join("<br/>");
-        },
+  if (segmentAreas.length) {
+    riskSeries.markArea = {
+      silent: true,
+      itemStyle: { color: "rgba(148, 163, 184, 0.18)" },
+      label: { color: "#475569", fontSize: 11 },
+      data: segmentAreas,
+    };
+  }
+
+  if (thresholdLines.length) {
+    riskSeries.markLine = {
+      silent: true,
+      symbol: "none",
+      data: thresholdLines,
+    };
+  }
+
+  const riskOption: echarts.EChartsOption = {
+    grid: { left: "6%", right: "4%", top: "8%", bottom: "18%", containLabel: true },
+    xAxis: { type: "time" },
+    yAxis: { type: "value", name: "Risk (0–100)", min: 0, max: 100 },
+    series: [riskSeries],
+    tooltip: {
+      trigger: "item",
+      formatter: (params: unknown) => {
+        const items = asFormatterItems(params);
+        const raw = items[0]?.value;
+        if (!Array.isArray(raw) || raw.length !== 2) {
+          return "";
+        }
+        const timestamp = String(raw[0]);
+        const score = Number(raw[1]);
+        const ts = Number.isFinite(Date.parse(timestamp))
+          ? new Date(timestamp).toLocaleString()
+          : timestamp;
+        const s = Number.isFinite(score) ? score : 0;
+        return `${ts}<br/>Risk score: ${s}`;
       },
-    });
+    },
+  };
+  cachedRiskOption = riskOption;
+  if (riskChart && (chartMode.value === "risk" || chartMode.value === "both")) {
+    riskChart.setOption(riskOption);
   }
 }
 
@@ -651,19 +831,30 @@ watch(useLogScale, async () => {
   await loadChart();
 });
 
+watch(chartMode, async () => {
+  await ensureCharts();
+  if (!cachedChartData) {
+    await loadChart();
+    return;
+  }
+  if (resultsChart && cachedResultsOption && chartMode.value !== "risk") {
+    resultsChart.setOption(cachedResultsOption);
+  }
+  if (riskChart && cachedRiskOption && chartMode.value !== "results") {
+    riskChart.setOption(cachedRiskOption);
+  }
+});
+
 onMounted(async () => {
   await loadStreams();
-  if (chartRef.value) {
-    chart = echarts.init(chartRef.value);
-    attachChartHandlers();
-  }
+  await ensureCharts();
   await loadChart();
 });
 
 onBeforeUnmount(() => {
-  if (chart) {
-    chart.dispose();
-    chart = null;
-  }
+  resultsChart?.dispose();
+  resultsChart = null;
+  riskChart?.dispose();
+  riskChart = null;
 });
 </script>
