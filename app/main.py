@@ -350,12 +350,14 @@ def _audit_out(entry: AuditEntry) -> AuditEntryOut:
     )
 
 
-def _alert_out(alert: AlertRecord) -> AlertOut:
+def _alert_out(alert: AlertRecord, qc_record_timestamp: Optional[datetime] = None) -> AlertOut:
     acknowledged = alert.status in {AlertStatus.ACKNOWLEDGED, AlertStatus.CLOSED}
     return AlertOut(
         id=alert.alert_id,
         stream_id=alert.stream_id,
         created_at=alert.created_at,
+        qc_record_id=alert.qc_record_id,
+        qc_record_timestamp=qc_record_timestamp,
         signals=[FrequentistSignal.model_validate(signal) for signal in alert.signals],
         bayesian_risk=BayesianRisk.model_validate(alert.bayesian_risk),
         disposition=Disposition(alert.disposition),
@@ -585,7 +587,7 @@ def process_ingestion(
                 bayesian_risk=risk.model_dump(mode="json"),
             ),
         )
-        alert_out = _alert_out(alert_record)
+        alert_out = _alert_out(alert_record, qc_record_timestamp=record.timestamp)
 
     result = IngestionResult(
         status="accepted",
@@ -1048,8 +1050,12 @@ async def list_alerts(
     user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
     session: Session = Depends(get_session),
 ):
-    alerts = session.exec(select(AlertRecord).order_by(col(AlertRecord.created_at).desc())).all()
-    return [_alert_out(alert) for alert in alerts]
+    rows = session.exec(
+        select(AlertRecord, QCRecord.timestamp)
+        .join(QCRecord, col(QCRecord.id) == col(AlertRecord.qc_record_id), isouter=True)
+        .order_by(col(AlertRecord.created_at).desc())
+    ).all()
+    return [_alert_out(alert, qc_record_timestamp=qc_timestamp) for alert, qc_timestamp in rows]
 
 
 @app.patch("/alerts/{alert_id}", response_model=AlertOut)
@@ -1321,6 +1327,7 @@ async def stream_chart(
     limit: int = 200,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
+    include_evaluations: bool = True,
     user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
     session: Session = Depends(get_session),
 ) -> StreamChartOut:
@@ -1331,10 +1338,122 @@ async def stream_chart(
         record_query = record_query.where(QCRecord.timestamp <= end)
     records = session.exec(record_query.order_by(col(QCRecord.timestamp).desc()).limit(limit)).all()
     record_series = records[::-1]
+    configs = (
+        session.exec(
+            select(StreamConfig)
+            .where(StreamConfig.stream_id == stream_id)
+            .order_by(col(StreamConfig.effective_from).asc(), col(StreamConfig.version).asc())
+        ).all()
+        if include_evaluations
+        else []
+    )
+    priors = (
+        session.exec(
+            select(PriorConfig)
+            .where(PriorConfig.stream_id == stream_id)
+            .order_by(col(PriorConfig.effective_from).asc(), col(PriorConfig.version).asc())
+        ).all()
+        if include_evaluations
+        else []
+    )
+
+    risk_by_record_id: dict[int, BayesianRisk] = {}
+    if include_evaluations and record_series and configs and priors:
+        record_ids_of_interest = {record.id for record in record_series if record.id is not None}
+        first_time = record_series[0].timestamp
+        last_time = record_series[-1].timestamp
+
+        prior_idx = 0
+        while prior_idx + 1 < len(priors) and priors[prior_idx + 1].effective_from <= first_time:
+            prior_idx += 1
+        start_prior = priors[prior_idx]
+        prior_start = start_prior.effective_from if start_prior.effective_from <= first_time else None
+
+        history_query = select(QCRecord).where(
+            QCRecord.stream_id == stream_id,
+            QCRecord.include_in_stats == True,
+            QCRecord.timestamp <= last_time,
+        )
+        if prior_start is not None:
+            history_query = history_query.where(QCRecord.timestamp >= prior_start)
+
+        history = session.exec(history_query.order_by(col(QCRecord.timestamp).asc())).all()
+        if not history:
+            history = []
+
+        current_prior = start_prior
+        if current_prior.id is None:
+            raise RuntimeError("Prior config missing id")
+        mu_n, kappa_n, alpha_n, beta_n = (
+            current_prior.mu0,
+            current_prior.kappa0,
+            current_prior.alpha0,
+            current_prior.beta0,
+        )
+
+        config_idx = 0
+        if history:
+            while config_idx + 1 < len(configs) and configs[config_idx + 1].effective_from <= history[0].timestamp:
+                config_idx += 1
+
+        for record in history:
+            while prior_idx + 1 < len(priors) and priors[prior_idx + 1].effective_from <= record.timestamp:
+                prior_idx += 1
+            record_prior = priors[prior_idx]
+            if record_prior.id is None:
+                raise RuntimeError("Prior config missing id")
+            if record_prior.id != current_prior.id:
+                current_prior = record_prior
+                mu_n, kappa_n, alpha_n, beta_n = (
+                    current_prior.mu0,
+                    current_prior.kappa0,
+                    current_prior.alpha0,
+                    current_prior.beta0,
+                )
+
+            while config_idx + 1 < len(configs) and configs[config_idx + 1].effective_from <= record.timestamp:
+                config_idx += 1
+            config_at_time = configs[config_idx]
+
+            risk, (mu_n, kappa_n, alpha_n, beta_n) = bayesian.update_posterior_and_infer_risk(
+                mu0=mu_n,
+                kappa0=kappa_n,
+                alpha0=alpha_n,
+                beta0=beta_n,
+                record_value=record.result_value,
+                config=config_at_time,
+            )
+            if record.id is not None and record.id in record_ids_of_interest:
+                risk_by_record_id[record.id] = risk
+
     record_points: list[QCRecordChartOut] = []
+    config_idx = 0
     for record in record_series:
         if record.id is None:
             raise RuntimeError("QC record missing id")
+        config_at_time: Optional[StreamConfig] = None
+        if include_evaluations and configs:
+            while config_idx + 1 < len(configs) and configs[config_idx + 1].effective_from <= record.timestamp:
+                config_idx += 1
+            config_at_time = configs[config_idx]
+
+        signals: Optional[list[FrequentistSignal]] = None
+        disposition: Optional[Disposition] = None
+        record_risk: Optional[BayesianRisk] = None
+        if include_evaluations and config_at_time:
+            signals = frequentist.evaluate_rules(
+                session,
+                record.result_value,
+                record.timestamp,
+                record.stream_id,
+                config_at_time,
+            )
+            record_risk = risk_by_record_id.get(record.id) if record.include_in_stats else None
+            disposition = determine_disposition(
+                signals,
+                record_risk.risk_score if record_risk else 0,
+                config_at_time,
+            )
         record_points.append(
             QCRecordChartOut(
                 id=record.id,
@@ -1344,6 +1463,9 @@ async def stream_chart(
                 include_in_stats=record.include_in_stats,
                 resolved_reason=record.resolved_reason,
                 resolved_at=record.resolved_at,
+                signals=signals,
+                bayesian_risk=record_risk,
+                disposition=disposition,
             )
         )
     lot_segments = _lot_segments(record_series)
@@ -1355,15 +1477,20 @@ async def stream_chart(
         event_query = event_query.where(QCEvent.timestamp <= end)
     events = session.exec(event_query.order_by(col(QCEvent.timestamp).desc()).limit(limit)).all()
 
-    alert_query = select(AlertRecord).where(AlertRecord.stream_id == stream_id)
+    alert_rows_query = (
+        select(AlertRecord, QCRecord.timestamp)
+        .join(QCRecord, col(QCRecord.id) == col(AlertRecord.qc_record_id), isouter=True)
+        .where(AlertRecord.stream_id == stream_id)
+    )
     if start:
-        alert_query = alert_query.where(AlertRecord.created_at >= start)
+        alert_rows_query = alert_rows_query.where(AlertRecord.created_at >= start)
     if end:
-        alert_query = alert_query.where(AlertRecord.created_at <= end)
-    alerts = session.exec(alert_query.order_by(col(AlertRecord.created_at).desc()).limit(limit)).all()
+        alert_rows_query = alert_rows_query.where(AlertRecord.created_at <= end)
+    alert_rows = session.exec(alert_rows_query.order_by(col(AlertRecord.created_at).desc()).limit(limit)).all()
+
     return StreamChartOut(
         records=record_points,
         events=[_event_out(event) for event in events[::-1]],
-        alerts=[_alert_out(alert) for alert in alerts[::-1]],
+        alerts=[_alert_out(alert, qc_record_timestamp=qc_timestamp) for alert, qc_timestamp in alert_rows[::-1]],
         lot_segments=lot_segments,
     )

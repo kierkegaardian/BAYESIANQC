@@ -1,11 +1,16 @@
 import type { components } from "./schema";
 
 export type AlertOut = components["schemas"]["AlertOut"];
+export type AlertOutWithQc = AlertOut & {
+  qc_record_id?: number | null;
+  qc_record_timestamp?: string | null;
+};
 export type AlertStatus = components["schemas"]["AlertStatus"];
 export type AlertUpdate = components["schemas"]["AlertUpdate"];
 export type AnalyteIn = components["schemas"]["AnalyteIn"];
 export type AnalyteOut = components["schemas"]["AnalyteOut"];
 export type AnalyteUpdate = components["schemas"]["AnalyteUpdate"];
+export type BayesianRisk = components["schemas"]["BayesianRisk"];
 export type CapaIn = components["schemas"]["CapaIn"];
 export type CapaOut = components["schemas"]["CapaOut"];
 export type CapaStatus = components["schemas"]["CapaStatus"];
@@ -13,6 +18,7 @@ export type CsvIngestResult = components["schemas"]["CsvIngestResult"];
 export type Disposition = components["schemas"]["Disposition"];
 export type EntrySource = components["schemas"]["EntrySource"];
 export type EventType = components["schemas"]["EventType"];
+export type FrequentistSignal = components["schemas"]["FrequentistSignal"];
 export type InvestigationIn = components["schemas"]["InvestigationIn"];
 export type InvestigationOut = components["schemas"]["InvestigationOut"];
 export type InvestigationStatus = components["schemas"]["InvestigationStatus"];
@@ -26,10 +32,19 @@ export type MethodUpdate = components["schemas"]["MethodUpdate"];
 export type QCEventIn = components["schemas"]["QCEventIn"];
 export type QCEventOut = components["schemas"]["QCEventOut"];
 export type QCRecordChartOut = components["schemas"]["QCRecordChartOut"];
+export type QCRecordChartOutEvaluated = QCRecordChartOut & {
+  signals?: FrequentistSignal[] | null;
+  bayesian_risk?: BayesianRisk | null;
+  disposition?: Disposition | null;
+};
 export type QCRecordIn = components["schemas"]["QCRecordIn"];
 export type QCRecordResolutionIn = components["schemas"]["QCRecordResolutionIn"];
 export type ReportSummaryOut = components["schemas"]["ReportSummaryOut"];
 export type SignalSeverity = components["schemas"]["SignalSeverity"];
 export type StreamChartOut = components["schemas"]["StreamChartOut"];
+export type StreamChartOutEvaluated = StreamChartOut & {
+  records: QCRecordChartOutEvaluated[];
+  alerts: AlertOutWithQc[];
+};
 export type StreamConfigIn = components["schemas"]["StreamConfigIn"];
 export type StreamConfigOut = components["schemas"]["StreamConfigOut"];

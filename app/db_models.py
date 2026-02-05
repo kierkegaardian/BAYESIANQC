@@ -111,6 +111,7 @@ class PosteriorState(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     stream_id: str = Field(index=True)
     updated_at: datetime = Field(default_factory=utcnow)
+    prior_id: Optional[int] = Field(default=None, index=True, foreign_key="priorconfig.id")
     mu_n: float
     kappa_n: float
     alpha_n: float

@@ -39,7 +39,7 @@
 
     <el-card v-show="chartMode !== 'results'">
       <div class="muted" style="margin-bottom: 10px">
-        Risk chart plots alert Bayesian risk scores (0–100).
+        Risk chart plots Bayesian risk scores (0–100) per QC point, with alert markers.
       </div>
       <div ref="riskChartRef" style="height: 260px"></div>
     </el-card>
@@ -59,10 +59,14 @@ import type {
 import { ElMessage, ElMessageBox } from "element-plus";
 import { api } from "../api/client";
 import type {
+  AlertOutWithQc,
+  BayesianRisk,
+  Disposition,
+  FrequentistSignal,
   LotSegmentOut,
   QCRecordChartOut,
   QCRecordResolutionIn,
-  StreamChartOut,
+  StreamChartOutEvaluated,
   StreamConfigOut,
 } from "../api/contracts";
 
@@ -74,7 +78,7 @@ const riskChartRef = ref<HTMLDivElement | null>(null);
 let resultsChart: echarts.ECharts | null = null;
 let riskChart: echarts.ECharts | null = null;
 
-let cachedChartData: StreamChartOut | null = null;
+let cachedChartData: StreamChartOutEvaluated | null = null;
 let cachedStream: StreamConfigOut | undefined;
 let cachedResultsOption: echarts.EChartsOption | null = null;
 let cachedRiskOption: echarts.EChartsOption | null = null;
@@ -86,6 +90,9 @@ type ChartPoint = {
   include_in_stats?: boolean | null;
   resolved_reason?: string | null;
   resolved_at?: string | null;
+  disposition?: Disposition | null;
+  signals?: FrequentistSignal[] | null;
+  bayesian_risk?: BayesianRisk | null;
   itemStyle?: { color?: string };
 };
 
@@ -415,13 +422,13 @@ async function loadChart() {
   await ensureCharts();
   const stream = streams.value.find((item) => item.stream_id === streamId.value);
   const query = buildParams();
-  const data = await api.get<StreamChartOut>(
+  const data = await api.get<StreamChartOutEvaluated>(
     `/streams/${streamId.value}/chart?${query}`
   );
   cachedChartData = data;
   cachedStream = stream;
   const records = data.records;
-  const alerts = data.alerts;
+  const alerts = data.alerts as AlertOutWithQc[];
   const segments = data.lot_segments.length
     ? data.lot_segments
     : deriveLotSegments(records);
@@ -459,13 +466,20 @@ async function loadChart() {
     include_in_stats: record.include_in_stats,
     resolved_reason: record.resolved_reason,
     resolved_at: record.resolved_at,
+    disposition: record.disposition ?? null,
+    signals: record.signals ?? null,
+    bayesian_risk: record.bayesian_risk ?? null,
     itemStyle:
       record.include_in_stats === false
         ? { color: "#94a3b8" }
         : undefined,
   }));
+  const riskPoints: Array<[string, number | null]> = records.map((record) => [
+    record.timestamp,
+    record.bayesian_risk ? record.bayesian_risk.risk_score : null,
+  ]);
   const alertPoints: Array<[string, number]> = alerts.map((alert) => [
-    alert.created_at,
+    alert.qc_record_timestamp ?? alert.created_at,
     alert.bayesian_risk?.risk_score ?? 0,
   ]);
 
@@ -486,7 +500,7 @@ async function loadChart() {
     name: "Result",
     type: "line",
     data: seriesData,
-    smooth: true,
+    smooth: false,
     connectNulls: false,
     lineStyle: { color: "#2563eb" },
   };
@@ -728,12 +742,27 @@ async function loadChart() {
         const timestamp = recordItem.data.value[0];
         const includeInStats = recordItem.data.include_in_stats !== false;
         const resolvedReason = recordItem.data.resolved_reason;
+        const disposition = recordItem.data.disposition;
+        const signals = recordItem.data.signals;
+        const risk = recordItem.data.bayesian_risk;
         const parts: string[] = [];
         if (timestamp) {
           parts.push(new Date(timestamp).toLocaleString());
         }
         if (value !== undefined) {
           parts.push(`Result: ${value}`);
+        }
+        if (disposition) {
+          parts.push(`Disposition: ${disposition}`);
+        }
+        if (signals && signals.length) {
+          const summary = signals.map((signal) => signal.rule).join(", ");
+          parts.push(`Signals: ${summary}`);
+        }
+        if (risk) {
+          const prob = Math.max(0, Math.min(1, Number(risk.probability_outside_limits)));
+          const score = Number.isFinite(Number(risk.risk_score)) ? Number(risk.risk_score) : 0;
+          parts.push(`Predictive risk: ${score} (P(outside) ${(prob * 100).toFixed(1)}%)`);
         }
         if (lot) {
           parts.push(`Lot: ${lot}`);
@@ -769,12 +798,13 @@ async function loadChart() {
     );
   }
 
-  const riskSeries: ScatterSeriesOption = {
-    name: "Alert risk score",
-    type: "scatter",
-    data: alertPoints,
-    symbolSize: 10,
-    itemStyle: { color: "#dc2626" },
+  const riskSeries: LineSeriesOption = {
+    name: "Risk score",
+    type: "line",
+    data: riskPoints,
+    showSymbol: false,
+    connectNulls: false,
+    lineStyle: { color: "#dc2626" },
   };
 
   if (segmentAreas.length) {
@@ -794,16 +824,25 @@ async function loadChart() {
     };
   }
 
+  const alertSeries: ScatterSeriesOption = {
+    name: "Alerts",
+    type: "scatter",
+    data: alertPoints,
+    symbolSize: 9,
+    itemStyle: { color: "#7f1d1d" },
+  };
+
   const riskOption: echarts.EChartsOption = {
     grid: { left: "6%", right: "4%", top: "8%", bottom: "18%", containLabel: true },
     xAxis: { type: "time" },
     yAxis: { type: "value", name: "Risk (0–100)", min: 0, max: 100 },
-    series: [riskSeries],
+    series: [riskSeries, alertSeries],
     tooltip: {
-      trigger: "item",
+      trigger: "axis",
       formatter: (params: unknown) => {
         const items = asFormatterItems(params);
-        const raw = items[0]?.value;
+        const primary = items.find((item) => Array.isArray(item.value) && item.value.length === 2);
+        const raw = primary?.value;
         if (!Array.isArray(raw) || raw.length !== 2) {
           return "";
         }
@@ -813,7 +852,7 @@ async function loadChart() {
           ? new Date(timestamp).toLocaleString()
           : timestamp;
         const s = Number.isFinite(score) ? score : 0;
-        return `${ts}<br/>Risk score: ${s}`;
+        return `${ts}<br/>Predictive risk score: ${s}`;
       },
     },
   };

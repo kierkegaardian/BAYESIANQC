@@ -42,7 +42,7 @@ def get_engine() -> Engine:
 
 def get_session() -> Iterator[Session]:
     engine = get_engine()
-    with Session(engine) as session:
+    with Session(engine, expire_on_commit=False) as session:
         yield session
 
 
@@ -69,6 +69,11 @@ def _ensure_sqlite_columns(engine: Engine) -> None:
         if "resolved_reason" not in columns:
             cursor.execute("ALTER TABLE qcrecord ADD COLUMN resolved_reason VARCHAR")
         cursor.execute("UPDATE qcrecord SET include_in_stats = 1 WHERE include_in_stats IS NULL")
+
+        cursor.execute("PRAGMA table_info(posteriorstate)")
+        columns = {row[1] for row in cursor.fetchall()}
+        if "prior_id" not in columns:
+            cursor.execute("ALTER TABLE posteriorstate ADD COLUMN prior_id INTEGER")
         connection.commit()
     finally:
         cursor.close()

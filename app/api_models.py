@@ -5,7 +5,8 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from app.models import AlertOut, IngestionResult, QCEventOut
+from app.domain import Disposition
+from app.models import AlertOut, BayesianRisk, FrequentistSignal, IngestionResult, QCEventOut
 
 
 class CsvRowError(BaseModel):
@@ -56,6 +57,9 @@ class QCRecordChartOut(BaseModel):
     include_in_stats: bool
     resolved_reason: Optional[str] = None
     resolved_at: Optional[datetime] = None
+    signals: Optional[list[FrequentistSignal]] = None
+    bayesian_risk: Optional[BayesianRisk] = None
+    disposition: Optional[Disposition] = None
 
 
 class StreamChartOut(BaseModel):
@@ -63,4 +67,3 @@ class StreamChartOut(BaseModel):
     events: list[QCEventOut]
     alerts: list[AlertOut]
     lot_segments: list[LotSegmentOut]
-

@@ -11,7 +11,21 @@
     <el-table :data="alerts" stripe class="full-width">
       <el-table-column prop="id" label="Alert ID" />
       <el-table-column prop="stream_id" label="Stream" />
+      <el-table-column prop="qc_record_timestamp" label="QC Time" width="180" />
+      <el-table-column prop="created_at" label="Created" width="180" />
       <el-table-column prop="disposition" label="Disposition" />
+      <el-table-column label="Risk" width="90">
+        <template #default="{ row }">
+          <span>{{ row.bayesian_risk?.risk_score ?? "-" }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="Signals">
+        <template #default="{ row }">
+          <span>
+            {{ formatSignalRules(row) }}
+          </span>
+        </template>
+      </el-table-column>
       <el-table-column prop="status" label="Status" />
       <el-table-column label="Assign">
         <template #default="{ row }">
@@ -40,15 +54,22 @@
 import { onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { api } from "../api/client";
-import type { AlertOut, AlertUpdate } from "../api/contracts";
+import type { AlertOutWithQc, AlertUpdate } from "../api/contracts";
 
-const alerts = ref<AlertOut[]>([]);
+const alerts = ref<AlertOutWithQc[]>([]);
 
-async function loadAlerts() {
-  alerts.value = await api.get<AlertOut[]>("/alerts");
+function formatSignalRules(alert: AlertOutWithQc): string {
+  if (!alert.signals?.length) {
+    return "-";
+  }
+  return alert.signals.map((signal) => signal.rule).join(", ");
 }
 
-async function saveAlert(row: AlertOut) {
+async function loadAlerts() {
+  alerts.value = await api.get<AlertOutWithQc[]>("/alerts");
+}
+
+async function saveAlert(row: AlertOutWithQc) {
   try {
     const payload: AlertUpdate = {
       status: row.status ?? null,

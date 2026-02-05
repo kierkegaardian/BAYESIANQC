@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 from typing import List, Optional, Tuple
 
-from pydantic import BaseModel, Field, JsonValue, field_validator
+from pydantic import BaseModel, Field, JsonValue, field_validator, model_validator
 
 from app.domain import Disposition, SignalSeverity
 
@@ -139,6 +139,8 @@ class AlertOut(BaseModel):
     id: str
     stream_id: str
     created_at: datetime
+    qc_record_id: Optional[int] = None
+    qc_record_timestamp: Optional[datetime] = None
     signals: List[FrequentistSignal]
     bayesian_risk: BayesianRisk
     disposition: Disposition
@@ -188,6 +190,34 @@ class StreamConfigBase(BaseModel):
     risk_threshold_warn: int = 50
     risk_threshold_hold: int = 80
     rule_set: Optional[dict[str, JsonValue]] = None
+
+    @field_validator("sigma")
+    @classmethod
+    def sigma_must_be_positive(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError("sigma must be > 0")
+        return v
+
+    @field_validator("warning_limit_sd", "action_limit_sd")
+    @classmethod
+    def limits_must_be_positive(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError("limit SD values must be > 0")
+        return v
+
+    @model_validator(mode="after")
+    def validate_limits_and_thresholds(self) -> "StreamConfigBase":
+        if self.action_limit_sd < self.warning_limit_sd:
+            raise ValueError("action_limit_sd must be >= warning_limit_sd")
+        if not (0 <= self.risk_threshold_warn <= 100):
+            raise ValueError("risk_threshold_warn must be between 0 and 100")
+        if not (0 <= self.risk_threshold_hold <= 100):
+            raise ValueError("risk_threshold_hold must be between 0 and 100")
+        if self.risk_threshold_hold < self.risk_threshold_warn:
+            raise ValueError("risk_threshold_hold must be >= risk_threshold_warn")
+        if self.baseline_start and self.baseline_end and self.baseline_end < self.baseline_start:
+            raise ValueError("baseline_end must be >= baseline_start")
+        return self
 
 
 class StreamConfigIn(StreamConfigBase):
@@ -269,6 +299,27 @@ class PriorConfigBase(BaseModel):
     kappa0: float
     alpha0: float
     beta0: float
+
+    @field_validator("kappa0")
+    @classmethod
+    def kappa0_must_be_positive(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError("kappa0 must be > 0")
+        return v
+
+    @field_validator("alpha0")
+    @classmethod
+    def alpha0_must_be_gt_one(cls, v: float) -> float:
+        if v <= 1:
+            raise ValueError("alpha0 must be > 1")
+        return v
+
+    @field_validator("beta0")
+    @classmethod
+    def beta0_must_be_positive(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError("beta0 must be > 0")
+        return v
 
 
 class PriorConfigIn(PriorConfigBase):

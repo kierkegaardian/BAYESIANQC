@@ -415,6 +415,10 @@ export interface components {
             due_at?: string | null;
             /** Id */
             id: string;
+            /** Qc Record Id */
+            qc_record_id?: number | null;
+            /** Qc Record Timestamp */
+            qc_record_timestamp?: string | null;
             /** Signals */
             signals: components["schemas"]["FrequentistSignal"][];
             status?: components["schemas"]["AlertStatus"] | null;
@@ -964,8 +968,10 @@ export interface components {
         };
         /** QCRecordChartOut */
         QCRecordChartOut: {
+            bayesian_risk?: components["schemas"]["BayesianRisk"] | null;
             /** Control Material Lot */
             control_material_lot: string;
+            disposition?: components["schemas"]["Disposition"] | null;
             /** Id */
             id: number;
             /** Include In Stats */
@@ -976,6 +982,8 @@ export interface components {
             resolved_reason?: string | null;
             /** Result Value */
             result_value: number;
+            /** Signals */
+            signals?: components["schemas"]["FrequentistSignal"][] | null;
             /**
              * Timestamp
              * Format: date-time
@@ -2146,6 +2154,7 @@ export interface operations {
                 limit?: number;
                 start?: string | null;
                 end?: string | null;
+                include_evaluations?: boolean;
             };
             header?: {
                 "X-API-Key"?: string | null;
