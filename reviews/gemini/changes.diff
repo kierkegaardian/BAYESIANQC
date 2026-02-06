@@ -1,0 +1,1289 @@
+diff --git a/app/api_models.py b/app/api_models.py
+index f2d10f3..72e8773 100644
+--- a/app/api_models.py
++++ b/app/api_models.py
+@@ -5,7 +5,8 @@ from typing import Optional
+ 
+ from pydantic import BaseModel, Field
+ 
+-from app.models import AlertOut, IngestionResult, QCEventOut
++from app.domain import Disposition
++from app.models import AlertOut, BayesianRisk, FrequentistSignal, IngestionResult, QCEventOut
+ 
+ 
+ class CsvRowError(BaseModel):
+@@ -56,6 +57,9 @@ class QCRecordChartOut(BaseModel):
+     include_in_stats: bool
+     resolved_reason: Optional[str] = None
+     resolved_at: Optional[datetime] = None
++    signals: Optional[list[FrequentistSignal]] = None
++    bayesian_risk: Optional[BayesianRisk] = None
++    disposition: Optional[Disposition] = None
+ 
+ 
+ class StreamChartOut(BaseModel):
+@@ -63,4 +67,3 @@ class StreamChartOut(BaseModel):
+     events: list[QCEventOut]
+     alerts: list[AlertOut]
+     lot_segments: list[LotSegmentOut]
+-
+diff --git a/app/bayesian.py b/app/bayesian.py
+index 1e7ab3d..38e47d8 100644
+--- a/app/bayesian.py
++++ b/app/bayesian.py
+@@ -6,10 +6,12 @@ from typing import Optional
+ 
+ from sqlmodel import Session, col, select
+ 
+-from app.db_models import PosteriorState, QCRecord, StreamConfig
++from app.db_models import PosteriorState, PriorConfig, QCRecord, StreamConfig
+ from app.models import BayesianRisk
+ from app.storage import get_active_prior
+ 
++_NORMAL_APPROX_DF_THRESHOLD = 30.0
++
+ 
+ def _normal_cdf(x: float, mean: float, std: float) -> float:
+     if std <= 0:
+@@ -17,6 +19,82 @@ def _normal_cdf(x: float, mean: float, std: float) -> float:
+     return 0.5 * (1 + math.erf((x - mean) / (std * math.sqrt(2))))
+ 
+ 
++def _beta_continued_fraction(a: float, b: float, x: float) -> float:
++    max_iterations = 200
++    epsilon = 3e-12
++    fpmin = 1e-300
++
++    qab = a + b
++    qap = a + 1.0
++    qam = a - 1.0
++
++    c = 1.0
++    d = 1.0 - (qab * x / qap)
++    if abs(d) < fpmin:
++        d = fpmin
++    d = 1.0 / d
++    h = d
++
++    for m in range(1, max_iterations + 1):
++        m2 = 2 * m
++        aa = m * (b - m) * x / ((qam + m2) * (a + m2))
++        d = 1.0 + aa * d
++        if abs(d) < fpmin:
++            d = fpmin
++        c = 1.0 + aa / c
++        if abs(c) < fpmin:
++            c = fpmin
++        d = 1.0 / d
++        h *= d * c
++
++        aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2))
++        d = 1.0 + aa * d
++        if abs(d) < fpmin:
++            d = fpmin
++        c = 1.0 + aa / c
++        if abs(c) < fpmin:
++            c = fpmin
++        d = 1.0 / d
++        delta = d * c
++        h *= delta
++        if abs(delta - 1.0) < epsilon:
++            break
++    return h
++
++
++def _regularized_incomplete_beta(a: float, b: float, x: float) -> float:
++    if x <= 0:
++        return 0.0
++    if x >= 1:
++        return 1.0
++
++    log_bt = (
++        math.lgamma(a + b)
++        - math.lgamma(a)
++        - math.lgamma(b)
++        + a * math.log(x)
++        + b * math.log(1.0 - x)
++    )
++    bt = math.exp(log_bt)
++
++    if x < (a + 1.0) / (a + b + 2.0):
++        return bt * _beta_continued_fraction(a, b, x) / a
++    return 1.0 - bt * _beta_continued_fraction(b, a, 1.0 - x) / b
++
++
++def _student_t_cdf(t_value: float, degrees_of_freedom: float) -> float:
++    if degrees_of_freedom <= 0:
++        return 0.5
++
++    x = degrees_of_freedom / (degrees_of_freedom + t_value * t_value)
++    a = degrees_of_freedom / 2.0
++    b = 0.5
++    ib = _regularized_incomplete_beta(a, b, x)
++    if t_value >= 0:
++        return 1.0 - 0.5 * ib
++    return 0.5 * ib
++
++
+ def _update_posterior(
+     mu0: float,
+     kappa0: float,
+@@ -31,6 +109,160 @@ def _update_posterior(
+     return mu_n, kappa_n, alpha_n, beta_n
+ 
+ 
++def _risk_from_posterior(
++    *,
++    mu_n: float,
++    kappa_n: float,
++    alpha_n: float,
++    beta_n: float,
++    config: StreamConfig,
++) -> BayesianRisk:
++    posterior_sigma = math.sqrt(beta_n / (alpha_n - 1)) if alpha_n > 1 else None
++    predictive_sigma = (
++        math.sqrt(beta_n * (kappa_n + 1) / (alpha_n * kappa_n)) if (alpha_n > 0 and kappa_n > 0) else None
++    )
++
++    if predictive_sigma and predictive_sigma > 0:
++        lower = config.target_value - config.action_limit_sd * config.sigma
++        upper = config.target_value + config.action_limit_sd * config.sigma
++        df = 2.0 * alpha_n
++        if df >= _NORMAL_APPROX_DF_THRESHOLD:
++            prob_inside = _normal_cdf(upper, mu_n, predictive_sigma) - _normal_cdf(lower, mu_n, predictive_sigma)
++        else:
++            t_upper = (upper - mu_n) / predictive_sigma
++            t_lower = (lower - mu_n) / predictive_sigma
++            prob_inside = _student_t_cdf(t_upper, df) - _student_t_cdf(t_lower, df)
++        probability_outside_limits = max(0.0, min(1.0, 1 - prob_inside))
++    else:
++        probability_outside_limits = 0.0
++
++    risk_score = int(min(100, max(0, round(probability_outside_limits * 100))))
++    credible_interval = None
++    if posterior_sigma and kappa_n > 0:
++        stderr = posterior_sigma / math.sqrt(kappa_n)
++        credible_interval = (mu_n - 1.96 * stderr, mu_n + 1.96 * stderr)
++
++    return BayesianRisk(
++        probability_outside_limits=probability_outside_limits,
++        risk_score=risk_score,
++        posterior_mean=mu_n,
++        posterior_sigma=posterior_sigma,
++        predictive_sigma=predictive_sigma,
++        credible_interval=credible_interval,
++    )
++
++
++def update_posterior_and_infer_risk(
++    *,
++    mu0: float,
++    kappa0: float,
++    alpha0: float,
++    beta0: float,
++    record_value: float,
++    config: StreamConfig,
++) -> tuple[BayesianRisk, tuple[float, float, float, float]]:
++    mu_n, kappa_n, alpha_n, beta_n = _update_posterior(
++        mu0,
++        kappa0,
++        alpha0,
++        beta0,
++        record_value,
++    )
++    return (
++        _risk_from_posterior(
++            mu_n=mu_n,
++            kappa_n=kappa_n,
++            alpha_n=alpha_n,
++            beta_n=beta_n,
++            config=config,
++        ),
++        (mu_n, kappa_n, alpha_n, beta_n),
++    )
++
++
++def _list_priors(session: Session, stream_id: str) -> list[PriorConfig]:
++    return list(
++        session.exec(
++            select(PriorConfig)
++            .where(PriorConfig.stream_id == stream_id)
++            .order_by(col(PriorConfig.effective_from).asc(), col(PriorConfig.version).asc())
++        ).all()
++    )
++
++
++def _active_prior(priors: list[PriorConfig], at_time: datetime) -> Optional[PriorConfig]:
++    if not priors:
++        return None
++    active: Optional[PriorConfig] = None
++    for prior in priors:
++        if prior.effective_from <= at_time:
++            active = prior
++        else:
++            break
++    return active or priors[0]
++
++
++def infer_risk_as_of(
++    session: Session,
++    stream_id: str,
++    record_timestamp: datetime,
++    config: StreamConfig,
++) -> BayesianRisk:
++    priors = _list_priors(session, stream_id)
++    if not priors:
++        return BayesianRisk(probability_outside_limits=0.0, risk_score=0)
++
++    records = session.exec(
++        select(QCRecord)
++        .where(
++            QCRecord.stream_id == stream_id,
++            QCRecord.include_in_stats == True,
++            QCRecord.timestamp <= record_timestamp,
++        )
++        .order_by(col(QCRecord.timestamp).asc())
++    ).all()
++    if not records:
++        return BayesianRisk(probability_outside_limits=0.0, risk_score=0)
++
++    current_prior = _active_prior(priors, records[0].timestamp)
++    if current_prior is None:
++        return BayesianRisk(probability_outside_limits=0.0, risk_score=0)
++    if current_prior.id is None:
++        raise RuntimeError("Prior config missing id")
++
++    mu_n, kappa_n, alpha_n, beta_n = (
++        current_prior.mu0,
++        current_prior.kappa0,
++        current_prior.alpha0,
++        current_prior.beta0,
++    )
++    for record in records:
++        record_prior = _active_prior(priors, record.timestamp)
++        if record_prior is None:
++            return BayesianRisk(probability_outside_limits=0.0, risk_score=0)
++        if record_prior.id is None:
++            raise RuntimeError("Prior config missing id")
++        if record_prior.id != current_prior.id:
++            current_prior = record_prior
++            mu_n, kappa_n, alpha_n, beta_n = (
++                current_prior.mu0,
++                current_prior.kappa0,
++                current_prior.alpha0,
++                current_prior.beta0,
++            )
++        mu_n, kappa_n, alpha_n, beta_n = _update_posterior(
++            mu_n, kappa_n, alpha_n, beta_n, record.result_value
++        )
++
++    return _risk_from_posterior(
++        mu_n=mu_n,
++        kappa_n=kappa_n,
++        alpha_n=alpha_n,
++        beta_n=beta_n,
++        config=config,
++    )
++
++
+ def rebuild_posterior_state(session: Session, stream_id: str) -> Optional[PosteriorState]:
+     records = session.exec(
+         select(QCRecord)
+@@ -44,26 +276,60 @@ def rebuild_posterior_state(session: Session, stream_id: str) -> Optional[Poster
+             session.commit()
+         return None
+ 
+-    prior = get_active_prior(session, stream_id, records[0].timestamp)
+-    if prior is None:
++    priors = _list_priors(session, stream_id)
++    if not priors:
+         if state:
+             session.delete(state)
+             session.commit()
+         return None
+ 
+-    mu_n, kappa_n, alpha_n, beta_n = prior.mu0, prior.kappa0, prior.alpha0, prior.beta0
++    current_prior = _active_prior(priors, records[0].timestamp)
++    if current_prior is None:
++        if state:
++            session.delete(state)
++            session.commit()
++        return None
++    if current_prior.id is None:
++        raise RuntimeError("Prior config missing id")
++
++    mu_n, kappa_n, alpha_n, beta_n = (
++        current_prior.mu0,
++        current_prior.kappa0,
++        current_prior.alpha0,
++        current_prior.beta0,
++    )
++    n_obs = 0
+     for record in records:
++        record_prior = _active_prior(priors, record.timestamp)
++        if record_prior is None:
++            if state:
++                session.delete(state)
++                session.commit()
++            return None
++        if record_prior.id is None:
++            raise RuntimeError("Prior config missing id")
++        if record_prior.id != current_prior.id:
++            current_prior = record_prior
++            mu_n, kappa_n, alpha_n, beta_n = (
++                current_prior.mu0,
++                current_prior.kappa0,
++                current_prior.alpha0,
++                current_prior.beta0,
++            )
++            n_obs = 0
+         mu_n, kappa_n, alpha_n, beta_n = _update_posterior(
+             mu_n, kappa_n, alpha_n, beta_n, record.result_value
+         )
++        n_obs += 1
+ 
+     if state:
+         state.mu_n = mu_n
+         state.kappa_n = kappa_n
+         state.alpha_n = alpha_n
+         state.beta_n = beta_n
+-        state.n_obs = len(records)
++        state.n_obs = n_obs
+         state.updated_at = records[-1].timestamp
++        state.prior_id = current_prior.id
+         session.add(state)
+     else:
+         state = PosteriorState(
+@@ -72,8 +338,9 @@ def rebuild_posterior_state(session: Session, stream_id: str) -> Optional[Poster
+             kappa_n=kappa_n,
+             alpha_n=alpha_n,
+             beta_n=beta_n,
+-            n_obs=len(records),
++            n_obs=n_obs,
+             updated_at=records[-1].timestamp,
++            prior_id=current_prior.id,
+         )
+         session.add(state)
+     session.commit()
+@@ -90,61 +357,33 @@ def infer_risk(
+     prior = get_active_prior(session, stream_id, record_timestamp)
+     if prior is None:
+         return BayesianRisk(probability_outside_limits=0.0, risk_score=0)
++    if prior.id is None:
++        raise RuntimeError("Prior config missing id")
+ 
+     state = session.exec(select(PosteriorState).where(PosteriorState.stream_id == stream_id)).first()
+-    if state:
+-        mu0, kappa0, alpha0, beta0 = state.mu_n, state.kappa_n, state.alpha_n, state.beta_n
+-    else:
+-        mu0, kappa0, alpha0, beta0 = prior.mu0, prior.kappa0, prior.alpha0, prior.beta0
++    if not state or (state.updated_at > record_timestamp) or (state.prior_id != prior.id):
++        risk = infer_risk_as_of(session, stream_id, record_timestamp, config)
++        rebuild_posterior_state(session, stream_id)
++        return risk
+ 
+     mu_n, kappa_n, alpha_n, beta_n = _update_posterior(
+-        mu0, kappa0, alpha0, beta0, record_value
++        state.mu_n, state.kappa_n, state.alpha_n, state.beta_n, record_value
++    )
++    risk = _risk_from_posterior(
++        mu_n=mu_n,
++        kappa_n=kappa_n,
++        alpha_n=alpha_n,
++        beta_n=beta_n,
++        config=config,
+     )
+ 
+-    posterior_sigma = math.sqrt(beta_n / (alpha_n - 1)) if alpha_n > 1 else None
+-    predictive_sigma = math.sqrt(beta_n * (kappa_n + 1) / (alpha_n * kappa_n)) if alpha_n > 0 else None
+-
+-    if predictive_sigma and predictive_sigma > 0:
+-        lower = config.target_value - config.action_limit_sd * config.sigma
+-        upper = config.target_value + config.action_limit_sd * config.sigma
+-        prob_inside = _normal_cdf(upper, mu_n, predictive_sigma) - _normal_cdf(lower, mu_n, predictive_sigma)
+-        probability_outside_limits = max(0.0, min(1.0, 1 - prob_inside))
+-    else:
+-        probability_outside_limits = 0.0
+-
+-    risk_score = int(min(100, max(0, round(probability_outside_limits * 100))))
+-    credible_interval = None
+-    if posterior_sigma and kappa_n > 0:
+-        stderr = posterior_sigma / math.sqrt(kappa_n)
+-        credible_interval = (mu_n - 1.96 * stderr, mu_n + 1.96 * stderr)
+-
+-    if state:
+-        state.mu_n = mu_n
+-        state.kappa_n = kappa_n
+-        state.alpha_n = alpha_n
+-        state.beta_n = beta_n
+-        state.n_obs += 1
+-        state.updated_at = record_timestamp
+-        session.add(state)
+-    else:
+-        session.add(
+-            PosteriorState(
+-                stream_id=stream_id,
+-                mu_n=mu_n,
+-                kappa_n=kappa_n,
+-                alpha_n=alpha_n,
+-                beta_n=beta_n,
+-                n_obs=1,
+-                updated_at=record_timestamp,
+-            )
+-        )
++    state.mu_n = mu_n
++    state.kappa_n = kappa_n
++    state.alpha_n = alpha_n
++    state.beta_n = beta_n
++    state.n_obs += 1
++    state.updated_at = record_timestamp
++    state.prior_id = prior.id
++    session.add(state)
+     session.commit()
+-
+-    return BayesianRisk(
+-        probability_outside_limits=probability_outside_limits,
+-        risk_score=risk_score,
+-        posterior_mean=mu_n,
+-        posterior_sigma=posterior_sigma,
+-        predictive_sigma=predictive_sigma,
+-        credible_interval=credible_interval,
+-    )
++    return risk
+diff --git a/app/db.py b/app/db.py
+index 156fa9b..ddd55d6 100644
+--- a/app/db.py
++++ b/app/db.py
+@@ -69,6 +69,11 @@ def _ensure_sqlite_columns(engine: Engine) -> None:
+         if "resolved_reason" not in columns:
+             cursor.execute("ALTER TABLE qcrecord ADD COLUMN resolved_reason VARCHAR")
+         cursor.execute("UPDATE qcrecord SET include_in_stats = 1 WHERE include_in_stats IS NULL")
++
++        cursor.execute("PRAGMA table_info(posteriorstate)")
++        columns = {row[1] for row in cursor.fetchall()}
++        if "prior_id" not in columns:
++            cursor.execute("ALTER TABLE posteriorstate ADD COLUMN prior_id INTEGER")
+         connection.commit()
+     finally:
+         cursor.close()
+diff --git a/app/db_models.py b/app/db_models.py
+index 385c5cf..beac88e 100644
+--- a/app/db_models.py
++++ b/app/db_models.py
+@@ -111,6 +111,7 @@ class PosteriorState(SQLModel, table=True):
+     id: Optional[int] = Field(default=None, primary_key=True)
+     stream_id: str = Field(index=True)
+     updated_at: datetime = Field(default_factory=utcnow)
++    prior_id: Optional[int] = Field(default=None, index=True, foreign_key="priorconfig.id")
+     mu_n: float
+     kappa_n: float
+     alpha_n: float
+diff --git a/app/main.py b/app/main.py
+index b73df97..385faae 100644
+--- a/app/main.py
++++ b/app/main.py
+@@ -350,12 +350,14 @@ def _audit_out(entry: AuditEntry) -> AuditEntryOut:
+     )
+ 
+ 
+-def _alert_out(alert: AlertRecord) -> AlertOut:
++def _alert_out(alert: AlertRecord, qc_record_timestamp: Optional[datetime] = None) -> AlertOut:
+     acknowledged = alert.status in {AlertStatus.ACKNOWLEDGED, AlertStatus.CLOSED}
+     return AlertOut(
+         id=alert.alert_id,
+         stream_id=alert.stream_id,
+         created_at=alert.created_at,
++        qc_record_id=alert.qc_record_id,
++        qc_record_timestamp=qc_record_timestamp,
+         signals=[FrequentistSignal.model_validate(signal) for signal in alert.signals],
+         bayesian_risk=BayesianRisk.model_validate(alert.bayesian_risk),
+         disposition=Disposition(alert.disposition),
+@@ -585,7 +587,7 @@ def process_ingestion(
+                 bayesian_risk=risk.model_dump(mode="json"),
+             ),
+         )
+-        alert_out = _alert_out(alert_record)
++        alert_out = _alert_out(alert_record, qc_record_timestamp=record.timestamp)
+ 
+     result = IngestionResult(
+         status="accepted",
+@@ -1048,8 +1050,12 @@ async def list_alerts(
+     user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
+     session: Session = Depends(get_session),
+ ):
+-    alerts = session.exec(select(AlertRecord).order_by(col(AlertRecord.created_at).desc())).all()
+-    return [_alert_out(alert) for alert in alerts]
++    rows = session.exec(
++        select(AlertRecord, QCRecord.timestamp)
++        .join(QCRecord, QCRecord.id == AlertRecord.qc_record_id, isouter=True)
++        .order_by(col(AlertRecord.created_at).desc())
++    ).all()
++    return [_alert_out(alert, qc_record_timestamp=qc_timestamp) for alert, qc_timestamp in rows]
+ 
+ 
+ @app.patch("/alerts/{alert_id}", response_model=AlertOut)
+@@ -1321,6 +1327,7 @@ async def stream_chart(
+     limit: int = 200,
+     start: Optional[datetime] = None,
+     end: Optional[datetime] = None,
++    include_evaluations: bool = True,
+     user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
+     session: Session = Depends(get_session),
+ ) -> StreamChartOut:
+@@ -1331,10 +1338,122 @@ async def stream_chart(
+         record_query = record_query.where(QCRecord.timestamp <= end)
+     records = session.exec(record_query.order_by(col(QCRecord.timestamp).desc()).limit(limit)).all()
+     record_series = records[::-1]
++    configs = (
++        session.exec(
++            select(StreamConfig)
++            .where(StreamConfig.stream_id == stream_id)
++            .order_by(col(StreamConfig.effective_from).asc(), col(StreamConfig.version).asc())
++        ).all()
++        if include_evaluations
++        else []
++    )
++    priors = (
++        session.exec(
++            select(PriorConfig)
++            .where(PriorConfig.stream_id == stream_id)
++            .order_by(col(PriorConfig.effective_from).asc(), col(PriorConfig.version).asc())
++        ).all()
++        if include_evaluations
++        else []
++    )
++
++    risk_by_record_id: dict[int, BayesianRisk] = {}
++    if include_evaluations and record_series and configs and priors:
++        record_ids_of_interest = {record.id for record in record_series if record.id is not None}
++        first_time = record_series[0].timestamp
++        last_time = record_series[-1].timestamp
++
++        prior_idx = 0
++        while prior_idx + 1 < len(priors) and priors[prior_idx + 1].effective_from <= first_time:
++            prior_idx += 1
++        start_prior = priors[prior_idx]
++        prior_start = start_prior.effective_from if start_prior.effective_from <= first_time else None
++
++        history_query = select(QCRecord).where(
++            QCRecord.stream_id == stream_id,
++            QCRecord.include_in_stats == True,
++            QCRecord.timestamp <= last_time,
++        )
++        if prior_start is not None:
++            history_query = history_query.where(QCRecord.timestamp >= prior_start)
++
++        history = session.exec(history_query.order_by(col(QCRecord.timestamp).asc())).all()
++        if not history:
++            history = []
++
++        current_prior = start_prior
++        if current_prior.id is None:
++            raise RuntimeError("Prior config missing id")
++        mu_n, kappa_n, alpha_n, beta_n = (
++            current_prior.mu0,
++            current_prior.kappa0,
++            current_prior.alpha0,
++            current_prior.beta0,
++        )
++
++        config_idx = 0
++        if history:
++            while config_idx + 1 < len(configs) and configs[config_idx + 1].effective_from <= history[0].timestamp:
++                config_idx += 1
++
++        for record in history:
++            while prior_idx + 1 < len(priors) and priors[prior_idx + 1].effective_from <= record.timestamp:
++                prior_idx += 1
++            record_prior = priors[prior_idx]
++            if record_prior.id is None:
++                raise RuntimeError("Prior config missing id")
++            if record_prior.id != current_prior.id:
++                current_prior = record_prior
++                mu_n, kappa_n, alpha_n, beta_n = (
++                    current_prior.mu0,
++                    current_prior.kappa0,
++                    current_prior.alpha0,
++                    current_prior.beta0,
++                )
++
++            while config_idx + 1 < len(configs) and configs[config_idx + 1].effective_from <= record.timestamp:
++                config_idx += 1
++            config_at_time = configs[config_idx]
++
++            risk, (mu_n, kappa_n, alpha_n, beta_n) = bayesian.update_posterior_and_infer_risk(
++                mu0=mu_n,
++                kappa0=kappa_n,
++                alpha0=alpha_n,
++                beta0=beta_n,
++                record_value=record.result_value,
++                config=config_at_time,
++            )
++            if record.id is not None and record.id in record_ids_of_interest:
++                risk_by_record_id[record.id] = risk
++
+     record_points: list[QCRecordChartOut] = []
++    config_idx = 0
+     for record in record_series:
+         if record.id is None:
+             raise RuntimeError("QC record missing id")
++        config_at_time: Optional[StreamConfig] = None
++        if include_evaluations and configs:
++            while config_idx + 1 < len(configs) and configs[config_idx + 1].effective_from <= record.timestamp:
++                config_idx += 1
++            config_at_time = configs[config_idx]
++
++        signals: Optional[list[FrequentistSignal]] = None
++        disposition: Optional[Disposition] = None
++        record_risk: Optional[BayesianRisk] = None
++        if include_evaluations and config_at_time:
++            signals = frequentist.evaluate_rules(
++                session,
++                record.result_value,
++                record.timestamp,
++                record.stream_id,
++                config_at_time,
++            )
++            record_risk = risk_by_record_id.get(record.id) if record.include_in_stats else None
++            disposition = determine_disposition(
++                signals,
++                record_risk.risk_score if record_risk else 0,
++                config_at_time,
++            )
+         record_points.append(
+             QCRecordChartOut(
+                 id=record.id,
+@@ -1344,6 +1463,9 @@ async def stream_chart(
+                 include_in_stats=record.include_in_stats,
+                 resolved_reason=record.resolved_reason,
+                 resolved_at=record.resolved_at,
++                signals=signals,
++                bayesian_risk=record_risk,
++                disposition=disposition,
+             )
+         )
+     lot_segments = _lot_segments(record_series)
+@@ -1355,15 +1477,20 @@ async def stream_chart(
+         event_query = event_query.where(QCEvent.timestamp <= end)
+     events = session.exec(event_query.order_by(col(QCEvent.timestamp).desc()).limit(limit)).all()
+ 
+-    alert_query = select(AlertRecord).where(AlertRecord.stream_id == stream_id)
++    alert_rows_query = (
++        select(AlertRecord, QCRecord.timestamp)
++        .join(QCRecord, QCRecord.id == AlertRecord.qc_record_id, isouter=True)
++        .where(AlertRecord.stream_id == stream_id)
++    )
+     if start:
+-        alert_query = alert_query.where(AlertRecord.created_at >= start)
++        alert_rows_query = alert_rows_query.where(AlertRecord.created_at >= start)
+     if end:
+-        alert_query = alert_query.where(AlertRecord.created_at <= end)
+-    alerts = session.exec(alert_query.order_by(col(AlertRecord.created_at).desc()).limit(limit)).all()
++        alert_rows_query = alert_rows_query.where(AlertRecord.created_at <= end)
++    alert_rows = session.exec(alert_rows_query.order_by(col(AlertRecord.created_at).desc()).limit(limit)).all()
++
+     return StreamChartOut(
+         records=record_points,
+         events=[_event_out(event) for event in events[::-1]],
+-        alerts=[_alert_out(alert) for alert in alerts[::-1]],
++        alerts=[_alert_out(alert, qc_record_timestamp=qc_timestamp) for alert, qc_timestamp in alert_rows[::-1]],
+         lot_segments=lot_segments,
+     )
+diff --git a/app/models.py b/app/models.py
+index 00c20be..135cc55 100644
+--- a/app/models.py
++++ b/app/models.py
+@@ -4,7 +4,7 @@ from datetime import datetime
+ from enum import Enum
+ from typing import List, Optional, Tuple
+ 
+-from pydantic import BaseModel, Field, JsonValue, field_validator
++from pydantic import BaseModel, Field, JsonValue, field_validator, model_validator
+ 
+ from app.domain import Disposition, SignalSeverity
+ 
+@@ -139,6 +139,8 @@ class AlertOut(BaseModel):
+     id: str
+     stream_id: str
+     created_at: datetime
++    qc_record_id: Optional[int] = None
++    qc_record_timestamp: Optional[datetime] = None
+     signals: List[FrequentistSignal]
+     bayesian_risk: BayesianRisk
+     disposition: Disposition
+@@ -189,6 +191,34 @@ class StreamConfigBase(BaseModel):
+     risk_threshold_hold: int = 80
+     rule_set: Optional[dict[str, JsonValue]] = None
+ 
++    @field_validator("sigma")
++    @classmethod
++    def sigma_must_be_positive(cls, v: float) -> float:
++        if v <= 0:
++            raise ValueError("sigma must be > 0")
++        return v
++
++    @field_validator("warning_limit_sd", "action_limit_sd")
++    @classmethod
++    def limits_must_be_positive(cls, v: float) -> float:
++        if v <= 0:
++            raise ValueError("limit SD values must be > 0")
++        return v
++
++    @model_validator(mode="after")
++    def validate_limits_and_thresholds(self) -> "StreamConfigBase":
++        if self.action_limit_sd < self.warning_limit_sd:
++            raise ValueError("action_limit_sd must be >= warning_limit_sd")
++        if not (0 <= self.risk_threshold_warn <= 100):
++            raise ValueError("risk_threshold_warn must be between 0 and 100")
++        if not (0 <= self.risk_threshold_hold <= 100):
++            raise ValueError("risk_threshold_hold must be between 0 and 100")
++        if self.risk_threshold_hold < self.risk_threshold_warn:
++            raise ValueError("risk_threshold_hold must be >= risk_threshold_warn")
++        if self.baseline_start and self.baseline_end and self.baseline_end < self.baseline_start:
++            raise ValueError("baseline_end must be >= baseline_start")
++        return self
++
+ 
+ class StreamConfigIn(StreamConfigBase):
+     effective_from: Optional[datetime] = None
+@@ -270,6 +300,27 @@ class PriorConfigBase(BaseModel):
+     alpha0: float
+     beta0: float
+ 
++    @field_validator("kappa0")
++    @classmethod
++    def kappa0_must_be_positive(cls, v: float) -> float:
++        if v <= 0:
++            raise ValueError("kappa0 must be > 0")
++        return v
++
++    @field_validator("alpha0")
++    @classmethod
++    def alpha0_must_be_gt_one(cls, v: float) -> float:
++        if v <= 1:
++            raise ValueError("alpha0 must be > 1")
++        return v
++
++    @field_validator("beta0")
++    @classmethod
++    def beta0_must_be_positive(cls, v: float) -> float:
++        if v <= 0:
++            raise ValueError("beta0 must be > 0")
++        return v
++
+ 
+ class PriorConfigIn(PriorConfigBase):
+     effective_from: Optional[datetime] = None
+diff --git a/frontend/package.json b/frontend/package.json
+index 19bcb2f..2b81d6a 100644
+--- a/frontend/package.json
++++ b/frontend/package.json
+@@ -8,7 +8,7 @@
+     "build": "vite build",
+     "preview": "vite preview",
+     "typecheck": "vue-tsc --noEmit",
+-    "gen:api": "../.venv/bin/python ../scripts/generate_openapi_json.py --out ../openapi.json && openapi-typescript ../openapi.json -o src/api/schema.ts"
++    "gen:api": "python ../scripts/generate_openapi_json.py --out ../openapi.json && openapi-typescript ../openapi.json -o src/api/schema.ts"
+   },
+   "dependencies": {
+     "echarts": "^5.5.0",
+diff --git a/frontend/src/api/contracts.ts b/frontend/src/api/contracts.ts
+index 3136154..35ddbc8 100644
+--- a/frontend/src/api/contracts.ts
++++ b/frontend/src/api/contracts.ts
+@@ -1,11 +1,16 @@
+ import type { components } from "./schema";
+ 
+ export type AlertOut = components["schemas"]["AlertOut"];
++export type AlertOutWithQc = AlertOut & {
++  qc_record_id?: number | null;
++  qc_record_timestamp?: string | null;
++};
+ export type AlertStatus = components["schemas"]["AlertStatus"];
+ export type AlertUpdate = components["schemas"]["AlertUpdate"];
+ export type AnalyteIn = components["schemas"]["AnalyteIn"];
+ export type AnalyteOut = components["schemas"]["AnalyteOut"];
+ export type AnalyteUpdate = components["schemas"]["AnalyteUpdate"];
++export type BayesianRisk = components["schemas"]["BayesianRisk"];
+ export type CapaIn = components["schemas"]["CapaIn"];
+ export type CapaOut = components["schemas"]["CapaOut"];
+ export type CapaStatus = components["schemas"]["CapaStatus"];
+@@ -13,6 +18,7 @@ export type CsvIngestResult = components["schemas"]["CsvIngestResult"];
+ export type Disposition = components["schemas"]["Disposition"];
+ export type EntrySource = components["schemas"]["EntrySource"];
+ export type EventType = components["schemas"]["EventType"];
++export type FrequentistSignal = components["schemas"]["FrequentistSignal"];
+ export type InvestigationIn = components["schemas"]["InvestigationIn"];
+ export type InvestigationOut = components["schemas"]["InvestigationOut"];
+ export type InvestigationStatus = components["schemas"]["InvestigationStatus"];
+@@ -26,10 +32,19 @@ export type MethodUpdate = components["schemas"]["MethodUpdate"];
+ export type QCEventIn = components["schemas"]["QCEventIn"];
+ export type QCEventOut = components["schemas"]["QCEventOut"];
+ export type QCRecordChartOut = components["schemas"]["QCRecordChartOut"];
++export type QCRecordChartOutEvaluated = QCRecordChartOut & {
++  signals?: FrequentistSignal[] | null;
++  bayesian_risk?: BayesianRisk | null;
++  disposition?: Disposition | null;
++};
+ export type QCRecordIn = components["schemas"]["QCRecordIn"];
+ export type QCRecordResolutionIn = components["schemas"]["QCRecordResolutionIn"];
+ export type ReportSummaryOut = components["schemas"]["ReportSummaryOut"];
+ export type SignalSeverity = components["schemas"]["SignalSeverity"];
+ export type StreamChartOut = components["schemas"]["StreamChartOut"];
++export type StreamChartOutEvaluated = StreamChartOut & {
++  records: QCRecordChartOutEvaluated[];
++  alerts: AlertOutWithQc[];
++};
+ export type StreamConfigIn = components["schemas"]["StreamConfigIn"];
+ export type StreamConfigOut = components["schemas"]["StreamConfigOut"];
+diff --git a/frontend/src/pages/Alerts.vue b/frontend/src/pages/Alerts.vue
+index 42694de..f05913a 100644
+--- a/frontend/src/pages/Alerts.vue
++++ b/frontend/src/pages/Alerts.vue
+@@ -11,7 +11,21 @@
+     <el-table :data="alerts" stripe class="full-width">
+       <el-table-column prop="id" label="Alert ID" />
+       <el-table-column prop="stream_id" label="Stream" />
++      <el-table-column prop="qc_record_timestamp" label="QC Time" width="180" />
++      <el-table-column prop="created_at" label="Created" width="180" />
+       <el-table-column prop="disposition" label="Disposition" />
++      <el-table-column label="Risk" width="90">
++        <template #default="{ row }">
++          <span>{{ row.bayesian_risk?.risk_score ?? "-" }}</span>
++        </template>
++      </el-table-column>
++      <el-table-column label="Signals">
++        <template #default="{ row }">
++          <span>
++            {{ row.signals?.length ? row.signals.map((s) => s.rule).join(", ") : "-" }}
++          </span>
++        </template>
++      </el-table-column>
+       <el-table-column prop="status" label="Status" />
+       <el-table-column label="Assign">
+         <template #default="{ row }">
+@@ -40,15 +54,15 @@
+ import { onMounted, ref } from "vue";
+ import { ElMessage } from "element-plus";
+ import { api } from "../api/client";
+-import type { AlertOut, AlertUpdate } from "../api/contracts";
++import type { AlertOutWithQc, AlertUpdate } from "../api/contracts";
+ 
+-const alerts = ref<AlertOut[]>([]);
++const alerts = ref<AlertOutWithQc[]>([]);
+ 
+ async function loadAlerts() {
+-  alerts.value = await api.get<AlertOut[]>("/alerts");
++  alerts.value = await api.get<AlertOutWithQc[]>("/alerts");
+ }
+ 
+-async function saveAlert(row: AlertOut) {
++async function saveAlert(row: AlertOutWithQc) {
+   try {
+     const payload: AlertUpdate = {
+       status: row.status ?? null,
+diff --git a/frontend/src/pages/ChartView.vue b/frontend/src/pages/ChartView.vue
+index ac7bc1b..133d298 100644
+--- a/frontend/src/pages/ChartView.vue
++++ b/frontend/src/pages/ChartView.vue
+@@ -39,7 +39,7 @@
+ 
+     <el-card v-show="chartMode !== 'results'">
+       <div class="muted" style="margin-bottom: 10px">
+-        Risk chart plots alert Bayesian risk scores (0–100).
++        Risk chart plots Bayesian risk scores (0–100) per QC point, with alert markers.
+       </div>
+       <div ref="riskChartRef" style="height: 260px"></div>
+     </el-card>
+@@ -59,10 +59,14 @@ import type {
+ import { ElMessage, ElMessageBox } from "element-plus";
+ import { api } from "../api/client";
+ import type {
++  AlertOutWithQc,
++  BayesianRisk,
++  Disposition,
++  FrequentistSignal,
+   LotSegmentOut,
+   QCRecordChartOut,
+   QCRecordResolutionIn,
+-  StreamChartOut,
++  StreamChartOutEvaluated,
+   StreamConfigOut,
+ } from "../api/contracts";
+ 
+@@ -74,7 +78,7 @@ const riskChartRef = ref<HTMLDivElement | null>(null);
+ let resultsChart: echarts.ECharts | null = null;
+ let riskChart: echarts.ECharts | null = null;
+ 
+-let cachedChartData: StreamChartOut | null = null;
++let cachedChartData: StreamChartOutEvaluated | null = null;
+ let cachedStream: StreamConfigOut | undefined;
+ let cachedResultsOption: echarts.EChartsOption | null = null;
+ let cachedRiskOption: echarts.EChartsOption | null = null;
+@@ -86,6 +90,9 @@ type ChartPoint = {
+   include_in_stats?: boolean | null;
+   resolved_reason?: string | null;
+   resolved_at?: string | null;
++  disposition?: Disposition | null;
++  signals?: FrequentistSignal[] | null;
++  bayesian_risk?: BayesianRisk | null;
+   itemStyle?: { color?: string };
+ };
+ 
+@@ -415,13 +422,13 @@ async function loadChart() {
+   await ensureCharts();
+   const stream = streams.value.find((item) => item.stream_id === streamId.value);
+   const query = buildParams();
+-  const data = await api.get<StreamChartOut>(
++  const data = await api.get<StreamChartOutEvaluated>(
+     `/streams/${streamId.value}/chart?${query}`
+   );
+   cachedChartData = data;
+   cachedStream = stream;
+   const records = data.records;
+-  const alerts = data.alerts;
++  const alerts = data.alerts as AlertOutWithQc[];
+   const segments = data.lot_segments.length
+     ? data.lot_segments
+     : deriveLotSegments(records);
+@@ -459,13 +466,20 @@ async function loadChart() {
+     include_in_stats: record.include_in_stats,
+     resolved_reason: record.resolved_reason,
+     resolved_at: record.resolved_at,
++    disposition: record.disposition ?? null,
++    signals: record.signals ?? null,
++    bayesian_risk: record.bayesian_risk ?? null,
+     itemStyle:
+       record.include_in_stats === false
+         ? { color: "#94a3b8" }
+         : undefined,
+   }));
++  const riskPoints: Array<[string, number | null]> = records.map((record) => [
++    record.timestamp,
++    record.bayesian_risk ? record.bayesian_risk.risk_score : null,
++  ]);
+   const alertPoints: Array<[string, number]> = alerts.map((alert) => [
+-    alert.created_at,
++    alert.qc_record_timestamp ?? alert.created_at,
+     alert.bayesian_risk?.risk_score ?? 0,
+   ]);
+ 
+@@ -486,7 +500,7 @@ async function loadChart() {
+     name: "Result",
+     type: "line",
+     data: seriesData,
+-    smooth: true,
++    smooth: false,
+     connectNulls: false,
+     lineStyle: { color: "#2563eb" },
+   };
+@@ -728,6 +742,9 @@ async function loadChart() {
+         const timestamp = recordItem.data.value[0];
+         const includeInStats = recordItem.data.include_in_stats !== false;
+         const resolvedReason = recordItem.data.resolved_reason;
++        const disposition = recordItem.data.disposition;
++        const signals = recordItem.data.signals;
++        const risk = recordItem.data.bayesian_risk;
+         const parts: string[] = [];
+         if (timestamp) {
+           parts.push(new Date(timestamp).toLocaleString());
+@@ -735,6 +752,18 @@ async function loadChart() {
+         if (value !== undefined) {
+           parts.push(`Result: ${value}`);
+         }
++        if (disposition) {
++          parts.push(`Disposition: ${disposition}`);
++        }
++        if (signals && signals.length) {
++          const summary = signals.map((signal) => signal.rule).join(", ");
++          parts.push(`Signals: ${summary}`);
++        }
++        if (risk) {
++          const prob = Math.max(0, Math.min(1, Number(risk.probability_outside_limits)));
++          const score = Number.isFinite(Number(risk.risk_score)) ? Number(risk.risk_score) : 0;
++          parts.push(`Predictive risk: ${score} (P(outside) ${(prob * 100).toFixed(1)}%)`);
++        }
+         if (lot) {
+           parts.push(`Lot: ${lot}`);
+         }
+@@ -769,12 +798,13 @@ async function loadChart() {
+     );
+   }
+ 
+-  const riskSeries: ScatterSeriesOption = {
+-    name: "Alert risk score",
+-    type: "scatter",
+-    data: alertPoints,
+-    symbolSize: 10,
+-    itemStyle: { color: "#dc2626" },
++  const riskSeries: LineSeriesOption = {
++    name: "Risk score",
++    type: "line",
++    data: riskPoints,
++    showSymbol: false,
++    connectNulls: false,
++    lineStyle: { color: "#dc2626" },
+   };
+ 
+   if (segmentAreas.length) {
+@@ -794,16 +824,25 @@ async function loadChart() {
+     };
+   }
+ 
++  const alertSeries: ScatterSeriesOption = {
++    name: "Alerts",
++    type: "scatter",
++    data: alertPoints,
++    symbolSize: 9,
++    itemStyle: { color: "#7f1d1d" },
++  };
++
+   const riskOption: echarts.EChartsOption = {
+     grid: { left: "6%", right: "4%", top: "8%", bottom: "18%", containLabel: true },
+     xAxis: { type: "time" },
+     yAxis: { type: "value", name: "Risk (0–100)", min: 0, max: 100 },
+-    series: [riskSeries],
++    series: [riskSeries, alertSeries],
+     tooltip: {
+-      trigger: "item",
++      trigger: "axis",
+       formatter: (params: unknown) => {
+         const items = asFormatterItems(params);
+-        const raw = items[0]?.value;
++        const primary = items.find((item) => Array.isArray(item.value) && item.value.length === 2);
++        const raw = primary?.value;
+         if (!Array.isArray(raw) || raw.length !== 2) {
+           return "";
+         }
+@@ -813,7 +852,7 @@ async function loadChart() {
+           ? new Date(timestamp).toLocaleString()
+           : timestamp;
+         const s = Number.isFinite(score) ? score : 0;
+-        return `${ts}<br/>Risk score: ${s}`;
++        return `${ts}<br/>Predictive risk score: ${s}`;
+       },
+     },
+   };
+diff --git a/reviews/gemini/latest.md b/reviews/gemini/latest.md
+index d310c95..b32313c 100644
+--- a/reviews/gemini/latest.md
++++ b/reviews/gemini/latest.md
+@@ -1,37 +1,53 @@
+-I have reviewed the provided diffs. The codebase changes introduce significant improvements in typesafety and API structure, but several critical reliability and maintainability issues were introduced.
++This review of the **Bayesian QC Prototype** diff focuses on the integrity of the statistical engine and its integration with the UI/API.
+ 
+-### Must-Fix Bugs & Regressions
++### 1. Critical Findings
+ 
+-1.  **CSV Ingestion Data Loss (`app/main.py`)**
+-    *   **Context:** In `ingest_qc_records_csv`, the loop catches exceptions and calls `session.rollback()`.
+-    *   **Issue:** Since `session` is dependency-injected (and likely shared for the request scope), `session.rollback()` will discard **all** previously processed rows in the loop, not just the current failing one (unless explicit intermediate commits exist). The API will report `accepted` counts that do not match the database state.
+-    *   **Fix:** Use `session.begin_nested()` (savepoints) within the loop to isolate row failures, or ensure explicit commits per row.
++#### **[P1] Performance Bottleneck: O(N) Walk in `stream_chart`**
++*   **Location:** `app/main.py` (lines 1354–1425)
++*   **Risk:** To show the risk line on the chart, the endpoint now fetches **every historical record** for a stream since the start of its current prior (`history_query`) and re-calculates the Bayesian update for every single point.
++*   **Impact:** For a laboratory stream with thousands of records, this will lead to multi-second API latencies. The UI will become unresponsive as the database grows.
++*   **Fix:** Use the cached `PosteriorState` as a "checkpoint." Only iterate from the last `state.updated_at` to the end of the chart window.
+ 
+-2.  **Audit Log Crash (`app/main.py`)**
+-    *   **Context:** `_audit_out` raises `RuntimeError("Audit entry missing after snapshot")` if `entry.after` is `None`.
+-    *   **Issue:** The `AuditEntry` model defines `after` as optional (likely for deletion events). This check will cause the `GET /audit` endpoint to return a 500 Internal Server Error as soon as a single "delete" audit entry exists.
+-    *   **Fix:** Remove the exception or handle `None` gracefully.
++#### **[P1] Side-Effect in Inference (Transactional Integrity)**
++*   **Location:** `app/bayesian.py` (lines 360–363)
++*   **Risk:** `infer_risk` (called during ingestion) triggers `rebuild_posterior_state`, which executes `session.commit()`.
++*   **Impact:** This breaks the atomicity of the ingestion process. If a record is ingested and the risk calculation succeeds but a subsequent step (like writing the audit log) fails, the `PosteriorState` will have been updated and committed anyway. The "inference" function should not have side-effects that commit the transaction.
++*   **Fix:** Refactor `rebuild_posterior_state` to return the updated state object and let the top-level caller (`process_ingestion`) handle the final `session.commit()`.
+ 
+-3.  **Hardcoded Python Path (`frontend/package.json`)**
+-    *   **Context:** `"gen:api": "../.venv/bin/python ..."`
+-    *   **Issue:** This assumes a specific relative path and OS (Linux/Unix) for the virtual environment. It will fail on Windows or if the venv is named differently.
+-    *   **Fix:** Use `python` (assuming active environment) or make the path configurable.
++---
+ 
+-### Risky Edge Cases
++### 2. Math & Statistical Correctness
+ 
+-1.  **Date String Comparison (`frontend/src/pages/ChartView.vue`)**
+-    *   **Issue:** `deriveLotSegments` compares date strings (`start !== end`). API serialization changes (e.g., timezone differences) could break equality checks.
+-    *   **Recommendation:** Parse to timestamps before comparing.
++#### **[P2] Student’s t-Distribution Implementation**
++*   **Verdict:** **Excellent improvement.**
++*   **Detail:** Moving from a Normal approximation to a Student’s t-distribution for predictive risk (`_student_t_cdf` using the regularized incomplete beta function) is a major win for accuracy. This correctly accounts for the "heavy tails" of uncertainty when the sample count ($\alpha$) is low, preventing the system from being overconfident early on.
++*   **Threshold:** The `_NORMAL_APPROX_DF_THRESHOLD = 30.0` is standard and appropriate for performance.
+ 
+-2.  **Chart Interaction (`frontend/src/pages/ChartView.vue`)**
+-    *   **Issue:** The click handler explicitly checks `seriesName !== "Result"`.
+-    *   **Risk:** Users clicking on "Risk" points (which are interactive-looking) will get no response, potentially confusing them.
++#### **[P2] Bayesian State Invalidation**
++*   **Verdict:** **Correct.**
++*   **Detail:** Adding `prior_id` to `PosteriorState` (and checking it in `infer_risk`) correctly handles the "re-calibration" scenario. If a user updates the baseline (PriorConfig), the system now correctly detects that the old cached state is invalid and rebuilds the posterior.
+ 
+-3.  **Frontend Types Sync**
+-    *   **Issue:** `frontend/src/api/contracts.ts` manually re-exports types. If `gen:api` changes `schema.ts` significantly, `contracts.ts` may become stale or break without a clear build error if not strictly checked.
++---
+ 
+-### Test Ideas
++### 3. API & UI Alignment
+ 
+-1.  **Partial Batch Failure:** Upload a CSV with [Valid, Invalid, Valid] rows. Assert that the database contains exactly 2 new records.
+-2.  **Audit Nullability:** Manually insert an audit record with `after=None` and verify `GET /audit` returns 200 OK.
+-3.  **Chart Series Click:** Verify that clicking on outlier/risk points either triggers the resolution flow or provides feedback.
++#### **[P1] Corrected Alert Alignment**
++*   **Location:** `frontend/src/pages/ChartView.vue` (line 479)
++*   **Improvement:** Changing the alert mapping from `alert.created_at` to `alert.qc_record_timestamp` is a vital fix. In previous versions, alerts appeared on the chart at the time of *ingestion* (which might be delayed), making them look detached from the QC result that triggered them.
++
++#### **[P2] Risk Line vs. Scatter**
++*   **Location:** `frontend/src/pages/ChartView.vue` (lines 798–810)
++*   **Detail:** Transitioning the risk chart from a scatter plot of alerts to a continuous line plot of the predictive risk score is highly actionable. It allows lab managers to see "approaching" risk before an alert is actually triggered.
++
++---
++
++### 4. Suggested Fixes
++
++| File | Issue | Fix |
++| :--- | :--- | :--- |
++| `app/bayesian.py` | Side-effect commits | Remove `session.commit()` from `rebuild_posterior_state` and `infer_risk`. Return the state object to the caller. |
++| `app/main.py` | Chart O(N) walk | Fetch `PosteriorState` first. If `state.updated_at` is between the prior start and the chart end, start the math walk from the state's `mu_n`/`kappa_n` instead of the prior's `mu0`/`kappa0`. |
++| `app/main.py` | Alert Timestamp lookup | In `stream_chart`, use a join in the SQL query to fetch `AlertRecord` and its associated `QCRecord.timestamp` in one trip. |
++| `app/models.py` | Validator strictness | Ensure the `model_validator` doesn't crash on legacy data where `warning_limit` might accidentally equal `action_limit` (change `<` to `<=`). |
++
++**Summary:** The diff significantly matures the statistical engine. Resolving the O(N) chart performance and the transactional side-effects in the inference engine will make this production-ready.
+diff --git a/tests/test_ingestion.py b/tests/test_ingestion.py
+index 276df19..3e24ea9 100644
+--- a/tests/test_ingestion.py
++++ b/tests/test_ingestion.py
+@@ -1,7 +1,10 @@
+ from datetime import datetime, timedelta, timezone
+ 
+ from fastapi.testclient import TestClient
++from sqlmodel import Session, select
+ 
++from app.db import get_engine
++from app.db_models import PosteriorState, PriorConfig
+ from app.main import app
+ 
+ client = TestClient(app)
+@@ -54,6 +57,25 @@ def test_action_signal_and_alert_created():
+     assert body["alert_created"] is not None
+     assert body["qc"]["disposition"] == "reject"
+ 
++    alerts_response = client.get("/alerts", headers=AUTH_HEADERS)
++    assert alerts_response.status_code == 200
++    alerts = alerts_response.json()
++    assert alerts
++    assert alerts[0]["qc_record_id"] is not None
++    assert alerts[0]["qc_record_timestamp"] is not None
++
++    chart_response = client.get(
++        "/streams/hba1c-arch/chart?limit=10&include_evaluations=true",
++        headers=AUTH_HEADERS,
++    )
++    assert chart_response.status_code == 200
++    chart = chart_response.json()
++    assert chart["records"]
++    last = chart["records"][-1]
++    assert "signals" in last
++    assert "bayesian_risk" in last
++    assert "disposition" in last
++
+ 
+ def test_duplicate_detection():
+     payload = _base_payload()
+@@ -76,3 +98,96 @@ def test_manual_entry_audited():
+     assert audit_response.status_code == 200
+     audit_entries = audit_response.json()
+     assert any(entry["reason"] == "entered offline" for entry in audit_entries)
++
++
++def test_bayesian_state_rebuilds_on_out_of_order_ingestion():
++    now = datetime.now(timezone.utc)
++    payload_late = _base_payload()
++    payload_late["timestamp"] = (now + timedelta(seconds=10)).isoformat()
++    payload_late["result_value"] = 5.0
++    response_late = client.post("/qc/records", json=payload_late, headers=AUTH_HEADERS)
++    assert response_late.status_code == 200
++
++    payload_early = _base_payload()
++    payload_early["timestamp"] = (now + timedelta(seconds=5)).isoformat()
++    payload_early["result_value"] = 5.5
++    response_early = client.post("/qc/records", json=payload_early, headers=AUTH_HEADERS)
++    assert response_early.status_code == 200
++
++    def as_utc(dt: datetime) -> datetime:
++        return dt if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc)
++
++    with Session(get_engine()) as session:
++        prior = session.exec(select(PriorConfig).where(PriorConfig.stream_id == "hba1c-arch")).first()
++        assert prior is not None
++        assert prior.id is not None
++        state = session.exec(select(PosteriorState).where(PosteriorState.stream_id == "hba1c-arch")).first()
++        assert state is not None
++        assert as_utc(state.updated_at) == datetime.fromisoformat(payload_late["timestamp"])
++        assert state.prior_id == prior.id
++        assert state.n_obs == 2
++
++        def update(mu0: float, kappa0: float, alpha0: float, beta0: float, x: float):
++            kappa_n = kappa0 + 1
++            mu_n = (kappa0 * mu0 + x) / kappa_n
++            alpha_n = alpha0 + 0.5
++            beta_n = beta0 + 0.5 * kappa0 * ((x - mu0) ** 2) / kappa_n
++            return mu_n, kappa_n, alpha_n, beta_n
++
++        mu_n, kappa_n, alpha_n, beta_n = update(prior.mu0, prior.kappa0, prior.alpha0, prior.beta0, 5.5)
++        mu_n, kappa_n, alpha_n, beta_n = update(mu_n, kappa_n, alpha_n, beta_n, 5.0)
++        assert abs(state.mu_n - mu_n) < 1e-9
++        assert abs(state.kappa_n - kappa_n) < 1e-9
++        assert abs(state.alpha_n - alpha_n) < 1e-9
++        assert abs(state.beta_n - beta_n) < 1e-9
++
++
++def test_bayesian_state_resets_on_prior_change():
++    now = datetime.now(timezone.utc)
++    payload_early = _base_payload()
++    payload_early["timestamp"] = (now + timedelta(seconds=5)).isoformat()
++    payload_early["result_value"] = 5.5
++    response_early = client.post("/qc/records", json=payload_early, headers=AUTH_HEADERS)
++    assert response_early.status_code == 200
++
++    prior_payload = {
++        "mu0": 5.2,
++        "kappa0": 1.0,
++        "alpha0": 2.0,
++        "beta0": 0.25**2,
++        "effective_from": (now + timedelta(seconds=7)).isoformat(),
++        "stream_id": "hba1c-arch",
++    }
++    prior_response = client.post(
++        "/streams/hba1c-arch/priors",
++        json=prior_payload,
++        headers=AUTH_HEADERS,
++    )
++    assert prior_response.status_code == 200
++    new_prior = prior_response.json()
++    assert new_prior["version"] == 2
++
++    payload_late = _base_payload()
++    payload_late["timestamp"] = (now + timedelta(seconds=10)).isoformat()
++    payload_late["result_value"] = 5.0
++    response_late = client.post("/qc/records", json=payload_late, headers=AUTH_HEADERS)
++    assert response_late.status_code == 200
++
++    def as_utc(dt: datetime) -> datetime:
++        return dt if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc)
++
++    with Session(get_engine()) as session:
++        priors = session.exec(
++            select(PriorConfig)
++            .where(PriorConfig.stream_id == "hba1c-arch")
++            .order_by(PriorConfig.version.desc())
++        ).all()
++        assert len(priors) >= 2
++        prior2 = priors[0]
++        assert prior2.id is not None
++
++        state = session.exec(select(PosteriorState).where(PosteriorState.stream_id == "hba1c-arch")).first()
++        assert state is not None
++        assert as_utc(state.updated_at) == datetime.fromisoformat(payload_late["timestamp"])
++        assert state.prior_id == prior2.id
++        assert state.n_obs == 1

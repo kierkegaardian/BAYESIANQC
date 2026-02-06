@@ -1,37 +1,52 @@
-I have reviewed the provided diffs. The codebase changes introduce significant improvements in typesafety and API structure, but several critical reliability and maintainability issues were introduced.
+I will begin by reviewing the Bayesian and charting logic in `app/bayesian.py` and `app/main.py` to assess the mathematical correctness and performance implications of the new risk calculation and visualization features.
+This review of the **Bayesian QC Prototype** diff focuses on the integrity of the statistical engine, its performance at scale, and its integration with the UI/API.
 
-### Must-Fix Bugs & Regressions
+### 1. P1 Findings & Concrete Risks
 
-1.  **CSV Ingestion Data Loss (`app/main.py`)**
-    *   **Context:** In `ingest_qc_records_csv`, the loop catches exceptions and calls `session.rollback()`.
-    *   **Issue:** Since `session` is dependency-injected (and likely shared for the request scope), `session.rollback()` will discard **all** previously processed rows in the loop, not just the current failing one (unless explicit intermediate commits exist). The API will report `accepted` counts that do not match the database state.
-    *   **Fix:** Use `session.begin_nested()` (savepoints) within the loop to isolate row failures, or ensure explicit commits per row.
+#### **[P1] Performance Bottleneck: O(N) Walk in `stream_chart`**
+*   **Location:** `app/main.py` (lines 1354–1425)
+*   **Risk:** To render the continuous risk line, the `stream_chart` endpoint fetches **every historical record** for a stream since the start of its current prior (`history_query`) and re-calculates the Bayesian update for every single point in that history. 
+*   **Impact:** In a production lab with thousands of records per stream, this will lead to multi-second latencies and potential API timeouts. The UI will become unresponsive as the database grows.
+*   **Fix:** Use the cached `PosteriorState` as a "checkpoint." Fetch the state first; if the state is valid and falls within the current prior's window, iterate only from `state.updated_at` to the chart end.
 
-2.  **Audit Log Crash (`app/main.py`)**
-    *   **Context:** `_audit_out` raises `RuntimeError("Audit entry missing after snapshot")` if `entry.after` is `None`.
-    *   **Issue:** The `AuditEntry` model defines `after` as optional (likely for deletion events). This check will cause the `GET /audit` endpoint to return a 500 Internal Server Error as soon as a single "delete" audit entry exists.
-    *   **Fix:** Remove the exception or handle `None` gracefully.
+#### **[P1] Side-Effect in Inference (Transactional Integrity)**
+*   **Location:** `app/bayesian.py` (lines 360, 396)
+*   **Risk:** `infer_risk` and `rebuild_posterior_state` execute `session.commit()`.
+*   **Impact:** This breaks the atomicity of the ingestion process. In `process_ingestion`, the session is committed halfway through. If a record is ingested successfully but a subsequent step (like generating the `AlertRecord` or writing the audit log) fails, the record and the updated `PosteriorState` will remain in the DB. The inference function should not commit the transaction; it should let the top-level caller manage the unit of work.
 
-3.  **Hardcoded Python Path (`frontend/package.json`)**
-    *   **Context:** `"gen:api": "../.venv/bin/python ..."`
-    *   **Issue:** This assumes a specific relative path and OS (Linux/Unix) for the virtual environment. It will fail on Windows or if the venv is named differently.
-    *   **Fix:** Use `python` (assuming active environment) or make the path configurable.
+---
 
-### Risky Edge Cases
+### 2. Math & Statistical Correctness
 
-1.  **Date String Comparison (`frontend/src/pages/ChartView.vue`)**
-    *   **Issue:** `deriveLotSegments` compares date strings (`start !== end`). API serialization changes (e.g., timezone differences) could break equality checks.
-    *   **Recommendation:** Parse to timestamps before comparing.
+#### **[P2] Student’s t-Distribution Implementation**
+*   **Status:** **Excellent Improvement.**
+*   **Detail:** Moving from a Normal approximation to a Student’s t-distribution for predictive risk (`_student_t_cdf` via the regularized incomplete beta function) correctly accounts for "heavy tails" of uncertainty when sample counts are low. This prevents the system from being overconfident during the first ~30 observations of a new lot/prior.
+*   **Threshold:** The `_NORMAL_APPROX_DF_THRESHOLD = 30.0` is standard and appropriate for performance.
 
-2.  **Chart Interaction (`frontend/src/pages/ChartView.vue`)**
-    *   **Issue:** The click handler explicitly checks `seriesName !== "Result"`.
-    *   **Risk:** Users clicking on "Risk" points (which are interactive-looking) will get no response, potentially confusing them.
+#### **[P2] Bayesian State Invalidation & Out-of-Order Handling**
+*   **Status:** **Correct.**
+*   **Detail:** The addition of `prior_id` to `PosteriorState` and the check in `infer_risk` correctly handles "re-calibration." If a user updates the baseline (`PriorConfig`) or ingests a late record with a timestamp earlier than the current state, the system detects the staleness and rebuilds the posterior correctly.
 
-3.  **Frontend Types Sync**
-    *   **Issue:** `frontend/src/api/contracts.ts` manually re-exports types. If `gen:api` changes `schema.ts` significantly, `contracts.ts` may become stale or break without a clear build error if not strictly checked.
+---
 
-### Test Ideas
+### 3. API & UI Alignment
 
-1.  **Partial Batch Failure:** Upload a CSV with [Valid, Invalid, Valid] rows. Assert that the database contains exactly 2 new records.
-2.  **Audit Nullability:** Manually insert an audit record with `after=None` and verify `GET /audit` returns 200 OK.
-3.  **Chart Series Click:** Verify that clicking on outlier/risk points either triggers the resolution flow or provides feedback.
+#### **[P1] Corrected Alert Alignment**
+*   **Location:** `frontend/src/pages/ChartView.vue` (line 479)
+*   **Improvement:** Changing alert mapping from `alert.created_at` to `alert.qc_record_timestamp` is a vital fix. Previously, alerts appeared at the time of *ingestion*, which could be hours after the actual QC failure, making the chart misleading.
+
+#### **[P2] Risk Line Chart Actionability**
+*   **Detail:** Transitioning the risk chart from a scatter plot of alerts to a continuous line plot of the predictive risk score (`riskPoints`) is highly valuable. It allows lab managers to see "approaching" risk (e.g., a score climbing from 20 to 60) before a hard threshold is crossed and an alert is fired.
+
+---
+
+### 4. Suggested Fixes
+
+| File | Issue | Fix |
+| :--- | :--- | :--- |
+| `app/bayesian.py` | Side-effect commits | Remove `session.commit()` from `rebuild_posterior_state` and `infer_risk`. Use `session.add(state)` but defer the commit to `app/main.py`. |
+| `app/main.py` | Chart O(N) walk | Fetch `PosteriorState` first. If `state.updated_at` is between the prior start and the chart end, start the math walk from the state's `mu_n`/`kappa_n` instead of the prior's `mu0`/`kappa0`. |
+| `app/models.py` | Validator Strictness | Ensure `model_validator` in `StreamConfigBase` allows legacy data where `warning_limit_sd` might equal `action_limit_sd` (change `<` to `<=`). |
+| `app/bayesian.py` | `_list_priors` | Add caching or limit the query if the number of prior versions becomes large (though typically small per stream). |
+
+**Summary:** The diff significantly matures the statistical engine. Resolving the $O(N)$ chart performance and the transactional side-effects in the inference engine will make this production-ready.
