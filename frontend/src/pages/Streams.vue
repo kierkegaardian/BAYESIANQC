@@ -86,6 +86,30 @@
         <el-form-item label="Risk Hold Threshold">
           <el-input-number v-model="form.risk_threshold_hold" class="full-width" :step="1" />
         </el-form-item>
+        <el-form-item label="Bayesian Warn Threshold (P outside ±2 SD)">
+          <el-input-number
+            v-model="form.bayes_warn_prob_threshold"
+            class="full-width"
+            :step="0.05"
+            :min="0"
+            :max="1"
+          />
+        </el-form-item>
+        <el-form-item label="Bayesian Warn Persistence (N consecutive)">
+          <el-input-number v-model="form.bayes_warn_consecutive" class="full-width" :step="1" :min="1" />
+        </el-form-item>
+        <el-form-item label="Bayesian Hold Threshold (P outside ±3 SD)">
+          <el-input-number
+            v-model="form.bayes_hold_prob_threshold"
+            class="full-width"
+            :step="0.05"
+            :min="0"
+            :max="1"
+          />
+        </el-form-item>
+        <el-form-item label="Bayesian Hold Persistence (N consecutive)">
+          <el-input-number v-model="form.bayes_hold_consecutive" class="full-width" :step="1" :min="1" />
+        </el-form-item>
         <el-form-item label="Minimum Value">
           <el-input-number v-model="form.min_value" class="full-width" :step="0.1" />
         </el-form-item>
@@ -146,6 +170,10 @@ const form = reactive<StreamConfigIn>({
   action_limit_sd: 3,
   risk_threshold_warn: 50,
   risk_threshold_hold: 80,
+  bayes_warn_prob_threshold: 0.25,
+  bayes_warn_consecutive: 1,
+  bayes_hold_prob_threshold: 0.8,
+  bayes_hold_consecutive: 2,
   min_value: null,
   max_value: null,
 });
@@ -212,6 +240,10 @@ function openCreate() {
   form.action_limit_sd = 3;
   form.risk_threshold_warn = 50;
   form.risk_threshold_hold = 80;
+  form.bayes_warn_prob_threshold = 0.25;
+  form.bayes_warn_consecutive = 1;
+  form.bayes_hold_prob_threshold = 0.8;
+  form.bayes_hold_consecutive = 2;
   form.min_value = null;
   form.max_value = null;
   dialogOpen.value = true;

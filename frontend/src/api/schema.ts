@@ -530,16 +530,36 @@ export interface components {
                 number,
                 number
             ] | null;
+            /**
+             * Hold Streak
+             * @default 0
+             */
+            hold_streak: number;
             /** Posterior Mean */
             posterior_mean?: number | null;
             /** Posterior Sigma */
             posterior_sigma?: number | null;
+            /** Predictive Interval */
+            predictive_interval?: [
+                number,
+                number
+            ] | null;
             /** Predictive Sigma */
             predictive_sigma?: number | null;
             /** Probability Outside Limits */
             probability_outside_limits: number;
+            /**
+             * Probability Outside Warning
+             * @default 0
+             */
+            probability_outside_warning: number;
             /** Risk Score */
             risk_score: number;
+            /**
+             * Warn Streak
+             * @default 0
+             */
+            warn_streak: number;
         };
         /** Body_ingest_qc_records_csv_qc_records_csv_post */
         Body_ingest_qc_records_csv_qc_records_csv_post: {
@@ -1102,6 +1122,14 @@ export interface components {
             baseline_end?: string | null;
             /** Baseline Start */
             baseline_start?: string | null;
+            /** Bayes Hold Consecutive */
+            bayes_hold_consecutive?: number | null;
+            /** Bayes Hold Prob Threshold */
+            bayes_hold_prob_threshold?: number | null;
+            /** Bayes Warn Consecutive */
+            bayes_warn_consecutive?: number | null;
+            /** Bayes Warn Prob Threshold */
+            bayes_warn_prob_threshold?: number | null;
             /** Control Material Lot */
             control_material_lot: string;
             /** Effective From */
@@ -1167,6 +1195,14 @@ export interface components {
             baseline_end?: string | null;
             /** Baseline Start */
             baseline_start?: string | null;
+            /** Bayes Hold Consecutive */
+            bayes_hold_consecutive?: number | null;
+            /** Bayes Hold Prob Threshold */
+            bayes_hold_prob_threshold?: number | null;
+            /** Bayes Warn Consecutive */
+            bayes_warn_consecutive?: number | null;
+            /** Bayes Warn Prob Threshold */
+            bayes_warn_prob_threshold?: number | null;
             /** Control Material Lot */
             control_material_lot: string;
             /**

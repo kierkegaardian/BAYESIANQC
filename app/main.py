@@ -295,20 +295,26 @@ def validate_bounds(value: float, config: StreamConfig) -> None:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Result above configured maximum")
 
 
-def determine_disposition(signals: Sequence[FrequentistSignal], risk_score: int, config: StreamConfig) -> Disposition:
+def determine_disposition(
+    signals: Sequence[FrequentistSignal], risk: Optional[BayesianRisk], config: StreamConfig
+) -> Disposition:
     if any(s.severity == SignalSeverity.ACTION for s in signals):
         return Disposition.REJECT
-    if risk_score >= config.risk_threshold_hold:
+    required_hold = config.bayes_hold_consecutive or 1
+    required_warn = config.bayes_warn_consecutive or 1
+    hold_triggered = bool(risk and risk.hold_streak >= required_hold)
+    warn_triggered = bool(risk and risk.warn_streak >= required_warn)
+    if hold_triggered:
         return Disposition.HOLD_FOR_REVIEW
-    if signals or risk_score >= config.risk_threshold_warn:
+    if signals or warn_triggered:
         return Disposition.MONITOR
     return Disposition.ACCEPT
 
 
-def alert_severity(signals: Sequence[FrequentistSignal], risk_score: int, config: StreamConfig) -> str:
-    if any(s.severity == SignalSeverity.ACTION for s in signals) or risk_score >= config.risk_threshold_hold:
+def alert_severity(disposition: Disposition) -> str:
+    if disposition in {Disposition.REJECT, Disposition.HOLD_FOR_REVIEW}:
         return "action"
-    if signals or risk_score >= config.risk_threshold_warn:
+    if disposition == Disposition.MONITOR:
         return "warn"
     return "info"
 
@@ -557,7 +563,7 @@ def process_ingestion(
         record.stream_id,
         config,
     )
-    disposition = determine_disposition(signals, risk.risk_score, config)
+    disposition = determine_disposition(signals, risk, config)
 
     record_payload = payload.model_copy(update={"result_value": normalized_value, "units": normalized_units})
     qc_out = QCRecordOut(record=record_payload, signals=signals, bayesian_risk=risk, disposition=disposition)
@@ -574,14 +580,14 @@ def process_ingestion(
     )
 
     alert_out = None
-    if signals or risk.risk_score >= config.risk_threshold_warn:
+    if disposition != Disposition.ACCEPT:
         alert_record = create_alert(
             session,
             AlertRecord(
                 alert_id=str(uuid4()),
                 stream_id=record.stream_id,
                 qc_record_id=record.id,
-                severity=alert_severity(signals, risk.risk_score, config),
+                severity=alert_severity(disposition),
                 disposition=disposition.value,
                 signals=[s.model_dump(mode="json") for s in signals],
                 bayesian_risk=risk.model_dump(mode="json"),
@@ -1396,6 +1402,10 @@ async def stream_chart(
             while config_idx + 1 < len(configs) and configs[config_idx + 1].effective_from <= history[0].timestamp:
                 config_idx += 1
 
+        warn_streak = 0
+        hold_streak = 0
+        current_config_id: Optional[int] = configs[config_idx].id if history and configs else None
+
         for record in history:
             while prior_idx + 1 < len(priors) and priors[prior_idx + 1].effective_from <= record.timestamp:
                 prior_idx += 1
@@ -1410,10 +1420,16 @@ async def stream_chart(
                     current_prior.alpha0,
                     current_prior.beta0,
                 )
+                warn_streak = 0
+                hold_streak = 0
 
             while config_idx + 1 < len(configs) and configs[config_idx + 1].effective_from <= record.timestamp:
                 config_idx += 1
             config_at_time = configs[config_idx]
+            if config_at_time.id != current_config_id:
+                warn_streak = 0
+                hold_streak = 0
+                current_config_id = config_at_time.id
 
             risk, (mu_n, kappa_n, alpha_n, beta_n) = bayesian.update_posterior_and_infer_risk(
                 mu0=mu_n,
@@ -1422,7 +1438,11 @@ async def stream_chart(
                 beta0=beta_n,
                 record_value=record.result_value,
                 config=config_at_time,
+                warn_streak=warn_streak,
+                hold_streak=hold_streak,
             )
+            warn_streak = risk.warn_streak
+            hold_streak = risk.hold_streak
             if record.id is not None and record.id in record_ids_of_interest:
                 risk_by_record_id[record.id] = risk
 
@@ -1449,11 +1469,7 @@ async def stream_chart(
                 config_at_time,
             )
             record_risk = risk_by_record_id.get(record.id) if record.include_in_stats else None
-            disposition = determine_disposition(
-                signals,
-                record_risk.risk_score if record_risk else 0,
-                config_at_time,
-            )
+            disposition = determine_disposition(signals, record_risk, config_at_time)
         record_points.append(
             QCRecordChartOut(
                 id=record.id,

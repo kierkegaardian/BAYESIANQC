@@ -30,7 +30,7 @@ class UserContext:
         return permission in ROLE_PERMISSIONS.get(self.role, [])
 
 
-def get_current_user(
+async def get_current_user(
     api_key: Optional[str] = Header(default=None, alias="X-API-Key"),
     session: Session = Depends(get_session),
 ) -> UserContext:
@@ -44,7 +44,7 @@ def get_current_user(
 
 
 def require_permission(permission: Permission):
-    def dependency(user: UserContext = Depends(get_current_user)) -> UserContext:
+    async def dependency(user: UserContext = Depends(get_current_user)) -> UserContext:
         if not user.can(permission):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
         return user

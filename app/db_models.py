@@ -91,6 +91,10 @@ class StreamConfig(SQLModel, table=True):
     baseline_end: Optional[datetime] = None
     risk_threshold_warn: int = 50
     risk_threshold_hold: int = 80
+    bayes_warn_prob_threshold: Optional[float] = None
+    bayes_warn_consecutive: Optional[int] = None
+    bayes_hold_prob_threshold: Optional[float] = None
+    bayes_hold_consecutive: Optional[int] = None
     rule_set: dict[str, Any] = Field(default_factory=lambda: DEFAULT_RULE_SET.copy(), sa_column=Column(JSON))
 
 
@@ -112,11 +116,14 @@ class PosteriorState(SQLModel, table=True):
     stream_id: str = Field(index=True)
     updated_at: datetime = Field(default_factory=utcnow)
     prior_id: Optional[int] = Field(default=None, index=True, foreign_key="priorconfig.id")
+    config_id: Optional[int] = Field(default=None, index=True, foreign_key="streamconfig.id")
     mu_n: float
     kappa_n: float
     alpha_n: float
     beta_n: float
     n_obs: int = 0
+    warn_streak: int = 0
+    hold_streak: int = 0
 
 
 class QCRecord(SQLModel, table=True):

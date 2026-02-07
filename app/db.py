@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import sqlite3
-from collections.abc import Iterator
+from collections.abc import AsyncIterator
 from typing import Optional
 
 from sqlalchemy import event
@@ -40,7 +40,7 @@ def get_engine() -> Engine:
     return _ENGINE
 
 
-def get_session() -> Iterator[Session]:
+async def get_session() -> AsyncIterator[Session]:
     engine = get_engine()
     with Session(engine, expire_on_commit=False) as session:
         yield session
@@ -74,6 +74,36 @@ def _ensure_sqlite_columns(engine: Engine) -> None:
         columns = {row[1] for row in cursor.fetchall()}
         if "prior_id" not in columns:
             cursor.execute("ALTER TABLE posteriorstate ADD COLUMN prior_id INTEGER")
+        if "config_id" not in columns:
+            cursor.execute("ALTER TABLE posteriorstate ADD COLUMN config_id INTEGER")
+        if "warn_streak" not in columns:
+            cursor.execute("ALTER TABLE posteriorstate ADD COLUMN warn_streak INTEGER DEFAULT 0")
+        if "hold_streak" not in columns:
+            cursor.execute("ALTER TABLE posteriorstate ADD COLUMN hold_streak INTEGER DEFAULT 0")
+        cursor.execute("UPDATE posteriorstate SET warn_streak = 0 WHERE warn_streak IS NULL")
+        cursor.execute("UPDATE posteriorstate SET hold_streak = 0 WHERE hold_streak IS NULL")
+
+        cursor.execute("PRAGMA table_info(streamconfig)")
+        columns = {row[1] for row in cursor.fetchall()}
+        if "bayes_warn_prob_threshold" not in columns:
+            cursor.execute("ALTER TABLE streamconfig ADD COLUMN bayes_warn_prob_threshold FLOAT")
+        if "bayes_warn_consecutive" not in columns:
+            cursor.execute("ALTER TABLE streamconfig ADD COLUMN bayes_warn_consecutive INTEGER")
+        if "bayes_hold_prob_threshold" not in columns:
+            cursor.execute("ALTER TABLE streamconfig ADD COLUMN bayes_hold_prob_threshold FLOAT")
+        if "bayes_hold_consecutive" not in columns:
+            cursor.execute("ALTER TABLE streamconfig ADD COLUMN bayes_hold_consecutive INTEGER")
+        # Backfill defaults for existing rows (safe for local prototype).
+        cursor.execute(
+            """
+            UPDATE streamconfig
+            SET
+              bayes_warn_prob_threshold = COALESCE(bayes_warn_prob_threshold, 0.25),
+              bayes_warn_consecutive = COALESCE(bayes_warn_consecutive, 1),
+              bayes_hold_prob_threshold = COALESCE(bayes_hold_prob_threshold, 0.8),
+              bayes_hold_consecutive = COALESCE(bayes_hold_consecutive, 2)
+            """
+        )
         connection.commit()
     finally:
         cursor.close()

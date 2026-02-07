@@ -102,6 +102,12 @@ def seed_defaults(session: Session) -> None:
             sigma=0.25,
             action_limit_sd=3.0,
             warning_limit_sd=2.0,
+            # Bayesian policy defaults: warn on moderate risk of leaving +/-2 SD;
+            # hold requires persistence to prevent one-point stop.
+            bayes_warn_prob_threshold=0.25,
+            bayes_warn_consecutive=1,
+            bayes_hold_prob_threshold=0.8,
+            bayes_hold_consecutive=2,
             created_by="seed",
         )
         session.add(stream)
@@ -162,6 +168,10 @@ def create_stream_config(session: Session, payload: StreamConfigIn, created_by: 
         baseline_end=payload.baseline_end,
         risk_threshold_warn=payload.risk_threshold_warn,
         risk_threshold_hold=payload.risk_threshold_hold,
+        bayes_warn_prob_threshold=payload.bayes_warn_prob_threshold,
+        bayes_warn_consecutive=payload.bayes_warn_consecutive,
+        bayes_hold_prob_threshold=payload.bayes_hold_prob_threshold,
+        bayes_hold_consecutive=payload.bayes_hold_consecutive,
         rule_set=payload.rule_set or DEFAULT_RULE_SET.copy(),
         effective_from=payload.effective_from or utcnow(),
         version=next_version,

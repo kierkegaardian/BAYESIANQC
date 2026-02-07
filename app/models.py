@@ -94,11 +94,15 @@ class FrequentistSignal(BaseModel):
 
 class BayesianRisk(BaseModel):
     probability_outside_limits: float
+    probability_outside_warning: float = 0.0
     risk_score: int
     posterior_mean: Optional[float] = None
     posterior_sigma: Optional[float] = None
     predictive_sigma: Optional[float] = None
     credible_interval: Optional[Tuple[float, float]] = None
+    predictive_interval: Optional[Tuple[float, float]] = None
+    warn_streak: int = 0
+    hold_streak: int = 0
 
 
 class QCRecordOut(BaseModel):
@@ -189,6 +193,10 @@ class StreamConfigBase(BaseModel):
     baseline_end: Optional[datetime] = None
     risk_threshold_warn: int = 50
     risk_threshold_hold: int = 80
+    bayes_warn_prob_threshold: Optional[float] = None
+    bayes_warn_consecutive: Optional[int] = None
+    bayes_hold_prob_threshold: Optional[float] = None
+    bayes_hold_consecutive: Optional[int] = None
     rule_set: Optional[dict[str, JsonValue]] = None
 
     @field_validator("sigma")
@@ -215,6 +223,14 @@ class StreamConfigBase(BaseModel):
             raise ValueError("risk_threshold_hold must be between 0 and 100")
         if self.risk_threshold_hold < self.risk_threshold_warn:
             raise ValueError("risk_threshold_hold must be >= risk_threshold_warn")
+        if self.bayes_warn_prob_threshold is not None and not (0 <= self.bayes_warn_prob_threshold <= 1):
+            raise ValueError("bayes_warn_prob_threshold must be between 0 and 1")
+        if self.bayes_hold_prob_threshold is not None and not (0 <= self.bayes_hold_prob_threshold <= 1):
+            raise ValueError("bayes_hold_prob_threshold must be between 0 and 1")
+        if self.bayes_warn_consecutive is not None and self.bayes_warn_consecutive <= 0:
+            raise ValueError("bayes_warn_consecutive must be > 0")
+        if self.bayes_hold_consecutive is not None and self.bayes_hold_consecutive <= 0:
+            raise ValueError("bayes_hold_consecutive must be > 0")
         if self.baseline_start and self.baseline_end and self.baseline_end < self.baseline_start:
             raise ValueError("baseline_end must be >= baseline_start")
         return self

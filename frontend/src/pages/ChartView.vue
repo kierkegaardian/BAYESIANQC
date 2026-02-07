@@ -39,7 +39,7 @@
 
     <el-card v-show="chartMode !== 'results'">
       <div class="muted" style="margin-bottom: 10px">
-        Risk chart plots Bayesian risk scores (0–100) per QC point, with alert markers.
+        Risk chart plots Bayesian predictive exceedance probabilities (%) for warning and action limits, with alert markers.
       </div>
       <div ref="riskChartRef" style="height: 260px"></div>
     </el-card>
@@ -123,7 +123,7 @@ function isChartPoint(value: unknown): value is ChartPoint {
   );
 }
 
-type TooltipItem = { data?: unknown; value?: unknown };
+type TooltipItem = { data?: unknown; value?: unknown; seriesName?: unknown };
 
 function asFormatterItems(params: unknown): TooltipItem[] {
   if (Array.isArray(params)) {
@@ -474,13 +474,59 @@ async function loadChart() {
         ? { color: "#94a3b8" }
         : undefined,
   }));
-  const riskPoints: Array<[string, number | null]> = records.map((record) => [
+  const posteriorMeanPoints: Array<[string, number | null]> = records.map((record) => [
     record.timestamp,
-    record.bayesian_risk ? record.bayesian_risk.risk_score : null,
+    record.bayesian_risk && record.bayesian_risk.posterior_mean !== null && record.bayesian_risk.posterior_mean !== undefined
+      ? Number(record.bayesian_risk.posterior_mean)
+      : null,
+  ]);
+  const predictiveLowerPoints: Array<[string, number | null]> = records.map((record) => [
+    record.timestamp,
+    record.bayesian_risk?.predictive_interval
+      ? Number(record.bayesian_risk.predictive_interval[0])
+      : null,
+  ]);
+  const predictiveUpperPoints: Array<[string, number | null]> = records.map((record) => [
+    record.timestamp,
+    record.bayesian_risk?.predictive_interval
+      ? Number(record.bayesian_risk.predictive_interval[1])
+      : null,
+  ]);
+  const credibleLowerPoints: Array<[string, number | null]> = records.map((record) => [
+    record.timestamp,
+    record.bayesian_risk?.credible_interval
+      ? Number(record.bayesian_risk.credible_interval[0])
+      : null,
+  ]);
+  const credibleUpperPoints: Array<[string, number | null]> = records.map((record) => [
+    record.timestamp,
+    record.bayesian_risk?.credible_interval
+      ? Number(record.bayesian_risk.credible_interval[1])
+      : null,
+  ]);
+  const warnProbabilityPoints: Array<[string, number | null]> = records.map((record) => [
+    record.timestamp,
+    record.bayesian_risk
+      ? Math.max(
+          0,
+          Math.min(100, Number(record.bayesian_risk.probability_outside_warning) * 100)
+        )
+      : null,
+  ]);
+  const actionProbabilityPoints: Array<[string, number | null]> = records.map((record) => [
+    record.timestamp,
+    record.bayesian_risk
+      ? Math.max(
+          0,
+          Math.min(100, Number(record.bayesian_risk.probability_outside_limits) * 100)
+        )
+      : null,
   ]);
   const alertPoints: Array<[string, number]> = alerts.map((alert) => [
     alert.qc_record_timestamp ?? alert.created_at,
-    alert.bayesian_risk?.risk_score ?? 0,
+    alert.bayesian_risk
+      ? Math.max(0, Math.min(100, Number(alert.bayesian_risk.probability_outside_limits) * 100))
+      : 0,
   ]);
 
   const segmentAreas: MarkAreaComponentOption["data"] = segments.map((segment) => [
@@ -525,6 +571,66 @@ async function loadChart() {
       })),
     };
   }
+
+  const posteriorMeanSeries: LineSeriesOption = {
+    name: "Posterior mean",
+    type: "line",
+    data: posteriorMeanPoints,
+    showSymbol: false,
+    connectNulls: false,
+    silent: true,
+    lineStyle: { color: "#16a34a", width: 2 },
+    tooltip: { show: false },
+    emphasis: { disabled: true },
+  };
+
+  const predictiveLowerSeries: LineSeriesOption = {
+    name: "Predictive interval (low)",
+    type: "line",
+    data: predictiveLowerPoints,
+    showSymbol: false,
+    connectNulls: false,
+    silent: true,
+    lineStyle: { color: "rgba(20, 184, 166, 0.75)", type: "dashed", width: 1.5 },
+    tooltip: { show: false },
+    emphasis: { disabled: true },
+  };
+
+  const predictiveUpperSeries: LineSeriesOption = {
+    name: "Predictive interval (high)",
+    type: "line",
+    data: predictiveUpperPoints,
+    showSymbol: false,
+    connectNulls: false,
+    silent: true,
+    lineStyle: { color: "rgba(20, 184, 166, 0.75)", type: "dashed", width: 1.5 },
+    tooltip: { show: false },
+    emphasis: { disabled: true },
+  };
+
+  const credibleLowerSeries: LineSeriesOption = {
+    name: "Mean credible interval (low)",
+    type: "line",
+    data: credibleLowerPoints,
+    showSymbol: false,
+    connectNulls: false,
+    silent: true,
+    lineStyle: { color: "rgba(71, 85, 105, 0.6)", type: "dotted", width: 1.25 },
+    tooltip: { show: false },
+    emphasis: { disabled: true },
+  };
+
+  const credibleUpperSeries: LineSeriesOption = {
+    name: "Mean credible interval (high)",
+    type: "line",
+    data: credibleUpperPoints,
+    showSymbol: false,
+    connectNulls: false,
+    silent: true,
+    lineStyle: { color: "rgba(71, 85, 105, 0.6)", type: "dotted", width: 1.25 },
+    tooltip: { show: false },
+    emphasis: { disabled: true },
+  };
 
   const highOutliers: OutlierPoint[] = [];
   const lowOutliers: OutlierPoint[] = [];
@@ -684,11 +790,27 @@ async function loadChart() {
     controlConfig.controlSeries.yAxisIndex = mainAxisIndex;
   }
 
+  posteriorMeanSeries.xAxisIndex = mainAxisIndex;
+  posteriorMeanSeries.yAxisIndex = mainAxisIndex;
+  predictiveLowerSeries.xAxisIndex = mainAxisIndex;
+  predictiveLowerSeries.yAxisIndex = mainAxisIndex;
+  predictiveUpperSeries.xAxisIndex = mainAxisIndex;
+  predictiveUpperSeries.yAxisIndex = mainAxisIndex;
+  credibleLowerSeries.xAxisIndex = mainAxisIndex;
+  credibleLowerSeries.yAxisIndex = mainAxisIndex;
+  credibleUpperSeries.xAxisIndex = mainAxisIndex;
+  credibleUpperSeries.yAxisIndex = mainAxisIndex;
+
   resultSeries.xAxisIndex = mainAxisIndex;
   resultSeries.yAxisIndex = mainAxisIndex;
 
   const series: echarts.SeriesOption[] = [
     ...(controlConfig?.controlSeries ? [controlConfig.controlSeries] : []),
+    predictiveLowerSeries,
+    predictiveUpperSeries,
+    credibleLowerSeries,
+    credibleUpperSeries,
+    posteriorMeanSeries,
     resultSeries,
   ];
 
@@ -760,9 +882,34 @@ async function loadChart() {
           parts.push(`Signals: ${summary}`);
         }
         if (risk) {
-          const prob = Math.max(0, Math.min(1, Number(risk.probability_outside_limits)));
-          const score = Number.isFinite(Number(risk.risk_score)) ? Number(risk.risk_score) : 0;
-          parts.push(`Predictive risk: ${score} (P(outside) ${(prob * 100).toFixed(1)}%)`);
+          const pWarn = Math.max(0, Math.min(1, Number(risk.probability_outside_warning)));
+          const pAction = Math.max(0, Math.min(1, Number(risk.probability_outside_limits)));
+          parts.push(`P(outside warn): ${(pWarn * 100).toFixed(1)}%`);
+          parts.push(`P(outside action): ${(pAction * 100).toFixed(1)}%`);
+          if (risk.posterior_mean !== null && risk.posterior_mean !== undefined) {
+            parts.push(`Posterior mean: ${Number(risk.posterior_mean).toFixed(4)}`);
+          }
+          if (risk.credible_interval) {
+            const lo = Number(risk.credible_interval[0]);
+            const hi = Number(risk.credible_interval[1]);
+            parts.push(`Mean CI95: [${lo.toFixed(4)}, ${hi.toFixed(4)}]`);
+          }
+          if (risk.predictive_interval) {
+            const lo = Number(risk.predictive_interval[0]);
+            const hi = Number(risk.predictive_interval[1]);
+            parts.push(`Pred PI95: [${lo.toFixed(4)}, ${hi.toFixed(4)}]`);
+          }
+          const warnReq =
+            stream?.bayes_warn_consecutive !== null && stream?.bayes_warn_consecutive !== undefined
+              ? Number(stream.bayes_warn_consecutive)
+              : 1;
+          const holdReq =
+            stream?.bayes_hold_consecutive !== null && stream?.bayes_hold_consecutive !== undefined
+              ? Number(stream.bayes_hold_consecutive)
+              : 1;
+          const warnStreak = Number.isFinite(Number(risk.warn_streak)) ? Number(risk.warn_streak) : 0;
+          const holdStreak = Number.isFinite(Number(risk.hold_streak)) ? Number(risk.hold_streak) : 0;
+          parts.push(`Streaks: warn ${warnStreak}/${warnReq}, hold ${holdStreak}/${holdReq}`);
         }
         if (lot) {
           parts.push(`Lot: ${lot}`);
@@ -784,31 +931,39 @@ async function loadChart() {
 
   const thresholdLines: MarkLineComponentOption["data"] = [];
   if (stream) {
+    const warnLine =
+      stream.bayes_warn_prob_threshold !== null && stream.bayes_warn_prob_threshold !== undefined
+        ? Math.max(0, Math.min(100, Number(stream.bayes_warn_prob_threshold) * 100))
+        : Number(stream.risk_threshold_warn);
+    const holdLine =
+      stream.bayes_hold_prob_threshold !== null && stream.bayes_hold_prob_threshold !== undefined
+        ? Math.max(0, Math.min(100, Number(stream.bayes_hold_prob_threshold) * 100))
+        : Number(stream.risk_threshold_hold);
     thresholdLines.push(
       {
-        yAxis: stream.risk_threshold_warn,
+        yAxis: warnLine,
         lineStyle: { color: "#f59e0b", type: "dashed" },
-        label: { formatter: `Warn ${stream.risk_threshold_warn}`, color: "#f59e0b" },
+        label: { formatter: `Warn ${warnLine.toFixed(0)}%`, color: "#f59e0b" },
       },
       {
-        yAxis: stream.risk_threshold_hold,
+        yAxis: holdLine,
         lineStyle: { color: "#ef4444", type: "dashed" },
-        label: { formatter: `Hold ${stream.risk_threshold_hold}`, color: "#ef4444" },
+        label: { formatter: `Hold ${holdLine.toFixed(0)}%`, color: "#ef4444" },
       }
     );
   }
 
-  const riskSeries: LineSeriesOption = {
-    name: "Risk score",
+  const actionSeries: LineSeriesOption = {
+    name: "P(outside action)",
     type: "line",
-    data: riskPoints,
+    data: actionProbabilityPoints,
     showSymbol: false,
     connectNulls: false,
     lineStyle: { color: "#dc2626" },
   };
 
   if (segmentAreas.length) {
-    riskSeries.markArea = {
+    actionSeries.markArea = {
       silent: true,
       itemStyle: { color: "rgba(148, 163, 184, 0.18)" },
       label: { color: "#475569", fontSize: 11 },
@@ -817,10 +972,28 @@ async function loadChart() {
   }
 
   if (thresholdLines.length) {
-    riskSeries.markLine = {
+    actionSeries.markLine = {
       silent: true,
       symbol: "none",
       data: thresholdLines,
+    };
+  }
+
+  const warnSeries: LineSeriesOption = {
+    name: "P(outside warn)",
+    type: "line",
+    data: warnProbabilityPoints,
+    showSymbol: false,
+    connectNulls: false,
+    lineStyle: { color: "#f59e0b" },
+  };
+
+  if (segmentAreas.length) {
+    warnSeries.markArea = {
+      silent: true,
+      itemStyle: { color: "rgba(148, 163, 184, 0.18)" },
+      label: { color: "#475569", fontSize: 11 },
+      data: segmentAreas,
     };
   }
 
@@ -835,8 +1008,8 @@ async function loadChart() {
   const riskOption: echarts.EChartsOption = {
     grid: { left: "6%", right: "4%", top: "8%", bottom: "18%", containLabel: true },
     xAxis: { type: "time" },
-    yAxis: { type: "value", name: "Risk (0–100)", min: 0, max: 100 },
-    series: [riskSeries, alertSeries],
+    yAxis: { type: "value", name: "Predictive exceedance (%)", min: 0, max: 100 },
+    series: [warnSeries, actionSeries, alertSeries],
     tooltip: {
       trigger: "axis",
       formatter: (params: unknown) => {
@@ -847,12 +1020,24 @@ async function loadChart() {
           return "";
         }
         const timestamp = String(raw[0]);
-        const score = Number(raw[1]);
         const ts = Number.isFinite(Date.parse(timestamp))
           ? new Date(timestamp).toLocaleString()
           : timestamp;
-        const s = Number.isFinite(score) ? score : 0;
-        return `${ts}<br/>Predictive risk score: ${s}`;
+        const lines = items
+          .map((item) => {
+            const value = item.value;
+            if (!Array.isArray(value) || value.length !== 2) {
+              return null;
+            }
+            const rawVal = Number(value[1]);
+            if (!Number.isFinite(rawVal)) {
+              return null;
+            }
+            const label = typeof item.seriesName === "string" ? item.seriesName : "Value";
+            return `${label}: ${rawVal.toFixed(1)}%`;
+          })
+          .filter((line): line is string => Boolean(line));
+        return [ts, ...lines].join("<br/>");
       },
     },
   };
