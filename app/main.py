@@ -13,6 +13,7 @@ from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile, s
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from fastapi.responses import HTMLResponse
+from sqlalchemy import and_, or_
 from sqlmodel import Session, col, select
 
 from app import bayesian, frequentist
@@ -44,6 +45,7 @@ from app.db_models import (
     StreamConfig,
 )
 from app.domain import Disposition, SignalSeverity
+from app.evaluations import reprocess_stream_evaluations
 from app.models import (
     AnalyteIn,
     AnalyteOut,
@@ -510,101 +512,141 @@ def process_ingestion(
     user: UserContext,
     idempotency_key: Optional[str],
 ) -> IngestionResult:
-    record_time = payload.timestamp
-    config = get_active_stream_config(session, payload.stream_id, record_time)
-    if not config:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stream not configured")
+    try:
+        record_time = payload.timestamp
+        config = get_active_stream_config(session, payload.stream_id, record_time)
+        if not config:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stream not configured")
 
-    if payload.qc_level != config.qc_level:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="QC level does not match stream configuration")
+        if payload.qc_level != config.qc_level:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="QC level does not match stream configuration"
+            )
 
-    normalized_value, normalized_units = normalize_units(payload.result_value, payload.units, config)
-    validate_bounds(normalized_value, config)
+        normalized_value, normalized_units = normalize_units(payload.result_value, payload.units, config)
+        validate_bounds(normalized_value, config)
 
-    record = QCRecord(
-        stream_id=payload.stream_id,
-        timestamp=payload.timestamp,
-        result_value=normalized_value,
-        analyte=payload.analyte,
-        qc_level=payload.qc_level,
-        instrument_id=payload.instrument_id,
-        method_id=payload.method_id,
-        operator_id=payload.operator_id,
-        reagent_lot=payload.reagent_lot,
-        control_material_lot=payload.control_material_lot,
-        calibration_status=payload.calibration_status,
-        run_id=payload.run_id,
-        units=normalized_units,
-        flags=payload.flags,
-        entry_source=payload.entry_source,
-        comments=payload.comments,
-        raw_payload=payload.model_dump(mode="json"),
-        duplicate_status=DuplicateStatus.UNIQUE,
-        idempotency_key=idempotency_key,
-    )
-
-    duplicate_status = detect_duplicate(session, record)
-    record.duplicate_status = duplicate_status
-    session.add(record)
-    session.commit()
-    session.refresh(record)
-
-    signals = frequentist.evaluate_rules(
-        session,
-        record.result_value,
-        record.timestamp,
-        record.stream_id,
-        config,
-    )
-    risk = bayesian.infer_risk(
-        session,
-        record.result_value,
-        record.timestamp,
-        record.stream_id,
-        config,
-    )
-    disposition = determine_disposition(signals, risk, config)
-
-    record_payload = payload.model_copy(update={"result_value": normalized_value, "units": normalized_units})
-    qc_out = QCRecordOut(record=record_payload, signals=signals, bayesian_risk=risk, disposition=disposition)
-
-    audit_entry = record_audit(
-        session=session,
-        actor=user.role.value,
-        action="ingest_qc",
-        entity_type="qc_record",
-        entity_id=str(record.id),
-        before=None,
-        after=qc_out.model_dump(mode="json"),
-        reason=payload.comments,
-    )
-
-    alert_out = None
-    if disposition != Disposition.ACCEPT:
-        alert_record = create_alert(
-            session,
-            AlertRecord(
-                alert_id=str(uuid4()),
-                stream_id=record.stream_id,
-                qc_record_id=record.id,
-                severity=alert_severity(disposition),
-                disposition=disposition.value,
-                signals=[s.model_dump(mode="json") for s in signals],
-                bayesian_risk=risk.model_dump(mode="json"),
-            ),
+        record = QCRecord(
+            stream_id=payload.stream_id,
+            timestamp=payload.timestamp,
+            result_value=normalized_value,
+            analyte=payload.analyte,
+            qc_level=payload.qc_level,
+            instrument_id=payload.instrument_id,
+            method_id=payload.method_id,
+            operator_id=payload.operator_id,
+            reagent_lot=payload.reagent_lot,
+            control_material_lot=payload.control_material_lot,
+            calibration_status=payload.calibration_status,
+            run_id=payload.run_id,
+            units=normalized_units,
+            flags=payload.flags,
+            entry_source=payload.entry_source,
+            comments=payload.comments,
+            raw_payload=payload.model_dump(mode="json"),
+            duplicate_status=DuplicateStatus.UNIQUE,
+            idempotency_key=idempotency_key,
         )
-        alert_out = _alert_out(alert_record, qc_record_timestamp=record.timestamp)
 
-    result = IngestionResult(
-        status="accepted",
-        duplicate=duplicate_status,
-        qc=qc_out,
-        alert_created=alert_out,
-        audit_entry=_audit_out(audit_entry),
-        idempotency_key=idempotency_key,
-    )
-    store_receipt(session, idempotency_key, result.model_dump(mode="json"), record.id)
-    return result
+        duplicate_status = detect_duplicate(session, record)
+        record.duplicate_status = duplicate_status
+        session.add(record)
+        session.flush()
+        if record.id is None:
+            raise RuntimeError("QC record missing id after flush")
+
+        has_later_record = (
+            session.exec(
+                select(QCRecord.id)
+                .where(QCRecord.stream_id == record.stream_id, QCRecord.timestamp > record.timestamp)
+                .limit(1)
+            ).first()
+            is not None
+        )
+        if has_later_record:
+            # Out-of-order ingestion can invalidate cached evaluations for subsequent points.
+            reprocess_stream_evaluations(session, record.stream_id, commit=False)
+            session.refresh(record)
+            if record.signals is None or record.bayesian_risk is None or record.disposition is None:
+                raise RuntimeError("Reprocessing did not persist evaluations for ingested record")
+            signals = [FrequentistSignal.model_validate(s) for s in record.signals]
+            risk = BayesianRisk.model_validate(record.bayesian_risk)
+            disposition = Disposition(record.disposition)
+        else:
+            signals = frequentist.evaluate_rules(
+                session,
+                record.result_value,
+                record.timestamp,
+                record.stream_id,
+                config,
+            )
+            risk = bayesian.infer_risk(
+                session,
+                record.result_value,
+                record.timestamp,
+                record.stream_id,
+                config,
+                commit=False,
+            )
+            disposition = determine_disposition(signals, risk, config)
+            record.signals = [s.model_dump(mode="json") for s in signals]
+            record.bayesian_risk = risk.model_dump(mode="json")
+            record.disposition = disposition.value
+            session.add(record)
+
+        record_payload = payload.model_copy(update={"result_value": normalized_value, "units": normalized_units})
+        qc_out = QCRecordOut(record=record_payload, signals=signals, bayesian_risk=risk, disposition=disposition)
+
+        audit_entry = record_audit(
+            session=session,
+            actor=user.role.value,
+            action="ingest_qc",
+            entity_type="qc_record",
+            entity_id=str(record.id),
+            before=None,
+            after=qc_out.model_dump(mode="json"),
+            reason=payload.comments,
+            commit=False,
+        )
+
+        alert_out = None
+        if disposition != Disposition.ACCEPT:
+            alert_record = create_alert(
+                session,
+                AlertRecord(
+                    alert_id=str(uuid4()),
+                    stream_id=record.stream_id,
+                    qc_record_id=record.id,
+                    severity=alert_severity(disposition),
+                    disposition=disposition.value,
+                    signals=[s.model_dump(mode="json") for s in signals],
+                    bayesian_risk=risk.model_dump(mode="json"),
+                ),
+                commit=False,
+            )
+            alert_out = _alert_out(alert_record, qc_record_timestamp=record.timestamp)
+
+        result = IngestionResult(
+            status="accepted",
+            duplicate=duplicate_status,
+            qc=qc_out,
+            alert_created=alert_out,
+            audit_entry=_audit_out(audit_entry),
+            idempotency_key=idempotency_key,
+        )
+        store_receipt(
+            session,
+            idempotency_key,
+            result.model_dump(mode="json"),
+            record.id,
+            commit=False,
+        )
+        session.commit()
+        return result
+    except Exception:
+        # Keep the session usable for CSV ingestion loops that continue after per-row errors.
+        session.rollback()
+        raise
 
 
 @app.post("/qc/records", response_model=IngestionResult)
@@ -677,7 +719,7 @@ async def resolve_qc_record(
         after=record.model_dump(mode="json"),
         reason=payload.resolved_reason,
     )
-    bayesian.rebuild_posterior_state(session, record.stream_id)
+    reprocess_stream_evaluations(session, record.stream_id)
     return _qc_record_resolution_out(record)
 
 
@@ -963,6 +1005,14 @@ async def create_stream_version(
         after=config.model_dump(mode="json"),
         reason=None,
     )
+    latest_ts = session.exec(
+        select(QCRecord.timestamp)
+        .where(QCRecord.stream_id == stream_id)
+        .order_by(col(QCRecord.timestamp).desc())
+        .limit(1)
+    ).first()
+    if latest_ts is not None and config.effective_from <= latest_ts:
+        reprocess_stream_evaluations(session, stream_id)
     return _stream_out(config)
 
 
@@ -985,6 +1035,14 @@ async def create_prior(
         after=config.model_dump(mode="json"),
         reason=None,
     )
+    latest_ts = session.exec(
+        select(QCRecord.timestamp)
+        .where(QCRecord.stream_id == stream_id)
+        .order_by(col(QCRecord.timestamp).desc())
+        .limit(1)
+    ).first()
+    if latest_ts is not None and config.effective_from <= latest_ts:
+        reprocess_stream_evaluations(session, stream_id)
     return _prior_out(config)
 
 
@@ -1344,132 +1402,22 @@ async def stream_chart(
         record_query = record_query.where(QCRecord.timestamp <= end)
     records = session.exec(record_query.order_by(col(QCRecord.timestamp).desc()).limit(limit)).all()
     record_series = records[::-1]
-    configs = (
-        session.exec(
-            select(StreamConfig)
-            .where(StreamConfig.stream_id == stream_id)
-            .order_by(col(StreamConfig.effective_from).asc(), col(StreamConfig.version).asc())
-        ).all()
-        if include_evaluations
-        else []
-    )
-    priors = (
-        session.exec(
-            select(PriorConfig)
-            .where(PriorConfig.stream_id == stream_id)
-            .order_by(col(PriorConfig.effective_from).asc(), col(PriorConfig.version).asc())
-        ).all()
-        if include_evaluations
-        else []
-    )
-
-    risk_by_record_id: dict[int, BayesianRisk] = {}
-    if include_evaluations and record_series and configs and priors:
-        record_ids_of_interest = {record.id for record in record_series if record.id is not None}
-        first_time = record_series[0].timestamp
-        last_time = record_series[-1].timestamp
-
-        prior_idx = 0
-        while prior_idx + 1 < len(priors) and priors[prior_idx + 1].effective_from <= first_time:
-            prior_idx += 1
-        start_prior = priors[prior_idx]
-        prior_start = start_prior.effective_from if start_prior.effective_from <= first_time else None
-
-        history_query = select(QCRecord).where(
-            QCRecord.stream_id == stream_id,
-            QCRecord.include_in_stats == True,
-            QCRecord.timestamp <= last_time,
-        )
-        if prior_start is not None:
-            history_query = history_query.where(QCRecord.timestamp >= prior_start)
-
-        history = session.exec(history_query.order_by(col(QCRecord.timestamp).asc())).all()
-        if not history:
-            history = []
-
-        current_prior = start_prior
-        if current_prior.id is None:
-            raise RuntimeError("Prior config missing id")
-        mu_n, kappa_n, alpha_n, beta_n = (
-            current_prior.mu0,
-            current_prior.kappa0,
-            current_prior.alpha0,
-            current_prior.beta0,
-        )
-
-        config_idx = 0
-        if history:
-            while config_idx + 1 < len(configs) and configs[config_idx + 1].effective_from <= history[0].timestamp:
-                config_idx += 1
-
-        warn_streak = 0
-        hold_streak = 0
-        current_config_id: Optional[int] = configs[config_idx].id if history and configs else None
-
-        for record in history:
-            while prior_idx + 1 < len(priors) and priors[prior_idx + 1].effective_from <= record.timestamp:
-                prior_idx += 1
-            record_prior = priors[prior_idx]
-            if record_prior.id is None:
-                raise RuntimeError("Prior config missing id")
-            if record_prior.id != current_prior.id:
-                current_prior = record_prior
-                mu_n, kappa_n, alpha_n, beta_n = (
-                    current_prior.mu0,
-                    current_prior.kappa0,
-                    current_prior.alpha0,
-                    current_prior.beta0,
-                )
-                warn_streak = 0
-                hold_streak = 0
-
-            while config_idx + 1 < len(configs) and configs[config_idx + 1].effective_from <= record.timestamp:
-                config_idx += 1
-            config_at_time = configs[config_idx]
-            if config_at_time.id != current_config_id:
-                warn_streak = 0
-                hold_streak = 0
-                current_config_id = config_at_time.id
-
-            risk, (mu_n, kappa_n, alpha_n, beta_n) = bayesian.update_posterior_and_infer_risk(
-                mu0=mu_n,
-                kappa0=kappa_n,
-                alpha0=alpha_n,
-                beta0=beta_n,
-                record_value=record.result_value,
-                config=config_at_time,
-                warn_streak=warn_streak,
-                hold_streak=hold_streak,
-            )
-            warn_streak = risk.warn_streak
-            hold_streak = risk.hold_streak
-            if record.id is not None and record.id in record_ids_of_interest:
-                risk_by_record_id[record.id] = risk
 
     record_points: list[QCRecordChartOut] = []
-    config_idx = 0
     for record in record_series:
         if record.id is None:
             raise RuntimeError("QC record missing id")
-        config_at_time: Optional[StreamConfig] = None
-        if include_evaluations and configs:
-            while config_idx + 1 < len(configs) and configs[config_idx + 1].effective_from <= record.timestamp:
-                config_idx += 1
-            config_at_time = configs[config_idx]
 
         signals: Optional[list[FrequentistSignal]] = None
         disposition: Optional[Disposition] = None
         record_risk: Optional[BayesianRisk] = None
-        if include_evaluations and config_at_time:
-            signals = frequentist.evaluate_rules(
-                session,
-                record.result_value,
-                record.timestamp,
-                record.stream_id,
-                config_at_time,
-            )
-            record_risk = risk_by_record_id.get(record.id) if record.include_in_stats else None
-            disposition = determine_disposition(signals, record_risk, config_at_time)
+        if include_evaluations:
+            if record.signals is not None:
+                signals = [FrequentistSignal.model_validate(s) for s in record.signals]
+            if record.bayesian_risk is not None:
+                record_risk = BayesianRisk.model_validate(record.bayesian_risk)
+            if record.disposition is not None:
+                disposition = Disposition(record.disposition)
         record_points.append(
             QCRecordChartOut(
                 id=record.id,
@@ -1499,9 +1447,19 @@ async def stream_chart(
         .where(AlertRecord.stream_id == stream_id)
     )
     if start:
-        alert_rows_query = alert_rows_query.where(AlertRecord.created_at >= start)
+        alert_rows_query = alert_rows_query.where(
+            or_(
+                and_(QCRecord.timestamp.is_not(None), QCRecord.timestamp >= start),
+                and_(QCRecord.timestamp.is_(None), AlertRecord.created_at >= start),
+            )
+        )
     if end:
-        alert_rows_query = alert_rows_query.where(AlertRecord.created_at <= end)
+        alert_rows_query = alert_rows_query.where(
+            or_(
+                and_(QCRecord.timestamp.is_not(None), QCRecord.timestamp <= end),
+                and_(QCRecord.timestamp.is_(None), AlertRecord.created_at <= end),
+            )
+        )
     alert_rows = session.exec(alert_rows_query.order_by(col(AlertRecord.created_at).desc()).limit(limit)).all()
 
     return StreamChartOut(

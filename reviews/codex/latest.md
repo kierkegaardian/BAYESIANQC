@@ -1,124 +1,230 @@
-# BayesianQC — Charting + Bayesian Outputs Review (Actionability Gaps)
+# BayesianQC Review Report (Codex)
 
-Date: 2026-02-04
+Date: 2026-02-13
 
-This review focuses on whether the current **charts** and **Bayesian outputs** provide **valid, actionable signals** for lab personnel (i.e., “what happened, why it’s flagged, what to do next”, without misleading visuals or stale/misaligned calculations).
+Scope
+- QC math (Bayesian + Westgard)
+- Usability and featureset (Vue UI)
+- Code quality, best practices, and bugs (FastAPI + SQLModel)
+- Architecture concern: API as “true middleware” and single CRUD boundary to the database
+
+Verification
+- Backend tests: `/.venv/bin/python -m pytest -q` (9 passed).
+- Frontend typecheck: not rerun in this pass (no TS changes were required for the backend scalability work).
+- Python typecheck: `/.venv/bin/pyright` is currently broken due to a stale shebang pointing at `/home/user/BAYESIANQC/...` (repo moved to `/home/user/projects/BAYESIANQC`). See `/.venv/bin/pyright`.
 
 ## Executive Summary
+- The **frontend does not talk to SQLite directly**; it uses HTTP (`fetch`) against the FastAPI API (`frontend/src/api/client.ts`). That part of the “middleware API” goal is already true.
+- The backend is **not yet a clean middleware layer internally**: DB writes happen mid-request and in lower-level helpers, which makes ingestion **non-atomic** and makes CSV “rollback on row error” **incorrect** in the presence of `commit()` calls.
+- QC math is directionally correct: the Bayesian engine is a conjugate Normal–Inverse-Gamma update with a Student-t predictive distribution, and the frequentist rules approximate a standard Westgard subset. The main risks are **policy/consistency gaps**, **edge cases** (sigma=0), and **performance scaling** (chart endpoint).
+- Chart scalability has been materially improved by **persisting per-record evaluations** (`QCRecord.signals`, `QCRecord.bayesian_risk`, `QCRecord.disposition`) and making chart retrieval a mostly-read path. The remaining scalability risk is **full-stream reprocessing** on out-of-order ingestion / retroactive config changes.
 
-The prototype has solid building blocks (stream config, prior versioning, Westgard-style rules, posterior state persistence, record exclusion + posterior rebuild), but **the information required for actionable interpretation is not surfaced** and some Bayesian computations can become **invalid** under realistic lab workflows (config/prior changes, out-of-order ingestion, point exclusion effects on historical signals).
+## Top Findings (Prioritized)
 
-If you do only 3 things next:
-1) **Fix Bayesian posterior correctness across time** (prior/version boundaries + out-of-order ingestion).
-2) **Return/compute per-record signals + Bayesian risk for charting** (not just on alerts).
-3) **Make the UI show “why”** (rule evidence + posterior/predictive context) and ensure time alignment.
+### P0: PosteriorState Updates Are Not Concurrency-Safe (Lost Updates)
+Impact
+- Concurrent ingestions for the same `stream_id` can overwrite each other’s `PosteriorState` update (classic read-modify-write race), permanently corrupting the Bayesian state (and any downstream risk scoring that depends on it).
 
----
+Evidence
+- `infer_risk()` reads then mutates `PosteriorState` with no locking/optimistic check: `/home/user/projects/BAYESIANQC/app/bayesian.py:586-643`.
 
-## P0 (Must-fix for “valid signals”)
+Recommendation
+- Make ingestion a single transaction and enforce mutual exclusion per stream during posterior updates.
+- If/when you move to Postgres: use `SELECT ... FOR UPDATE` (SQLAlchemy `with_for_update()`) on the `PosteriorState` row inside the ingestion transaction.
+- If staying on SQLite: `FOR UPDATE` isn’t available; use an optimistic concurrency strategy (e.g., update with a `WHERE updated_at = <old>` guard and rebuild+retry on conflict) or a lock table / `BEGIN IMMEDIATE` strategy.
 
-### 1) Bayesian posterior state becomes invalid with out-of-order ingestion
-- **Where:** `app/bayesian.py` (`infer_risk`)
-- **What:** Posterior is updated in the order ingestions arrive, not strictly by `record.timestamp`.
-- **Why it matters:** Manual/offline/backfilled QC records are common. One backdated record can corrupt the posterior for all future ingestions, making risk scores misleading.
-- **Expected fix:** If `PosteriorState.updated_at > record_timestamp`, trigger a **rebuild** (or insert/redo) rather than incremental update.
+Verification
+- Add a test that fires N concurrent ingestions for one stream and asserts `PosteriorState.n_obs` increments by N and matches a recomputed posterior from the QCRecord history.
 
-### 2) Prior versioning exists, but Bayesian updates ignore effective-date changes
-- **Where:** `app/bayesian.py` (`infer_risk`, `rebuild_posterior_state`)
-- **What:** `PosteriorState` is per `stream_id` only. When priors change (`PriorConfig.effective_from`), state is not reset/rebuilt and `rebuild_posterior_state` only uses the *first record’s* prior for the entire series.
-- **Why it matters:** After a prior change, Bayesian outputs can be mathematically incorrect and hard to detect by end users.
-- **Expected fix:** Track prior provenance (e.g., `prior_version`/`effective_from`) in `PosteriorState` and rebuild/reset when the active prior changes; in rebuild, switch priors at effective boundaries.
+### P0: Ingestion Atomicity (Improved for `/qc/records`, Still a Risk Elsewhere)
+Impact
+- Previously, ingestion could partially write (record inserted + committed) and then fail later, leaving missing/incorrect downstream artifacts (audit entry, alert, posterior state).
+- CSV ingestion attempted per-row rollback, but helper-level `commit()` calls meant rollback could not undo already-committed work.
 
-### 3) Excluding a QC point rebuilds the current posterior, but historical signals/risk remain stale
-- **Where:** `app/main.py` (`PATCH /qc/records/{id}/resolution`), `frontend/src/pages/ChartView.vue`
-- **What:** Exclusion calls `rebuild_posterior_state`, but **alerts and previously-computed signals/risk are not recomputed** for downstream points.
-- **Why it matters:** Westgard rules (2-2s/4-1s/10x) and Bayesian risk depend on history. After exclusion, the chart/alerts can present “facts” that no longer hold.
-- **Expected fix:** Add a **stream reprocessing** path (sync job or on-demand recompute for the displayed time window) and/or store per-record evaluation derived from a canonical recompute.
+Status
+- Improved in this workspace for `/qc/records` and `/qc/records/csv`:
+  - `process_ingestion()` now performs **one commit at the end** and explicitly `rollback()`s on exceptions to keep the session usable for CSV loops.
+  - Ingestion calls Bayesian and storage helpers with `commit=False` so ingestion is not fractured by helper commits.
 
-### 4) Charting can misrepresent QC behavior due to smoothing
-- **Where:** `frontend/src/pages/ChartView.vue` (`resultSeries.smooth = true`)
-- **What:** The Levey-Jennings line is smoothed.
-- **Why it matters:** QC charts typically use point-to-point segments; smoothing can visually invent trends/overshoot and reduce trust in the chart as evidence.
-- **Expected fix:** Use `smooth: false` (or switch to scatter + optional straight line).
+Evidence
+- Ingestion now has a single commit boundary: `/home/user/projects/BAYESIANQC/app/main.py` (`process_ingestion`).
+- Helpers support `commit=False` for composition: `/home/user/projects/BAYESIANQC/app/storage.py` (`record_audit`, `create_alert`, `store_receipt`) and `/home/user/projects/BAYESIANQC/app/bayesian.py` (`infer_risk`, `rebuild_posterior_state`).
 
----
+Recommendation
+- Continue the “true middleware” refactor by moving all request workflows into `app/services/*` and making repo/helpers `commit()`-free by default.
+- If you want structured transaction scopes (`with session.begin():`) for service code, consider:
+  - ensuring auth uses a separate session, or
+  - using nested transactions (savepoints) for per-row CSV handling.
 
-## P1 (Blocks “actionable signals” in daily use)
+### P1: Chart Endpoint Performance (Addressed via Persisted Evaluations), But Reprocessing Can Be Expensive
+Status
+- Addressed in this workspace by persisting evaluations on `QCRecord` and switching `/streams/{stream_id}/chart` to read them.
 
-### 5) Chart endpoint lacks per-point “signal context” (risk, disposition, rule violations)
-- **Where:** `app/api_models.py` (`QCRecordChartOut`), `app/main.py` (`GET /streams/{stream_id}/chart`)
-- **What:** The chart returns record values only; **no disposition**, **no frequentist signals**, **no Bayesian risk per point**.
-- **Why it matters:** Lab users need point-level interpretation on the chart (what fired, severity, confidence).
-- **Expected fix:** Extend chart output to include derived fields per record (or a companion “evaluations” series).
+What changed
+- Added persisted fields on `QCRecord`: `/home/user/projects/BAYESIANQC/app/db_models.py`.
+  - `signals` (JSON list of frequentist signals)
+  - `bayesian_risk` (JSON snapshot of Bayesian risk/intervals)
+  - `disposition` (string enum value)
+- Added a batch reprocessor: `/home/user/projects/BAYESIANQC/app/evaluations.py` (also updates `PosteriorState`).
+- On mutation endpoints that can invalidate cached evaluations, the API now triggers a reprocess:
+  - record resolution (`include_in_stats` flips)
+  - retroactive stream config versions
+  - retroactive prior versions
+  - out-of-order ingestion (record timestamp before existing history)
+- Added a backfill utility script for existing DBs: `/home/user/projects/BAYESIANQC/scripts/reprocess_stream_evaluations.py`.
+  - Example: `/.venv/bin/python scripts/reprocess_stream_evaluations.py --stream-id hba1c-arch`
 
-### 6) Alerts are not linkable back to the exact QC point in the UI
-- **Where:** `app/models.py` (`AlertOut`), `frontend/src/pages/ChartView.vue`, `frontend/src/pages/Alerts.vue`
-- **What:** `AlertRecord` stores `qc_record_id`, but `AlertOut` does not expose it, and ChartView uses `alert.created_at` as the X value.
-- **Why it matters:** Users can’t click an alert and see it on the chart, or confidently align risk to the point that caused it.
-- **Expected fix:** Expose `qc_record_id` (and/or the QC record timestamp/value) on `AlertOut`, then use the record timestamp for chart alignment.
+Residual risk (Gemini also flagged this)
+- Out-of-order ingestion currently triggers a **full-stream** reprocess synchronously, which can be slow for large streams and can block other writes on SQLite.
+- This is the correct *semantic* fix (later points must be recomputed), but you likely want to evolve this into:
+  - incremental reprocessing (recompute from the inserted timestamp forward), and/or
+  - async/background reprocessing with a “pending recalculation” UI state.
 
-### 7) Results chart does not display alerts/events despite UI copy and API support
-- **Where:** `frontend/src/pages/ChartView.vue`
-- **What:** Template claims “results, alerts, and events”, and the API returns `events` + `alerts`, but the results chart doesn’t render them as annotations/markers.
-- **Why it matters:** Events (calibration, maintenance, lot changes) are critical for interpreting shifts and deciding corrective action.
-- **Expected fix:** Add event/alert markers on the timeline with tooltips and drill-down actions.
+### P1: Alert Filtering In Chart Uses `created_at` Instead of QC Timestamp (Fixed)
+Impact
+- Chart `start/end` filters can drop alerts that correspond to QC points in the requested time window, because alert creation time may not equal QC record time.
 
-### 8) Alerts table hides the key “why” fields (signals + Bayesian detail)
-- **Where:** `frontend/src/pages/Alerts.vue`
-- **What:** Only shows IDs/status/disposition; does not display rule IDs/evidence or Bayesian risk/probability.
-- **Why it matters:** Lab personnel need to triage quickly without opening logs or raw API payloads.
-- **Expected fix:** Add columns and/or a details drawer: `severity`, `created_at`, `risk_score`, `probability_outside_limits`, `signals[]` with evidence, and quick “open chart” affordance.
+Evidence
+- Previously in `/home/user/projects/BAYESIANQC/app/main.py`, alert filters used `AlertRecord.created_at` even though charts map alerts to `QCRecord.timestamp`.
 
----
+Status
+- Fixed in this workspace: alerts are filtered by joined `QCRecord.timestamp` when available, with a fallback to `AlertRecord.created_at` for alerts with no linked QC record: `/home/user/projects/BAYESIANQC/app/main.py`.
 
-## P2 (Quality/robustness gaps that degrade trust)
+### P1: Frequentist Rules Can Divide By Zero If Baseline Sigma Collapses
+Impact
+- If baseline stats are computed from a baseline period with zero variance (or too little data), `sigma` can be 0 and `z_score = ... / sigma` will raise.
 
-### 9) Frequentist and Bayesian calculations can disagree with what the chart shows
-- **Where:** `app/storage.py` (`baseline_stats`), `app/frequentist.py`, `app/bayesian.py`, `frontend/src/pages/ChartView.vue`
-- **What:** Frequentist rules may use `baseline_stats(...)` (derived mean/SD), while the chart always draws using `StreamConfig.target_value` and `StreamConfig.sigma`. Bayesian uses config target/sigma too.
-- **Why it matters:** Users will see points “inside limits” while rules/alerts say otherwise (or vice versa).
-- **Expected fix:** Make the chart use the same baseline/limits used for decisioning, or display both (and clearly label them).
+Evidence
+- Baseline sample SD computed without guarding for degenerate variance: `/home/user/projects/BAYESIANQC/app/storage.py:249-266`.
+- Division by `sigma` unguarded: `/home/user/projects/BAYESIANQC/app/frequentist.py:21-36`.
 
-### 10) Missing domain validation for parameters needed for safe Bayesian outputs
-- **Where:** `app/models.py` (`StreamConfigIn`, `PriorConfigIn`)
-- **What:** No validators enforcing required constraints like:
-  - `sigma > 0`, `warning_limit_sd > 0`, `action_limit_sd > 0`, `action_limit_sd >= warning_limit_sd`
-  - `0 <= risk_threshold_warn <= risk_threshold_hold <= 100`
-  - For priors: `kappa0 > 0`, `alpha0 > 1`, `beta0 > 0`
-- **Why it matters:** Invalid configs can silently yield nonsense risk (0 or 100) or runtime errors/div-by-zero.
+Recommendation
+- If `sigma <= 0`, fail fast with a clear configuration error (preferred for QA/validation), or fall back to configured `StreamConfig.sigma` only if you explicitly choose that policy.
+- Add a test for the “baseline sigma is 0” edge case.
 
-### 11) “Bayesian not configured” looks like “risk is zero”
-- **Where:** `app/bayesian.py` (`infer_risk`)
-- **What:** If there’s no active prior, it returns `risk_score=0` and `probability_outside_limits=0.0`.
-- **Why it matters:** 0 reads as “safe”, not “unknown/unavailable”.
-- **Expected fix:** Add an explicit `available`/`status` field (or `risk_score: null`) and show it in UI.
+### P2: “Baseline” Is Implemented Differently Between Frequentist and Bayesian
+Impact
+- Frequentist evaluation can use a baseline period (`baseline_start/baseline_end`) and derive mean/sigma from DB history.
+- Bayesian risk uses `StreamConfig.target_value` and `StreamConfig.sigma` for action/warn bounds (fixed limits), ignoring baseline periods.
+- If you use baseline periods, frequentist and Bayesian can disagree on what “±2/±3 SD” means.
 
-### 12) Rule severities may not match typical Westgard policy
-- **Where:** `app/frequentist.py`, `app/main.py` (`determine_disposition`)
-- **What:** `2-2s`, `4-1s`, `10x` are classified as `WARN` (monitor), not `ACTION` (reject), so disposition may be too permissive.
-- **Why it matters:** Users may take the wrong operational action when a standard “reject” rule fires.
-- **Expected fix:** Make severities policy-configurable (per stream rule_set), and align default severity mapping to your lab SOP.
+Evidence
+- Frequentist baseline stats derive mean/sigma from DB: `/home/user/projects/BAYESIANQC/app/storage.py:249-266`.
+- Bayesian bounds use configured target/sigma: `/home/user/projects/BAYESIANQC/app/bayesian.py:224-290` (bounds at `:245-248`).
 
----
+Recommendation
+- Decide the invariant:
+  - Option A: `StreamConfig.target_value/sigma` are always the validated limits; baseline periods are only used to *help compute those values*, not at runtime.
+  - Option B: Baseline period is a first-class runtime concept and both Bayesian and frequentist derive bounds from it consistently (and the UI must show which baseline was used).
+- Document it and enforce it in API validation.
 
-## Concrete Recommendations (next implementation slices)
+### P2: API Key Storage Is A Fast Unsalted Hash
+Impact
+- If the `ApiKey.key_hash` values leak, SHA-256 is cheap to brute force relative to a password-hash/KDF approach.
 
-### Backend (data + correctness)
-1) Add a small “evaluation” model for charting: per record return (or persist) `signals`, `risk_score`, `probability_outside_limits`, `disposition`, and `n_obs` / posterior summary fields.
-2) Make Bayesian state robust:
-   - Detect out-of-order ingestion and rebuild.
-   - Track active prior identity in state and rebuild/reset on prior changes.
-3) Expose alert→record linkage: include `qc_record_id` (and record timestamp) in `AlertOut`.
+Evidence
+- Hashing is direct SHA-256: `/home/user/projects/BAYESIANQC/app/rbac.py:33-43` and `/home/user/projects/BAYESIANQC/scripts/create_api_key.py`.
 
-### UI (actionability)
-1) Chart overlays: marker shapes/colors for `disposition` and tooltips that show rule evidence + Bayesian stats.
-2) Alerts triage: show risk + signals + timestamps; add “Open chart at point” navigation.
-3) Make uncertainty visible: show posterior mean and credible interval band (even if initially a toggle).
+Recommendation
+- Use a slow KDF (argon2/bcrypt/scrypt) and store per-key salt.
+- Add minimal key management endpoints or rotation strategy if this leaves “prototype” land.
 
----
+### P2: “R-4s” Rule Implementation Does Not Match Classic Westgard Semantics
+Impact
+- If you expect classic Westgard multirule behavior, the current implementation of `R-4s` (two consecutive points in the same stream) can miss “within-run between-levels” random error detection and can also produce confusing signals under a stream-per-level model.
 
-## Quick Wins (low effort, high value)
-- Remove smoothing from Levey-Jennings plot (`smooth: false`).
-- Add alert detail columns to `Alerts.vue` (risk_score + signals preview).
-- Use QC record timestamp (not `alert.created_at`) when plotting risk once linkage is exposed.
+Evidence
+- Current R-4s compares only against the previous record in the same stream: `/home/user/projects/BAYESIANQC/app/frequentist.py:48-55`.
+- Stream identity includes `qc_level` (and the UI/API submit one record at a time), so there is no notion of a “run” containing multiple levels to compare.
 
+Recommendation
+- Either rename the rule to match what it actually does (two-point opposite-side rule within a single stream), or extend ingestion to accept a batch/run containing multiple QC levels and evaluate within-run rules across levels (optionally configurable per analyte/instrument).
+
+### P2: SQLite Migrations Should Be Explicit and Versioned (Addressed)
+Status
+- Fixed in this workspace: runtime `_ensure_sqlite_columns()` was replaced with an explicit, versioned SQLite migration runner using `PRAGMA user_version`.
+- The previous unconditional default backfills for Bayesian threshold fields were removed; NULL values now remain NULL and the app’s existing fallbacks apply.
+
+Evidence
+- `init_db()` runs migrations: `/home/user/projects/BAYESIANQC/app/db.py`.
+- Versioned migration steps live in: `/home/user/projects/BAYESIANQC/app/migrations.py`.
+
+Recommendation
+- Keep this lightweight migration runner for the SQLite prototype, and switch to Alembic (or equivalent) when you move to Postgres for production-like deployments.
+
+## QC Math Review
+
+### Bayesian Engine (Normal–Inverse-Gamma + Student-t Predictive)
+What’s correct / strong
+- Posterior update is the standard NIG one-observation update: `/home/user/projects/BAYESIANQC/app/bayesian.py:152-163`.
+- Predictive distribution uses a Student-t with `df = 2*alpha`, and scale consistent with NIG predictive: `/home/user/projects/BAYESIANQC/app/bayesian.py:224-290`.
+- Exceedance probability is computed as `1 - P(lower <= X <= upper)` for warning/action bounds, which is the right shape for a “risk of violating limits” score: `/home/user/projects/BAYESIANQC/app/bayesian.py:242-265`.
+- Warn/hold streak policy is centralized and supports an N-consecutive policy: `/home/user/projects/BAYESIANQC/app/bayesian.py:183-221`.
+
+Main math-policy gaps
+- “Outside limits” is derived only from action-limit exceedance probability, while “outside warning” is separately tracked. That’s fine, but you should be explicit that `risk_score` is strictly `P(outside action)` in percent.
+- Interval confidence level is hard-coded at 95% (`_DEFAULT_INTERVAL_LEVEL = 0.95`), which is likely to become a validation requirement later: `/home/user/projects/BAYESIANQC/app/bayesian.py:14-17`.
+
+### Frequentist Westgard Rules
+What’s correct / strong
+- Core rule patterns are recognizable and implemented over a recent history window: `/home/user/projects/BAYESIANQC/app/frequentist.py:14-69`.
+- The rules are driven by a configurable ruleset (`rule_set` JSON): `/home/user/projects/BAYESIANQC/app/frequentist.py:24-25`.
+
+Main math-policy gaps
+- Severity classification is partially a policy decision. Right now `2-2s` is `WARN`, not `ACTION`, which will affect dispositions (`monitor` vs `reject`): `/home/user/projects/BAYESIANQC/app/frequentist.py:38-46` and `/home/user/projects/BAYESIANQC/app/main.py:256-293` (disposition).
+
+## Middleware/API Architecture Review (DB Only Hit By API)
+
+### Current State
+- Web UI uses the API client and does not access SQLite directly: `/home/user/projects/BAYESIANQC/frontend/src/api/client.ts`.
+- Within the backend, DB access is spread across:
+  - Endpoints in `/home/user/projects/BAYESIANQC/app/main.py`
+  - “Storage” helpers in `/home/user/projects/BAYESIANQC/app/storage.py`
+  - Inference/state code in `/home/user/projects/BAYESIANQC/app/bayesian.py`
+  - Frequentist evaluation in `/home/user/projects/BAYESIANQC/app/frequentist.py`
+  - Batch evaluation/backfill in `/home/user/projects/BAYESIANQC/app/evaluations.py`
+
+### Why This Still Feels Like “Not True Middleware”
+- There’s no single clear “service” layer that owns the unit-of-work and transaction boundaries.
+- Math modules perform persistence (`commit()`), which ties business logic to DB semantics and makes it harder to evolve.
+
+### Recommended Refactor Shape (Minimal, High Leverage)
+- `app/services/ingestion.py`
+  - Owns: ingest record, evaluate frequentist, infer Bayesian, create audit + alert, store receipt.
+  - Owns: transaction boundary (commit once, rollback fully).
+- `app/repos/*.py` (or expand `app/storage.py`)
+  - Owns: CRUD queries for each table and any joins.
+- `app/math/bayes.py` and `app/math/westgard.py`
+  - Pure functions only (no SQLModel Session).
+
+This structure keeps the API contract stable while allowing DB query refactors without touching frontend code.
+
+For the detailed module split and a safe SQLite -> Postgres plan, see:
+- `/home/user/projects/BAYESIANQC/docs/ARCHITECTURE.md`
+
+## Usability/Featureset Review (UI)
+
+Strengths
+- Clear “console” navigation and contextual help (`HelpButton`).
+- Charts are genuinely useful: show LJ bands, posterior mean/intervals, risk trends, and allow click-to-resolve/reinstate points: `/home/user/projects/BAYESIANQC/frontend/src/pages/ChartView.vue`.
+
+Major gaps for real lab usability
+- No UI to manage Bayesian priors (API exists, UI doesn’t expose it).
+- Streams UI can create a stream and view versions, but there’s no “create new version” or “edit active config” workflow.
+- CAPA actions are entered as raw JSON strings, which is a high-friction UI for end users.
+- Methods/Analytes screens expose numeric IDs rather than human-readable linked context (instrument name, method name).
+
+## Gemini Second-Agent Review
+Ran Gemini CLI review (saved to `/home/user/projects/BAYESIANQC/reviews/gemini/latest.md`) and incorporated the findings that held up.
+
+Key Gemini findings that I agree with and have integrated above
+- Concurrency/lost-update risk in `PosteriorState` updates (must be addressed before treating Bayesian state as authoritative).
+- Chart scaling concerns: compute-on-read risk/signal evaluation was not going to survive real volumes; persisting per-record evaluations fixes the hot path, but full-stream reprocessing for retroactive changes is still a scalability pressure point.
+- Transaction boundary problems (multiple commits inside a single “logical ingestion”).
+- Westgard R-4s semantics gap under a “stream-per-level” model.
+
+Gemini finding I would treat as a tradeoff, not a defect
+- Normal approximation at `df >= 30` for intervals: this is a performance/accuracy trade. If you want validation-grade accuracy, make it configurable or remove the approximation; if you want speed for large chart history walks, keep it (but fix the chart architecture first so you’re not doing huge history walks in request/response at all).
+
+Gemini finding I would reframe
+- “Missing indexes”: there are per-column indexes (`index=True`) on `QCRecord.stream_id`, `QCRecord.timestamp`, and `PosteriorState.stream_id`, but there is no composite index tailored to the common `(stream_id, timestamp)` access pattern. If chart/ingestion queries become slow, consider adding composite indexes once you move off SQLite or once you formalize migrations.

@@ -5,7 +5,7 @@ import pytest
 from sqlmodel import Session, col, select
 
 from app.db import get_engine
-from app.db_models import PosteriorState, PriorConfig
+from app.db_models import PosteriorState, PriorConfig, QCRecord
 from app.main import app
 
 AUTH_HEADERS = {"X-API-Key": "local-dev-key"}
@@ -84,6 +84,19 @@ async def test_action_signal_and_alert_created(client: httpx.AsyncClient):
     assert "signals" in last
     assert "bayesian_risk" in last
     assert "disposition" in last
+
+    with Session(get_engine()) as session:
+        row = session.exec(
+            select(QCRecord)
+            .where(QCRecord.stream_id == "hba1c-arch")
+            .order_by(col(QCRecord.timestamp).desc())
+            .limit(1)
+        ).first()
+        assert row is not None
+        assert row.signals is not None
+        assert row.signals and row.signals[0]["rule"] == "1-3s"
+        assert row.bayesian_risk is not None
+        assert row.disposition == "reject"
 
 
 @pytest.mark.anyio

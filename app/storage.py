@@ -30,6 +30,7 @@ from app.models import (
     Role,
     StreamConfigIn,
 )
+from app.stats import sample_mean_sd
 
 
 def utcnow() -> datetime:
@@ -259,10 +260,7 @@ def baseline_stats(session: Session, config: StreamConfig, at_time: datetime) ->
             .order_by(col(QCRecord.timestamp))
         ).all()
         if len(rows) >= 2:
-            values = [r.result_value for r in rows]
-            mean = sum(values) / len(values)
-            variance = sum((v - mean) ** 2 for v in values) / (len(values) - 1)
-            return mean, variance ** 0.5
+            return sample_mean_sd([r.result_value for r in rows])
     return config.target_value, config.sigma
 
 
@@ -303,12 +301,22 @@ def get_idempotent_response(session: Session, key: str) -> Optional[IngestionRec
     return session.exec(select(IngestionReceipt).where(IngestionReceipt.idempotency_key == key)).first()
 
 
-def store_receipt(session: Session, key: Optional[str], response: dict, record_id: Optional[int]) -> None:
+def store_receipt(
+    session: Session,
+    key: Optional[str],
+    response: dict,
+    record_id: Optional[int],
+    *,
+    commit: bool = True,
+) -> None:
     if not key:
         return
     receipt = IngestionReceipt(idempotency_key=key, response=response, qc_record_id=record_id)
     session.add(receipt)
-    session.commit()
+    if commit:
+        session.commit()
+    else:
+        session.flush()
 
 
 def record_audit(
@@ -320,6 +328,8 @@ def record_audit(
     before: Optional[dict],
     after: Optional[dict],
     reason: Optional[str],
+    *,
+    commit: bool = True,
 ) -> AuditEntry:
     entry = AuditEntry(
         actor=actor,
@@ -331,7 +341,10 @@ def record_audit(
         reason=reason,
     )
     session.add(entry)
-    session.commit()
+    if commit:
+        session.commit()
+    else:
+        session.flush()
     session.refresh(entry)
     return entry
 
@@ -343,9 +356,12 @@ def create_event(session: Session, event: QCEvent) -> QCEvent:
     return event
 
 
-def create_alert(session: Session, alert: AlertRecord) -> AlertRecord:
+def create_alert(session: Session, alert: AlertRecord, *, commit: bool = True) -> AlertRecord:
     session.add(alert)
-    session.commit()
+    if commit:
+        session.commit()
+    else:
+        session.flush()
     session.refresh(alert)
     return alert
 

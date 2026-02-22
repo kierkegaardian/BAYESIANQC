@@ -148,6 +148,10 @@ class QCRecord(SQLModel, table=True):
     resolved_at: Optional[datetime] = None
     resolved_by: Optional[str] = None
     resolved_reason: Optional[str] = None
+    # Snapshotted evaluations for scalable, read-mostly charts.
+    signals: Optional[list[dict[str, Any]]] = Field(default=None, sa_column=Column(JSON))
+    bayesian_risk: Optional[dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
+    disposition: Optional[str] = None
     raw_payload: dict[str, Any] = Field(sa_column=Column(JSON))
     duplicate_status: DuplicateStatus = Field(sa_column=Column(SAEnum(DuplicateStatus)))
     created_at: datetime = Field(default_factory=utcnow)

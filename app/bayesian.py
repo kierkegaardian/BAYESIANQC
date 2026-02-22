@@ -10,6 +10,7 @@ from sqlmodel import Session, col, select
 from app.db_models import PosteriorState, PriorConfig, QCRecord, StreamConfig
 from app.models import BayesianRisk
 from app.storage import get_active_prior
+from app.timeutils import as_utc
 
 _NORMAL_APPROX_DF_THRESHOLD = 30.0
 _DEFAULT_INTERVAL_LEVEL = 0.95
@@ -340,8 +341,9 @@ def _active_prior(priors: list[PriorConfig], at_time: datetime) -> Optional[Prio
     if not priors:
         return None
     active: Optional[PriorConfig] = None
+    at_time_utc = as_utc(at_time)
     for prior in priors:
-        if prior.effective_from <= at_time:
+        if as_utc(prior.effective_from) <= at_time_utc:
             active = prior
         else:
             break
@@ -379,7 +381,8 @@ def infer_risk_as_of(
     )
 
     prior_idx = 0
-    while prior_idx + 1 < len(priors) and priors[prior_idx + 1].effective_from <= records[0].timestamp:
+    first_ts = as_utc(records[0].timestamp)
+    while prior_idx + 1 < len(priors) and as_utc(priors[prior_idx + 1].effective_from) <= first_ts:
         prior_idx += 1
     current_prior = priors[prior_idx]
     if current_prior.id is None:
@@ -387,7 +390,7 @@ def infer_risk_as_of(
 
     config_idx = 0
     if configs:
-        while config_idx + 1 < len(configs) and configs[config_idx + 1].effective_from <= records[0].timestamp:
+        while config_idx + 1 < len(configs) and as_utc(configs[config_idx + 1].effective_from) <= first_ts:
             config_idx += 1
 
     mu_n, kappa_n, alpha_n, beta_n = (
@@ -403,7 +406,8 @@ def infer_risk_as_of(
 
     last_risk: Optional[BayesianRisk] = None
     for record in records:
-        while prior_idx + 1 < len(priors) and priors[prior_idx + 1].effective_from <= record.timestamp:
+        record_ts = as_utc(record.timestamp)
+        while prior_idx + 1 < len(priors) and as_utc(priors[prior_idx + 1].effective_from) <= record_ts:
             prior_idx += 1
         record_prior = priors[prior_idx]
         if record_prior.id is None:
@@ -420,7 +424,7 @@ def infer_risk_as_of(
             hold_streak = 0
 
         if configs:
-            while config_idx + 1 < len(configs) and configs[config_idx + 1].effective_from <= record.timestamp:
+            while config_idx + 1 < len(configs) and as_utc(configs[config_idx + 1].effective_from) <= record_ts:
                 config_idx += 1
             next_config = configs[config_idx]
             if next_config.id != current_config_id:
@@ -452,7 +456,7 @@ def infer_risk_as_of(
     return last_risk or BayesianRisk(probability_outside_limits=0.0, risk_score=0)
 
 
-def rebuild_posterior_state(session: Session, stream_id: str) -> Optional[PosteriorState]:
+def rebuild_posterior_state(session: Session, stream_id: str, *, commit: bool = True) -> Optional[PosteriorState]:
     records = session.exec(
         select(QCRecord)
         .where(QCRecord.stream_id == stream_id, QCRecord.include_in_stats == True)
@@ -462,14 +466,20 @@ def rebuild_posterior_state(session: Session, stream_id: str) -> Optional[Poster
     if not records:
         if state:
             session.delete(state)
-            session.commit()
+            if commit:
+                session.commit()
+            else:
+                session.flush()
         return None
 
     priors = _list_priors(session, stream_id)
     if not priors:
         if state:
             session.delete(state)
-            session.commit()
+            if commit:
+                session.commit()
+            else:
+                session.flush()
         return None
 
     configs = list(
@@ -481,7 +491,8 @@ def rebuild_posterior_state(session: Session, stream_id: str) -> Optional[Poster
     )
 
     prior_idx = 0
-    while prior_idx + 1 < len(priors) and priors[prior_idx + 1].effective_from <= records[0].timestamp:
+    first_ts = as_utc(records[0].timestamp)
+    while prior_idx + 1 < len(priors) and as_utc(priors[prior_idx + 1].effective_from) <= first_ts:
         prior_idx += 1
     current_prior = priors[prior_idx]
     if current_prior.id is None:
@@ -489,7 +500,7 @@ def rebuild_posterior_state(session: Session, stream_id: str) -> Optional[Poster
 
     config_idx = 0
     if configs:
-        while config_idx + 1 < len(configs) and configs[config_idx + 1].effective_from <= records[0].timestamp:
+        while config_idx + 1 < len(configs) and as_utc(configs[config_idx + 1].effective_from) <= first_ts:
             config_idx += 1
     current_config = configs[config_idx] if configs else None
     current_config_id = current_config.id if current_config else None
@@ -504,7 +515,8 @@ def rebuild_posterior_state(session: Session, stream_id: str) -> Optional[Poster
     warn_streak = 0
     hold_streak = 0
     for record in records:
-        while prior_idx + 1 < len(priors) and priors[prior_idx + 1].effective_from <= record.timestamp:
+        record_ts = as_utc(record.timestamp)
+        while prior_idx + 1 < len(priors) and as_utc(priors[prior_idx + 1].effective_from) <= record_ts:
             prior_idx += 1
         record_prior = priors[prior_idx]
         if record_prior.id is None:
@@ -522,7 +534,7 @@ def rebuild_posterior_state(session: Session, stream_id: str) -> Optional[Poster
             hold_streak = 0
 
         if configs:
-            while config_idx + 1 < len(configs) and configs[config_idx + 1].effective_from <= record.timestamp:
+            while config_idx + 1 < len(configs) and as_utc(configs[config_idx + 1].effective_from) <= record_ts:
                 config_idx += 1
             next_config = configs[config_idx]
             if next_config.id != current_config_id:
@@ -579,7 +591,10 @@ def rebuild_posterior_state(session: Session, stream_id: str) -> Optional[Poster
             hold_streak=hold_streak,
         )
         session.add(state)
-    session.commit()
+    if commit:
+        session.commit()
+    else:
+        session.flush()
     return state
 
 
@@ -589,6 +604,8 @@ def infer_risk(
     record_timestamp: datetime,
     stream_id: str,
     config: StreamConfig,
+    *,
+    commit: bool = True,
 ) -> BayesianRisk:
     prior = get_active_prior(session, stream_id, record_timestamp)
     if prior is None:
@@ -597,9 +614,9 @@ def infer_risk(
         raise RuntimeError("Prior config missing id")
 
     state = session.exec(select(PosteriorState).where(PosteriorState.stream_id == stream_id)).first()
-    if not state or (state.updated_at > record_timestamp) or (state.prior_id != prior.id):
+    if not state or (as_utc(state.updated_at) > as_utc(record_timestamp)) or (state.prior_id != prior.id):
         risk = infer_risk_as_of(session, stream_id, record_timestamp, config)
-        rebuild_posterior_state(session, stream_id)
+        rebuild_posterior_state(session, stream_id, commit=commit)
         return risk
 
     config_id = config.id
@@ -639,5 +656,8 @@ def infer_risk(
     state.warn_streak = warn_streak
     state.hold_streak = hold_streak
     session.add(state)
-    session.commit()
+    if commit:
+        session.commit()
+    else:
+        session.flush()
     return risk
