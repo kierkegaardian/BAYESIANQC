@@ -3,8 +3,8 @@ from __future__ import annotations
 import hashlib
 import os
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Optional
+from uuid import uuid4
 
 from fastapi import HTTPException
 from sqlmodel import Session, select
@@ -24,19 +24,12 @@ from app.services.access_scopes import backlog_item_is_accessible, effective_sco
 from app.services.import_apply import apply_ready_rows, refresh_batch_status
 from app.services.import_mapping import build_import_row
 from app.services.import_outputs import batch_out
+from app.services.import_parse_timeout import ImportParseTimeout, read_source_rows_with_timeout
 from app.services.import_profiles import select_profile
-from app.services.import_readers import read_source_rows
+from app.services.import_run_context import batch_for_row, enforce_run_context, profile_for_batch
+from app.services.import_settings import import_settings
 from app.services.qc_backlog import get_backlog_item
 from app.storage import get_active_stream_config, record_audit
-
-
-def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
-
-
-def _archive_root() -> Path:
-    return Path(os.getenv("BAYESIANQC_IMPORT_ARCHIVE_ROOT", "data/import-archive"))
-
 
 def _safe_name(filename: str) -> str:
     cleaned = "".join(ch if ch.isalnum() or ch in ".-_" else "_" for ch in filename)
@@ -45,12 +38,16 @@ def _safe_name(filename: str) -> str:
 
 def archive_file(data: bytes, filename: str) -> tuple[str, str]:
     digest = hashlib.sha256(data).hexdigest()
-    now = utcnow()
-    folder = _archive_root() / f"{now:%Y}" / f"{now:%m}"
+    now = datetime.now(timezone.utc)
+    folder = import_settings().archive_root / f"{now:%Y}" / f"{now:%m}"
     folder.mkdir(parents=True, exist_ok=True)
     target = folder / f"{digest[:16]}__{_safe_name(filename)}"
-    if not target.exists():
-        target.write_bytes(data)
+    tmp_target = folder / f".{target.name}.{os.getpid()}.{uuid4().hex}.tmp"
+    try:
+        tmp_target.write_bytes(data)
+        tmp_target.replace(target)
+    finally:
+        tmp_target.unlink(missing_ok=True)
     return digest, str(target)
 
 
@@ -142,6 +139,7 @@ def create_import(
     source_path: Optional[str],
     profile_id: Optional[int],
     auto_apply: bool,
+    parse_timeout_seconds: float,
     user: UserContext,
 ) -> ImportBatch:
     digest, archived_path = archive_file(data, filename)
@@ -176,7 +174,14 @@ def create_import(
     session.add(batch)
     session.flush()
     try:
-        source_rows = read_source_rows(data, filename, profile)
+        source_rows = read_source_rows_with_timeout(data, filename, profile, parse_timeout_seconds)
+    except ImportParseTimeout as exc:
+        batch.status = ImportBatchStatus.FAILED_TO_INGEST
+        batch.failure_reason = str(exc)
+        batch.collector_action = CollectorAction.MOVE_TO_FAILED
+        session.add(batch)
+        session.commit()
+        raise HTTPException(status_code=408, detail=str(exc)) from exc
     except HTTPException as exc:
         if _artifact_role(profile):
             _maybe_record_artifact(session, batch, profile)
@@ -223,11 +228,12 @@ def update_row(session: Session, row_id: int, payload, user: UserContext) -> Imp
     row = session.exec(select(ImportRow).where(ImportRow.id == row_id)).first()
     if row is None:
         raise HTTPException(status_code=404, detail="Import row not found")
+    batch = batch_for_row(session, row)
+    profile = profile_for_batch(session, batch)
     if row.stream_id is not None:
         require_stream_access(session, user, row.stream_id)
     elif not effective_scope(session, user).unrestricted:
-        batch = session.exec(select(ImportBatch).where(ImportBatch.id == row.batch_id)).first()
-        if batch is None or batch.created_by != user.actor:
+        if batch.created_by != user.actor:
             raise HTTPException(status_code=404, detail="Import row not found")
     before = row.model_dump(mode="json")
     fields = dict(row.parsed_fields)
@@ -255,6 +261,7 @@ def update_row(session: Session, row_id: int, payload, user: UserContext) -> Imp
             raise HTTPException(status_code=403, detail="QC backlog item is out of scope")
         fields["qc_backlog_item_id"] = payload.qc_backlog_item_id
         row.qc_backlog_item_id = payload.qc_backlog_item_id
+    enforce_run_context(profile, fields)
     QCRecordIn.model_validate({**fields, "entry_source": EntrySource.AUTOMATED})
     row.parsed_fields = fields
     row.errors = []

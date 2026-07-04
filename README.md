@@ -54,6 +54,7 @@ Postgres is the only supported app runtime. The built-in default URL is:
 docker compose up -d postgres
 export BAYESIANQC_DB_URL=postgresql+psycopg://bayesianqc:bayesianqc@127.0.0.1:54329/bayesianqc
 export BAYESIANQC_SEED_LOCAL_DEV_KEY=1
+export BAYESIANQC_IMPORT_ARCHIVE_ROOT="${XDG_STATE_HOME:-$HOME/.local/state}/bayesianqc/import-archive"
 uvicorn app.main:app --reload --port 8010
 ```
 `init_db()` applies Alembic migrations automatically. The app rejects `sqlite://` URLs at startup; legacy SQLite files are import sources only.
@@ -63,6 +64,20 @@ To rehearse the current Postgres schema:
 ```bash
 python scripts/rehearse_sqlite_to_postgres.py --postgres-url "$BAYESIANQC_DB_URL"
 ```
+
+Import uploads are bounded by `BAYESIANQC_IMPORT_MAX_UPLOAD_BYTES` (default `26214400`) and
+`BAYESIANQC_IMPORT_PARSE_TIMEOUT_SECONDS` (default `30`). Local dev defaults the raw-file archive
+to `${XDG_STATE_HOME:-$HOME/.local/state}/bayesianqc/import-archive`; production deployments should
+set `BAYESIANQC_IMPORT_ARCHIVE_ROOT` explicitly and may set `BAYESIANQC_REQUIRE_IMPORT_ARCHIVE_ROOT=1`
+to fail imports when the archive root is omitted.
+
+To prove a restored database still reconciles to the import archive:
+```bash
+make import-restore-proof IMPORT_ARCHIVE_ROOT="$BAYESIANQC_IMPORT_ARCHIVE_ROOT"
+```
+If the restored database contains paths from a different production mount point, pass
+`DB_IMPORT_ARCHIVE_ROOT=/original/archive/root` while `IMPORT_ARCHIVE_ROOT` points at the mounted
+restored archive.
 
 For a legacy SQLite import rehearsal only, create a disposable target and copy into it:
 ```bash

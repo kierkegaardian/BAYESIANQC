@@ -10,9 +10,11 @@ from sqlmodel import Session, col, select
 from app.db import get_engine
 from app.db_models import ApiKey, AuditEntry, QCRecord
 from app.import_db_models import ImportBatch, InstrumentPeak
+from app.import_models import ImportBatchStatus
 from app.main import app
 from app.models import Role
 from app.security import api_key_lookup_hash, hash_api_key
+from app.services.import_settings import import_settings
 AUTH_HEADERS = {"X-API-Key": "local-dev-key"}
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "samples" / "import_readiness"
@@ -275,14 +277,17 @@ async def test_rbac_failed_file_path_traversal_and_xxe_checks(client: httpx.Asyn
 
 
 @pytest.mark.anyio
-@pytest.mark.xfail(reason="No configured maximum upload size is enforced yet.", strict=True)
-async def test_oversized_import_is_rejected_by_configured_limit(client: httpx.AsyncClient) -> None:
-    response = await client.post("/qc/imports", files={"file": ("large.csv", b"x" * 2_000_000, "text/csv")}, headers=AUTH_HEADERS)
+async def test_oversized_import_is_rejected_by_configured_limit(
+    client: httpx.AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("BAYESIANQC_IMPORT_MAX_UPLOAD_BYTES", "1024")
+    allowed = await client.post("/qc/imports", files={"file": ("large.csv", b"x" * 1024, "text/csv")}, headers=AUTH_HEADERS)
+    assert allowed.status_code != 413
+    response = await client.post("/qc/imports", files={"file": ("large.csv", b"x" * 1025, "text/csv")}, headers=AUTH_HEADERS)
     assert response.status_code == 413
 
 
 @pytest.mark.anyio
-@pytest.mark.xfail(reason="Rows without run/backlog context can become ready when stream defaults resolve.", strict=True)
 async def test_import_without_run_or_backlog_requires_manual_association(client: httpx.AsyncClient) -> None:
     profile = _sequence_profile()
     config = profile["config"]
@@ -297,4 +302,85 @@ async def test_import_without_run_or_backlog_requires_manual_association(client:
         headers=AUTH_HEADERS,
     )
     assert upload.status_code == 200, upload.text
-    assert upload.json()["batch"]["rows"][0]["status"] == "needs_review"
+    first_row = upload.json()["batch"]["rows"][0]
+    assert first_row["status"] == "needs_review"
+    assert first_row["warnings"] == ["run/backlog association is required"]
+    patch = await client.patch(f"/qc/imports/rows/{first_row['id']}", json={"stream_id": "hba1c-arch"}, headers=AUTH_HEADERS)
+    assert patch.status_code == 422
+    assert "run/backlog association is required" in patch.text
+
+
+@pytest.mark.anyio
+async def test_allow_provisional_profile_can_apply_without_run_or_backlog(client: httpx.AsyncClient) -> None:
+    profile = _sequence_profile()
+    config = profile["config"]
+    assert isinstance(config, dict)
+    config["run_context_policy"] = "allow_provisional"
+    columns = dict(config["columns"])
+    columns.pop("run_id")
+    config["columns"] = columns
+    await _create_profile(client, profile)
+    upload = await client.post(
+        "/qc/imports",
+        files={"file": ("openlab_sequence_results.csv", (FIXTURES / "openlab_sequence_results.csv").read_bytes(), "text/csv")},
+        headers=AUTH_HEADERS,
+    )
+    assert upload.status_code == 200, upload.text
+    batch = upload.json()["batch"]
+    assert batch["rows"][0]["status"] == "ready_to_apply"
+    applied = await client.post(f"/qc/imports/{batch['id']}/apply", headers=AUTH_HEADERS)
+    assert applied.status_code == 200, applied.text
+    assert applied.json()["status"] == "applied"
+    assert applied.json()["instrument_runs"][0]["run_key"] == f"import-{batch['id']}"
+
+
+@pytest.mark.anyio
+async def test_parse_timeout_returns_controlled_failure(
+    client: httpx.AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    await _create_profile(client, _sequence_profile())
+    monkeypatch.setenv("BAYESIANQC_IMPORT_PARSE_TIMEOUT_SECONDS", "0.001")
+    response = await client.post(
+        "/qc/imports",
+        files={"file": ("openlab_sequence_results.csv", (FIXTURES / "openlab_sequence_results.csv").read_bytes(), "text/csv")},
+        headers=AUTH_HEADERS,
+    )
+    assert response.status_code == 408
+    with Session(get_engine()) as session:
+        batch = session.exec(select(ImportBatch)).one()
+        assert batch.status == ImportBatchStatus.FAILED_TO_INGEST
+        assert batch.failure_reason is not None
+        assert "timeout" in batch.failure_reason.lower()
+    monkeypatch.setenv("BAYESIANQC_IMPORT_PARSE_TIMEOUT_SECONDS", "30")
+    recovered = await client.post(
+        "/qc/imports",
+        files={"file": ("openlab_sequence_results.csv", (FIXTURES / "openlab_sequence_results.csv").read_bytes(), "text/csv")},
+        headers=AUTH_HEADERS,
+    )
+    assert recovered.status_code == 200, recovered.text
+    assert recovered.json()["batch"]["ready_rows"] == 2
+
+
+def test_import_archive_default_is_outside_repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("BAYESIANQC_IMPORT_ARCHIVE_ROOT", raising=False)
+    monkeypatch.delenv("BAYESIANQC_REQUIRE_IMPORT_ARCHIVE_ROOT", raising=False)
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
+    settings = import_settings()
+    settings.archive_root.resolve().relative_to((tmp_path / "state").resolve())
+    with pytest.raises(ValueError):
+        settings.archive_root.resolve().relative_to(ROOT.resolve())
+
+
+@pytest.mark.anyio
+async def test_required_archive_root_fails_without_explicit_setting(
+    client: httpx.AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("BAYESIANQC_IMPORT_ARCHIVE_ROOT", raising=False)
+    monkeypatch.setenv("BAYESIANQC_REQUIRE_IMPORT_ARCHIVE_ROOT", "1")
+    response = await client.post(
+        "/qc/imports",
+        files={"file": ("openlab_sequence_results.csv", (FIXTURES / "openlab_sequence_results.csv").read_bytes(), "text/csv")},
+        headers=AUTH_HEADERS,
+    )
+    assert response.status_code == 500
+    assert "BAYESIANQC_IMPORT_ARCHIVE_ROOT must be set" in response.text

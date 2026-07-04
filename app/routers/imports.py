@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from sqlmodel import Session
 
 from app.db import get_session
@@ -25,6 +25,7 @@ from app.rbac import UserContext, require_permission
 from app.services.import_apply import apply_ready_rows
 from app.services.import_outputs import batch_detail, get_batch, list_batches, row_out
 from app.services.import_profiles import create_profile, list_profiles, update_profile
+from app.services.import_settings import ImportSettingsError, import_settings
 from app.services.imports import create_collector_event, create_import, update_row
 
 router = APIRouter(tags=["qc-imports"])
@@ -70,7 +71,16 @@ def upload_import(
     session: Session = Depends(get_session),
 ) -> ImportCreateOut:
     filename = file.filename or "upload.bin"
-    data = file.file.read()
+    try:
+        settings = import_settings()
+    except ImportSettingsError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    data = file.file.read(settings.max_upload_bytes + 1)
+    if len(data) > settings.max_upload_bytes:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Import file exceeds configured limit of {settings.max_upload_bytes} bytes",
+        )
     batch = create_import(
         session,
         filename=filename,
@@ -79,6 +89,7 @@ def upload_import(
         source_path=source_path,
         profile_id=profile_id,
         auto_apply=auto_apply,
+        parse_timeout_seconds=settings.parse_timeout_seconds,
         user=user,
     )
     return ImportCreateOut(batch=batch_detail(session, batch, user), collector_action=batch.collector_action)

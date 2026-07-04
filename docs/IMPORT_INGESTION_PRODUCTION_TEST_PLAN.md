@@ -8,6 +8,7 @@ The target feature set is server-side import ingestion: parser profiles, archive
 - Do not push or change remotes.
 - If the worktree is dirty, classify the dirty files before testing. If changes are unrelated to import ingestion or access enforcement, stop and ask.
 - Use a disposable archive root: `export BAYESIANQC_IMPORT_ARCHIVE_ROOT="$(mktemp -d)"`.
+- Production-like runs must set `BAYESIANQC_IMPORT_ARCHIVE_ROOT` explicitly outside the repo.
 - Save all evidence under `reviews/import-readiness/<timestamp>/`.
 - Final output must include: pass/fail table, command transcript paths, defect list with severity, residual risk, and an explicit production readiness recommendation.
 ## Readiness Gates
@@ -22,6 +23,7 @@ Production-ready means all of these are true:
 - Applying ready rows uses existing `process_ingestion`, quarantine, audit, alert, and backlog-completion behavior.
 - UI supports upload, review, manual row association, apply, artifact/peak inspection, and profile creation without console errors.
 - Archive, audit, retention, backup, and restore behavior are documented and verified for the selected deployment.
+- Upload size and parse timeout limits are configured and verified.
 ## Phase 0: Preflight And Environment
 Commands:
 ```bash
@@ -207,6 +209,12 @@ Checks:
 - Confirm app startup fails clearly if archive root is missing or unwritable, or document intended degraded behavior.
 - Confirm timezone policy for instrument timestamps and scheduling windows.
 - Confirm maximum upload size, parse timeout, and file stability policy for future collector.
+Command:
+```bash
+make import-restore-proof IMPORT_ARCHIVE_ROOT="$BAYESIANQC_IMPORT_ARCHIVE_ROOT"
+```
+Use `DB_IMPORT_ARCHIVE_ROOT=/original/archive/root` when restored database rows contain absolute
+paths from a different production mount point.
 Pass criteria:
 - A restored database plus archive root can reproduce import evidence.
 - Operators know where failed files and archived files live.

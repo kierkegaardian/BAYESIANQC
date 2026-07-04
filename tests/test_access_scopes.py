@@ -142,6 +142,7 @@ async def _create_import_profile(client: httpx.AsyncClient) -> None:
             "filename_patterns": ["*.csv"],
             "config": {
                 "delimiter": ",",
+                "run_context_policy": "allow_provisional",
                 "columns": {"stream_id": "Stream", "timestamp": "Timestamp", "result_value": "Result"},
             },
         },

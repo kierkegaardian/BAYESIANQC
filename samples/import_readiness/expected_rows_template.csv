@@ -1,0 +1,2 @@
+instrument_family,sanitized_filename,source_sha256,parser_profile,total_rows,ignored_rows,qc_result_rows,review_rows,ready_rows,applied_records,quarantined_rows,artifact_rows,peak_rows,sme_decision,sme_reviewer,review_date,notes
+example_family,example_export.csv,sha256_here,Example parser v1,0,0,0,0,0,0,0,0,0,needs_review,,,Replace this row with sanitized pilot expectations.

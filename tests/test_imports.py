@@ -48,6 +48,7 @@ def _add_key(raw_key: str, role: Role) -> dict[str, str]:
 def _profile_payload(ext: str = ".csv", **config_overrides: object) -> dict[str, object]:
     config: dict[str, object] = {
         "delimiter": ",",
+        "run_context_policy": "allow_provisional",
         "columns": {
             "timestamp": "Timestamp",
             "result_value": "Result",

@@ -11,6 +11,12 @@ from app.models import EntrySource, IngestionResult, QCRecordIn, QuarantineResul
 from app.rbac import UserContext
 from app.services.access_scopes import backlog_item_is_accessible, stream_is_accessible
 from app.services.ingestion import process_ingestion
+from app.services.import_run_context import (
+    fields_have_run_context,
+    mark_row_needs_run_context,
+    profile_allows_provisional_run,
+    profile_for_batch,
+)
 from app.services.qc_backlog import get_backlog_item
 
 
@@ -62,19 +68,25 @@ def _payload_from_row(fields: dict[str, Any]) -> QCRecordIn:
 
 def _apply_one(session: Session, batch: ImportBatch, row: ImportRow, user: UserContext) -> None:
     fields = dict(row.parsed_fields)
+    profile = profile_for_batch(session, batch)
+    if not fields_have_run_context(fields) and not profile_allows_provisional_run(profile):
+        mark_row_needs_run_context(row)
+        session.add(row)
+        session.flush()
+        return
     stream_id = fields.get("stream_id")
     if not isinstance(stream_id, str) or not stream_is_accessible(session, user, stream_id):
         row.status = ImportRowStatus.IGNORED
         row.errors = [*row.errors, "out of scope for current API key"]
         session.add(row)
-        session.commit()
+        session.flush()
         return
     backlog_id = fields.get("qc_backlog_item_id")
     if isinstance(backlog_id, int) and not backlog_item_is_accessible(session, user, get_backlog_item(session, backlog_id)):
         row.status = ImportRowStatus.IGNORED
         row.errors = [*row.errors, "backlog item out of scope for current API key"]
         session.add(row)
-        session.commit()
+        session.flush()
         return
     run = _get_or_create_run(session, batch, fields)
     if run.id is None:
@@ -92,7 +104,7 @@ def _apply_one(session: Session, batch: ImportBatch, row: ImportRow, user: UserC
         row.status = ImportRowStatus.QUARANTINED
         row.quarantine_id = result.quarantine.id
     session.add(row)
-    session.commit()
+    session.flush()
 
 
 def refresh_batch_status(session: Session, batch: ImportBatch) -> None:

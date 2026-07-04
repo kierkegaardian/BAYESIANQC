@@ -10,6 +10,7 @@ from app.import_db_models import ImportBatch, ImportRow, ParserProfile
 from app.import_models import ImportRowStatus, ImportRowType
 from app.models import QCBacklogStatus
 from app.services.import_readers import SourceRow
+from app.services.import_run_context import run_context_warning
 from app.storage import get_active_stream_config
 
 QC_FIELDS = [
@@ -196,6 +197,9 @@ def build_import_row(session: Session, batch: ImportBatch, profile: ParserProfil
                 warnings.extend(backlog_warnings)
                 if backlog_id is not None:
                     parsed["qc_backlog_item_id"] = backlog_id
+                run_warning = run_context_warning(profile, parsed)
+                if run_warning:
+                    warnings.append(run_warning)
     elif source.row_type == ImportRowType.PEAK:
         parsed = {field: _mapped_value(source.raw, profile, field) for field in ["analyte", "peak_name", "retention_time", "area", "height"]}
     status = ImportRowStatus.IGNORED

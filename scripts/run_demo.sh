@@ -7,6 +7,8 @@ FRONTEND_PID="${ROOT_DIR}/.demo-frontend.pid"
 BACKEND_LOG="${ROOT_DIR}/uvicorn.log"
 FRONTEND_LOG="${ROOT_DIR}/frontend/vite.log"
 POSTGRES_URL="${BAYESIANQC_DB_URL:-postgresql+psycopg://bayesianqc:bayesianqc@127.0.0.1:54329/bayesianqc}"
+STATE_HOME="${XDG_STATE_HOME:-${HOME}/.local/state}"
+IMPORT_ARCHIVE_ROOT="${BAYESIANQC_IMPORT_ARCHIVE_ROOT:-${STATE_HOME}/bayesianqc/import-archive}"
 
 start_postgres() {
   docker compose -f "${ROOT_DIR}/docker-compose.yml" up -d postgres
@@ -30,7 +32,10 @@ start_backend() {
     echo "Backend already running (PID $(cat "${BACKEND_PID}"))."
     return
   fi
-  env BAYESIANQC_DB_URL="${POSTGRES_URL}" BAYESIANQC_SEED_LOCAL_DEV_KEY=1 \
+  mkdir -p "${IMPORT_ARCHIVE_ROOT}"
+  env BAYESIANQC_DB_URL="${POSTGRES_URL}" \
+    BAYESIANQC_SEED_LOCAL_DEV_KEY=1 \
+    BAYESIANQC_IMPORT_ARCHIVE_ROOT="${IMPORT_ARCHIVE_ROOT}" \
     setsid "${ROOT_DIR}/.venv/bin/uvicorn" app.main:app --host 0.0.0.0 --port 8010 \
     > "${BACKEND_LOG}" 2>&1 < /dev/null &
   echo $! > "${BACKEND_PID}"
@@ -53,3 +58,4 @@ start_backend
 start_frontend
 
 echo "Open http://localhost:5177 (or your LAN IP) for the UI."
+echo "Import archive root: ${IMPORT_ARCHIVE_ROOT}"
