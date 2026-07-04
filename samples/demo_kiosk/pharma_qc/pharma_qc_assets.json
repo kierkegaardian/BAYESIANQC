@@ -1,0 +1,288 @@
+{
+  "analytes": [
+    {
+      "active": true,
+      "instrument_name": "HPLC Assay-01",
+      "method_name": "HPLC Assay",
+      "name": "API Potency",
+      "units": "% label"
+    },
+    {
+      "active": true,
+      "instrument_name": "HPLC Assay-01",
+      "method_name": "HPLC Assay",
+      "name": "Preservative A",
+      "units": "mg/mL"
+    },
+    {
+      "active": true,
+      "instrument_name": "HPLC Assay-01",
+      "method_name": "HPLC Assay",
+      "name": "Degradant Total",
+      "units": "% area"
+    },
+    {
+      "active": true,
+      "instrument_name": "HPLC Assay-01",
+      "method_name": "HPLC Assay",
+      "name": "Related Substance A",
+      "units": "% area"
+    },
+    {
+      "active": true,
+      "instrument_name": "UPLC Impurity-02",
+      "method_name": "UPLC Impurity",
+      "name": "Impurity B",
+      "units": "% area"
+    },
+    {
+      "active": true,
+      "instrument_name": "UPLC Impurity-02",
+      "method_name": "UPLC Impurity",
+      "name": "Impurity C",
+      "units": "% area"
+    },
+    {
+      "active": true,
+      "instrument_name": "UPLC Impurity-02",
+      "method_name": "UPLC Impurity",
+      "name": "Main Peak Purity",
+      "units": "%"
+    },
+    {
+      "active": true,
+      "instrument_name": "UPLC Impurity-02",
+      "method_name": "UPLC Impurity",
+      "name": "Resolution R1",
+      "units": "USP"
+    },
+    {
+      "active": true,
+      "instrument_name": "Dissolution DT-03",
+      "method_name": "Dissolution",
+      "name": "Dissolution 15 min",
+      "units": "% dissolved"
+    },
+    {
+      "active": true,
+      "instrument_name": "Dissolution DT-03",
+      "method_name": "Dissolution",
+      "name": "Dissolution 30 min",
+      "units": "% dissolved"
+    },
+    {
+      "active": true,
+      "instrument_name": "Dissolution DT-03",
+      "method_name": "Dissolution",
+      "name": "Dissolution 45 min",
+      "units": "% dissolved"
+    },
+    {
+      "active": true,
+      "instrument_name": "KF Aqua-04",
+      "method_name": "Karl Fischer",
+      "name": "Water Content",
+      "units": "%"
+    },
+    {
+      "active": true,
+      "instrument_name": "KF Aqua-04",
+      "method_name": "Karl Fischer",
+      "name": "LOD",
+      "units": "%"
+    },
+    {
+      "active": true,
+      "instrument_name": "KF Aqua-04",
+      "method_name": "Karl Fischer",
+      "name": "Residual Moisture",
+      "units": "ppm"
+    },
+    {
+      "active": true,
+      "instrument_name": "Formulation Bench-05",
+      "method_name": "Formulation",
+      "name": "pH",
+      "units": "pH"
+    },
+    {
+      "active": true,
+      "instrument_name": "Formulation Bench-05",
+      "method_name": "Formulation",
+      "name": "Osmolality",
+      "units": "mOsm/kg"
+    },
+    {
+      "active": true,
+      "instrument_name": "Formulation Bench-05",
+      "method_name": "Formulation",
+      "name": "Conductivity",
+      "units": "uS/cm"
+    },
+    {
+      "active": true,
+      "instrument_name": "LCMS Drug-06",
+      "method_name": "LC-MS Drug Panel",
+      "name": "Drug A Control",
+      "units": "ng/mL"
+    },
+    {
+      "active": true,
+      "instrument_name": "LCMS Drug-06",
+      "method_name": "LC-MS Drug Panel",
+      "name": "Drug B Control",
+      "units": "ng/mL"
+    },
+    {
+      "active": true,
+      "instrument_name": "LCMS Drug-06",
+      "method_name": "LC-MS Drug Panel",
+      "name": "Metabolite M1",
+      "units": "ng/mL"
+    },
+    {
+      "active": true,
+      "instrument_name": "LCMS Drug-06",
+      "method_name": "LC-MS Drug Panel",
+      "name": "Internal Standard Area",
+      "units": "area ratio"
+    },
+    {
+      "active": true,
+      "instrument_name": "TOC Clean-07",
+      "method_name": "TOC",
+      "name": "TOC Rinse",
+      "units": "ppb"
+    },
+    {
+      "active": true,
+      "instrument_name": "TOC Clean-07",
+      "method_name": "TOC",
+      "name": "TOC WFI",
+      "units": "ppb"
+    },
+    {
+      "active": true,
+      "instrument_name": "GC Solvent-08",
+      "method_name": "GC Residual Solvent",
+      "name": "Residual Ethanol",
+      "units": "ppm"
+    },
+    {
+      "active": true,
+      "instrument_name": "GC Solvent-08",
+      "method_name": "GC Residual Solvent",
+      "name": "Residual Acetone",
+      "units": "ppm"
+    }
+  ],
+  "instruments": [
+    {
+      "active": true,
+      "manufacturer": "Waters",
+      "model": "Alliance",
+      "name": "HPLC Assay-01",
+      "site": "Synthetic Pharma QC"
+    },
+    {
+      "active": true,
+      "manufacturer": "Waters",
+      "model": "Acquity",
+      "name": "UPLC Impurity-02",
+      "site": "Synthetic Pharma QC"
+    },
+    {
+      "active": true,
+      "manufacturer": "Agilent",
+      "model": "708-DS",
+      "name": "Dissolution DT-03",
+      "site": "Synthetic Pharma QC"
+    },
+    {
+      "active": true,
+      "manufacturer": "Metrohm",
+      "model": "870 KF",
+      "name": "KF Aqua-04",
+      "site": "Synthetic Pharma QC"
+    },
+    {
+      "active": true,
+      "manufacturer": "Mettler",
+      "model": "SevenExcellence",
+      "name": "Formulation Bench-05",
+      "site": "Synthetic Pharma QC"
+    },
+    {
+      "active": true,
+      "manufacturer": "Sciex",
+      "model": "TripleQuad",
+      "name": "LCMS Drug-06",
+      "site": "Synthetic Pharma QC"
+    },
+    {
+      "active": true,
+      "manufacturer": "Shimadzu",
+      "model": "TOC-L",
+      "name": "TOC Clean-07",
+      "site": "Synthetic Pharma QC"
+    },
+    {
+      "active": true,
+      "manufacturer": "Agilent",
+      "model": "8890",
+      "name": "GC Solvent-08",
+      "site": "Synthetic Pharma QC"
+    }
+  ],
+  "methods": [
+    {
+      "active": true,
+      "instrument_name": "HPLC Assay-01",
+      "name": "HPLC Assay",
+      "technique": "UV assay"
+    },
+    {
+      "active": true,
+      "instrument_name": "UPLC Impurity-02",
+      "name": "UPLC Impurity",
+      "technique": "Gradient impurity"
+    },
+    {
+      "active": true,
+      "instrument_name": "Dissolution DT-03",
+      "name": "Dissolution",
+      "technique": "USP apparatus"
+    },
+    {
+      "active": true,
+      "instrument_name": "KF Aqua-04",
+      "name": "Karl Fischer",
+      "technique": "Coulometric KF"
+    },
+    {
+      "active": true,
+      "instrument_name": "Formulation Bench-05",
+      "name": "Formulation",
+      "technique": "pH osmolality"
+    },
+    {
+      "active": true,
+      "instrument_name": "LCMS Drug-06",
+      "name": "LC-MS Drug Panel",
+      "technique": "MRM quantitation"
+    },
+    {
+      "active": true,
+      "instrument_name": "TOC Clean-07",
+      "name": "TOC",
+      "technique": "Combustion TOC"
+    },
+    {
+      "active": true,
+      "instrument_name": "GC Solvent-08",
+      "name": "GC Residual Solvent",
+      "technique": "Headspace GC"
+    }
+  ],
+  "synthetic_data_notice": "Synthetic demo data only; not validated ASTM, manufacturer, clinical, pharmacological, or regulatory reference data."
+}

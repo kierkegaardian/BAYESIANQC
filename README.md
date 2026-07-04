@@ -89,6 +89,14 @@ Every UI page includes a Help button with page purpose and basic usage notes.
 Chart view now centers on the stream mean, shows color-coded 1/2/3 sigma bands using stream config limits, and uses a broken Y-axis when outliers exceed control limits (with an optional log-scale toggle).
 Click chart points to resolve them (exclude from stats) or reinstate them.
 The unattended chart kiosk is available at `http://127.0.0.1:5177/kiosk/charts`; the refinery demo kiosk is at `http://127.0.0.1:5177/kiosk/refinery` after loading `scripts/load_chart_kiosk_suite.py`.
+The synthetic multi-domain demo kiosks are available at `/kiosk/demo`, `/kiosk/fuel`, `/kiosk/medical`, `/kiosk/pharma`, and `/kiosk/steel` after loading:
+```bash
+python scripts/generate_demo_kiosk_fixtures.py --check
+python scripts/load_chart_kiosk_suite.py --suite demo
+```
+The demo fixtures are synthetic product-demo data only, not validated ASTM, manufacturer, clinical, pharmacological, or regulatory reference data.
+
+The guided datastream setup workflow is available in the UI at `Configuration -> Add Datastream`. It can create or reuse the instrument, method, parameter/analyte, control material, stream config, Bayesian prior, and optional saved kiosk assignment in one reviewed setup. Bulk setup starts from `GET /stream-setups/template.xlsx`, then uses `/stream-setups/import/preview` and `/stream-setups/apply`.
 
 ## Endpoint map
 - `GET /` Landing page with links and basic usage.
@@ -98,6 +106,8 @@ The unattended chart kiosk is available at `http://127.0.0.1:5177/kiosk/charts`;
 - `POST /qc/records` Ingest a QC record (requires `X-API-Key`).
 - `POST /qc/records/csv` Ingest QC records from CSV (requires `X-API-Key`).
 - `PATCH /qc/records/{record_id}/resolution` Resolve/reinstate a QC record (requires `X-API-Key` + approve permission).
+- `GET /qc/comments` List comments by record, alert, run, or stream context.
+- `POST /qc/comments` Add a contextual QC comment for a QC record, alert, or run (requires `X-API-Key` + ingest permission).
 - `GET /instruments` List instruments.
 - `POST /instruments` Create an instrument (requires `X-API-Key` + edit permission).
 - `PATCH /instruments/{instrument_id}` Update an instrument (requires `X-API-Key` + edit permission).
@@ -107,6 +117,16 @@ The unattended chart kiosk is available at `http://127.0.0.1:5177/kiosk/charts`;
 - `GET /analytes` List analytes.
 - `POST /analytes` Create an analyte (requires `X-API-Key` + edit permission).
 - `PATCH /analytes/{analyte_id}` Update an analyte (requires `X-API-Key` + edit permission).
+- `GET /control-materials` List control materials.
+- `POST /control-materials` Create a control material (requires `X-API-Key` + edit permission).
+- `GET /kiosks` List saved kiosk layouts.
+- `POST /kiosks` Create a saved kiosk layout (requires `X-API-Key` + edit permission).
+- `GET /kiosks/{slug}` Get a saved kiosk layout and panels.
+- `POST /kiosks/{slug}/panels` Append a saved kiosk panel (requires `X-API-Key` + edit permission).
+- `POST /stream-setups/preview` Preview datastream setup creates/reuses/conflicts.
+- `POST /stream-setups/apply` Apply validated datastream setup rows (requires `X-API-Key` + edit permission).
+- `GET /stream-setups/template.xlsx` Download the XLSX setup workbook template.
+- `POST /stream-setups/import/preview` Preview an XLSX setup workbook.
 - `GET /streams` List active stream configs.
 - `GET /streams/{stream_id}/configs` List all versions for a stream.
 - `POST /streams` Create a new stream config (requires `X-API-Key` + edit permission).

@@ -148,8 +148,19 @@ def test_alembic_upgrade_head_creates_current_schema(disposable_postgres_url: st
         "alembic_version",
         "apikey",
         "auditentry",
+        "controlmaterial",
+        "collectortransferevent",
+        "importartifact",
+        "importbatch",
+        "importrow",
         "ingestionreceipt",
+        "instrumentpeak",
+        "instrumentrun",
+        "kiosklayout",
+        "kioskpanel",
+        "parserprofile",
         "posteriorstate",
+        "qccomment",
         "qcbacklogitem",
         "qcrecord",
         "qcrecordquarantine",
@@ -181,17 +192,39 @@ def test_alembic_upgrade_head_creates_current_schema(disposable_postgres_url: st
     quarantine_indexes = inspector.get_indexes("qcrecordquarantine")
     assert _index_columns(quarantine_indexes, "ix_qcrecordquarantine_status_created") == ["status", "created_at"]
     backlog_indexes = inspector.get_indexes("qcbacklogitem")
+    backlog_columns = {column["name"] for column in inspector.get_columns("qcbacklogitem")}
+    assert {"started_at", "started_by"} <= backlog_columns
     assert _index_columns(backlog_indexes, "ix_qcbacklogitem_status_due") == ["status", "due_at"]
     assert _index_columns(backlog_indexes, "ix_qcbacklogitem_assignee_due") == ["assigned_to", "due_at"]
+    comment_indexes = inspector.get_indexes("qccomment")
+    assert _index_columns(comment_indexes, "ix_qccomment_target_created") == [
+        "target_type",
+        "target_id",
+        "created_at",
+    ]
+    assert _index_columns(comment_indexes, "ix_qccomment_qc_record_created") == ["qc_record_id", "created_at"]
+    assert _index_columns(comment_indexes, "ix_qccomment_alert_created") == ["alert_id", "created_at"]
+    instrument_columns = {column["name"] for column in inspector.get_columns("instrument")}
+    stream_columns = {column["name"] for column in inspector.get_columns("streamconfig")}
+    assert "lab_bench" in instrument_columns
+    assert {"lab_bench", "control_material_id"} <= stream_columns
+    kiosk_indexes = inspector.get_indexes("kioskpanel")
+    assert _index_columns(kiosk_indexes, "ix_kioskpanel_kiosk_order") == ["kiosk_id", "display_order"]
+    import_batch_indexes = inspector.get_indexes("importbatch")
+    assert _index_columns(import_batch_indexes, "ix_importbatch_status_received") == ["status", "received_at"]
+    import_row_indexes = inspector.get_indexes("importrow")
+    assert _index_columns(import_row_indexes, "ix_importrow_batch_status") == ["batch_id", "status"]
+    parser_profile_indexes = inspector.get_indexes("parserprofile")
+    assert _index_columns(parser_profile_indexes, "ix_parserprofile_status_type") == ["status", "profile_type"]
 
     with engine.connect() as connection:
         version = connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-    assert version == "20260703_0002"
+    assert version == "20260704_0005"
 
 
 def test_rehearsal_revision_head_tracks_alembic_head() -> None:
     expected = ScriptDirectory.from_config(_alembic_config(app_db.DEFAULT_DB_URL)).get_current_head()
-    assert rehearsal.revision_head() == expected == "20260703_0002"
+    assert rehearsal.revision_head() == expected == "20260704_0005"
 
 
 def test_init_db_delegates_to_alembic(monkeypatch) -> None:
@@ -216,6 +249,11 @@ def test_postgres_alembic_upgrade_creates_current_schema(disposable_postgres_url
     schema = rehearsal.schema_checks(engine)
     assert schema["alembic_version"] == rehearsal.revision_head()
     assert schema["qcrecord_stream_timestamp"] == ["stream_id", "timestamp"]
+    assert schema["qccomment_target_created"] == ["target_type", "target_id", "created_at"]
+    assert schema["instrument_lab_bench"] is True
+    assert schema["streamconfig_lab_bench"] is True
+    assert schema["streamconfig_control_material_id"] is True
+    assert schema["kioskpanel_kiosk_order"] == ["kiosk_id", "display_order"]
     assert schema["posteriorstate_stream_unique"] is True
     assert rehearsal.posterior_checks(engine)["ok"] is True
     engine.dispose()
@@ -223,6 +261,34 @@ def test_postgres_alembic_upgrade_creates_current_schema(disposable_postgres_url
 
 def test_postgres_downgrade_to_previous_revision_and_reupgrade(disposable_postgres_url: str) -> None:
     rehearsal.run_upgrade(disposable_postgres_url)
+    rehearsal.run_downgrade(disposable_postgres_url, "20260704_0003")
+    engine = create_engine(disposable_postgres_url)
+    inspector = inspect(engine)
+
+    assert "controlmaterial" not in set(inspector.get_table_names())
+    assert "kiosklayout" not in set(inspector.get_table_names())
+    assert "kioskpanel" not in set(inspector.get_table_names())
+    instrument_columns = {column["name"] for column in inspector.get_columns("instrument")}
+    stream_columns = {column["name"] for column in inspector.get_columns("streamconfig")}
+    assert "lab_bench" not in instrument_columns
+    assert "lab_bench" not in stream_columns
+    assert "control_material_id" not in stream_columns
+    with engine.connect() as connection:
+        version = connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
+    assert version == "20260704_0003"
+    engine.dispose()
+
+    rehearsal.run_downgrade(disposable_postgres_url, "20260703_0002")
+    engine = create_engine(disposable_postgres_url)
+    inspector = inspect(engine)
+
+    assert "qccomment" not in set(inspector.get_table_names())
+    assert "qcbacklogitem" in set(inspector.get_table_names())
+    with engine.connect() as connection:
+        version = connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
+    assert version == "20260703_0002"
+    engine.dispose()
+
     rehearsal.run_downgrade(disposable_postgres_url, "20260703_0001")
     engine = create_engine(disposable_postgres_url)
     inspector = inspect(engine)
@@ -343,7 +409,10 @@ def test_postgres_api_smoke_covers_core_operator_paths(disposable_postgres_url: 
 
         chart_response = client.get("/streams/hba1c-arch/chart", headers=headers)
         assert chart_response.status_code == 200
-        assert len(chart_response.json()["records"]) == 1
+        chart_records = chart_response.json()["records"]
+        assert len(chart_records) == 1
+        assert chart_records[0]["bayesian_risk"]["risk_score"] >= 0
+        assert "probability_outside_limits" in chart_records[0]["bayesian_risk"]
 
         backlog_list = client.get("/qc/backlog?status=completed", headers=headers)
         assert backlog_list.status_code == 200

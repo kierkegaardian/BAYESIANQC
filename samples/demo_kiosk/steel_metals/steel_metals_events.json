@@ -1,0 +1,1027 @@
+[
+  {
+    "analyte": "Carbon",
+    "event_type": "calibration",
+    "instrument_id": "OES Spark-01",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "OES Chemistry",
+    "stream_id": "demo-steel_metals-oes-spark-01-carbon",
+    "timestamp": "2026-02-23T07:35:00Z"
+  },
+  {
+    "analyte": "Carbon",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "OES Spark-01",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "from": "STE-01-A",
+      "to": "STE-01-B"
+    },
+    "method_id": "OES Chemistry",
+    "stream_id": "demo-steel_metals-oes-spark-01-carbon",
+    "timestamp": "2026-02-24T14:05:00Z"
+  },
+  {
+    "analyte": "Carbon",
+    "event_type": "maintenance",
+    "instrument_id": "OES Spark-01",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "operator rerun after high action point",
+      "scenario": "high_action_outlier"
+    },
+    "method_id": "OES Chemistry",
+    "stream_id": "demo-steel_metals-oes-spark-01-carbon",
+    "timestamp": "2026-02-25T02:05:00Z"
+  },
+  {
+    "analyte": "Manganese",
+    "event_type": "calibration",
+    "instrument_id": "OES Spark-01",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "OES Chemistry",
+    "stream_id": "demo-steel_metals-oes-spark-01-manganese",
+    "timestamp": "2026-02-23T07:40:00Z"
+  },
+  {
+    "analyte": "Manganese",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "OES Spark-01",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "from": "STE-02-A",
+      "to": "STE-02-B"
+    },
+    "method_id": "OES Chemistry",
+    "stream_id": "demo-steel_metals-oes-spark-01-manganese",
+    "timestamp": "2026-02-24T14:10:00Z"
+  },
+  {
+    "analyte": "Manganese",
+    "event_type": "maintenance",
+    "instrument_id": "OES Spark-01",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "stable baseline review",
+      "scenario": "stable_baseline"
+    },
+    "method_id": "OES Chemistry",
+    "stream_id": "demo-steel_metals-oes-spark-01-manganese",
+    "timestamp": "2026-02-25T02:10:00Z"
+  },
+  {
+    "analyte": "Silicon",
+    "event_type": "calibration",
+    "instrument_id": "OES Spark-01",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "OES Chemistry",
+    "stream_id": "demo-steel_metals-oes-spark-01-silicon",
+    "timestamp": "2026-02-23T07:45:00Z"
+  },
+  {
+    "analyte": "Silicon",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "OES Spark-01",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "from": "STE-03-A",
+      "to": "STE-03-B"
+    },
+    "method_id": "OES Chemistry",
+    "stream_id": "demo-steel_metals-oes-spark-01-silicon",
+    "timestamp": "2026-02-24T14:15:00Z"
+  },
+  {
+    "analyte": "Silicon",
+    "event_type": "maintenance",
+    "instrument_id": "OES Spark-01",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "precision review for high scatter",
+      "scenario": "low_confidence"
+    },
+    "method_id": "OES Chemistry",
+    "stream_id": "demo-steel_metals-oes-spark-01-silicon",
+    "timestamp": "2026-02-25T02:15:00Z"
+  },
+  {
+    "analyte": "Chromium",
+    "event_type": "calibration",
+    "instrument_id": "OES Spark-01",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "OES Chemistry",
+    "stream_id": "demo-steel_metals-oes-spark-01-chromium",
+    "timestamp": "2026-02-23T07:50:00Z"
+  },
+  {
+    "analyte": "Chromium",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "OES Spark-01",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "from": "STE-04-A",
+      "to": "STE-04-B"
+    },
+    "method_id": "OES Chemistry",
+    "stream_id": "demo-steel_metals-oes-spark-01-chromium",
+    "timestamp": "2026-02-24T14:20:00Z"
+  },
+  {
+    "analyte": "Chromium",
+    "event_type": "maintenance",
+    "instrument_id": "OES Spark-01",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "lot-to-lot high bias review",
+      "scenario": "step_shift_lot_high"
+    },
+    "method_id": "OES Chemistry",
+    "stream_id": "demo-steel_metals-oes-spark-01-chromium",
+    "timestamp": "2026-02-25T02:20:00Z"
+  },
+  {
+    "analyte": "Nickel",
+    "event_type": "calibration",
+    "instrument_id": "OES Spark-01",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "OES Chemistry",
+    "stream_id": "demo-steel_metals-oes-spark-01-nickel",
+    "timestamp": "2026-02-23T07:55:00Z"
+  },
+  {
+    "analyte": "Nickel",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "OES Spark-01",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "from": "STE-05-A",
+      "to": "STE-05-B"
+    },
+    "method_id": "OES Chemistry",
+    "stream_id": "demo-steel_metals-oes-spark-01-nickel",
+    "timestamp": "2026-02-24T14:25:00Z"
+  },
+  {
+    "analyte": "Nickel",
+    "event_type": "maintenance",
+    "instrument_id": "OES Spark-01",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "drift investigation opened",
+      "scenario": "slow_drift_high"
+    },
+    "method_id": "OES Chemistry",
+    "stream_id": "demo-steel_metals-oes-spark-01-nickel",
+    "timestamp": "2026-02-25T02:25:00Z"
+  },
+  {
+    "analyte": "Low Carbon",
+    "event_type": "calibration",
+    "instrument_id": "CS Burn-02",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Combustion C/S",
+    "stream_id": "demo-steel_metals-cs-burn-02-low-carbon",
+    "timestamp": "2026-02-23T07:30:00Z"
+  },
+  {
+    "analyte": "Low Carbon",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "CS Burn-02",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "from": "STE-06-A",
+      "to": "STE-06-B"
+    },
+    "method_id": "Combustion C/S",
+    "stream_id": "demo-steel_metals-cs-burn-02-low-carbon",
+    "timestamp": "2026-02-24T14:00:00Z"
+  },
+  {
+    "analyte": "Low Carbon",
+    "event_type": "maintenance",
+    "instrument_id": "CS Burn-02",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "operator rerun after low action point",
+      "scenario": "low_action_outlier"
+    },
+    "method_id": "Combustion C/S",
+    "stream_id": "demo-steel_metals-cs-burn-02-low-carbon",
+    "timestamp": "2026-02-25T02:00:00Z"
+  },
+  {
+    "analyte": "Sulfur",
+    "event_type": "calibration",
+    "instrument_id": "CS Burn-02",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Combustion C/S",
+    "stream_id": "demo-steel_metals-cs-burn-02-sulfur",
+    "timestamp": "2026-02-23T07:35:00Z"
+  },
+  {
+    "analyte": "Sulfur",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "CS Burn-02",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "from": "STE-07-A",
+      "to": "STE-07-B"
+    },
+    "method_id": "Combustion C/S",
+    "stream_id": "demo-steel_metals-cs-burn-02-sulfur",
+    "timestamp": "2026-02-24T14:05:00Z"
+  },
+  {
+    "analyte": "Sulfur",
+    "event_type": "maintenance",
+    "instrument_id": "CS Burn-02",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "maintenance restored baseline",
+      "scenario": "maintenance_recovery"
+    },
+    "method_id": "Combustion C/S",
+    "stream_id": "demo-steel_metals-cs-burn-02-sulfur",
+    "timestamp": "2026-02-25T02:05:00Z"
+  },
+  {
+    "analyte": "High Carbon",
+    "event_type": "calibration",
+    "instrument_id": "CS Burn-02",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Combustion C/S",
+    "stream_id": "demo-steel_metals-cs-burn-02-high-carbon",
+    "timestamp": "2026-02-23T07:40:00Z"
+  },
+  {
+    "analyte": "High Carbon",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "CS Burn-02",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "from": "STE-08-A",
+      "to": "STE-08-B"
+    },
+    "method_id": "Combustion C/S",
+    "stream_id": "demo-steel_metals-cs-burn-02-high-carbon",
+    "timestamp": "2026-02-24T14:10:00Z"
+  },
+  {
+    "analyte": "High Carbon",
+    "event_type": "maintenance",
+    "instrument_id": "CS Burn-02",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "lot-to-lot low bias review",
+      "scenario": "step_shift_lot_low"
+    },
+    "method_id": "Combustion C/S",
+    "stream_id": "demo-steel_metals-cs-burn-02-high-carbon",
+    "timestamp": "2026-02-25T02:10:00Z"
+  },
+  {
+    "analyte": "Rockwell B",
+    "event_type": "calibration",
+    "instrument_id": "Hardness H-03",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Hardness",
+    "stream_id": "demo-steel_metals-hardness-h-03-rockwell-b",
+    "timestamp": "2026-02-23T07:45:00Z"
+  },
+  {
+    "analyte": "Rockwell B",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "Hardness H-03",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "from": "STE-09-A",
+      "to": "STE-09-B"
+    },
+    "method_id": "Hardness",
+    "stream_id": "demo-steel_metals-hardness-h-03-rockwell-b",
+    "timestamp": "2026-02-24T14:15:00Z"
+  },
+  {
+    "analyte": "Rockwell B",
+    "event_type": "maintenance",
+    "instrument_id": "Hardness H-03",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "low drift investigation opened",
+      "scenario": "slow_drift_low"
+    },
+    "method_id": "Hardness",
+    "stream_id": "demo-steel_metals-hardness-h-03-rockwell-b",
+    "timestamp": "2026-02-25T02:15:00Z"
+  },
+  {
+    "analyte": "Rockwell C",
+    "event_type": "calibration",
+    "instrument_id": "Hardness H-03",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Hardness",
+    "stream_id": "demo-steel_metals-hardness-h-03-rockwell-c",
+    "timestamp": "2026-02-23T07:50:00Z"
+  },
+  {
+    "analyte": "Rockwell C",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "Hardness H-03",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "from": "STE-10-A",
+      "to": "STE-10-B"
+    },
+    "method_id": "Hardness",
+    "stream_id": "demo-steel_metals-hardness-h-03-rockwell-c",
+    "timestamp": "2026-02-24T14:20:00Z"
+  },
+  {
+    "analyte": "Rockwell C",
+    "event_type": "maintenance",
+    "instrument_id": "Hardness H-03",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "precision failure review",
+      "scenario": "r4s_precision"
+    },
+    "method_id": "Hardness",
+    "stream_id": "demo-steel_metals-hardness-h-03-rockwell-c",
+    "timestamp": "2026-02-25T02:20:00Z"
+  },
+  {
+    "analyte": "Vickers HV10",
+    "event_type": "calibration",
+    "instrument_id": "Hardness H-03",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Hardness",
+    "stream_id": "demo-steel_metals-hardness-h-03-vickers-hv10",
+    "timestamp": "2026-02-23T07:55:00Z"
+  },
+  {
+    "analyte": "Vickers HV10",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "Hardness H-03",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "from": "STE-11-A",
+      "to": "STE-11-B"
+    },
+    "method_id": "Hardness",
+    "stream_id": "demo-steel_metals-hardness-h-03-vickers-hv10",
+    "timestamp": "2026-02-24T14:25:00Z"
+  },
+  {
+    "analyte": "Vickers HV10",
+    "event_type": "maintenance",
+    "instrument_id": "Hardness H-03",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "duplicate retry cluster reviewed",
+      "scenario": "duplicate_retry_cluster"
+    },
+    "method_id": "Hardness",
+    "stream_id": "demo-steel_metals-hardness-h-03-vickers-hv10",
+    "timestamp": "2026-02-25T02:25:00Z"
+  },
+  {
+    "analyte": "Brinell HBW",
+    "event_type": "calibration",
+    "instrument_id": "Hardness H-03",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Hardness",
+    "stream_id": "demo-steel_metals-hardness-h-03-brinell-hbw",
+    "timestamp": "2026-02-23T07:30:00Z"
+  },
+  {
+    "analyte": "Brinell HBW",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "Hardness H-03",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "from": "STE-12-A",
+      "to": "STE-12-B"
+    },
+    "method_id": "Hardness",
+    "stream_id": "demo-steel_metals-hardness-h-03-brinell-hbw",
+    "timestamp": "2026-02-24T14:00:00Z"
+  },
+  {
+    "analyte": "Brinell HBW",
+    "event_type": "maintenance",
+    "instrument_id": "Hardness H-03",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "stable lot transition review",
+      "scenario": "stable_lot_b"
+    },
+    "method_id": "Hardness",
+    "stream_id": "demo-steel_metals-hardness-h-03-brinell-hbw",
+    "timestamp": "2026-02-25T02:00:00Z"
+  },
+  {
+    "analyte": "Yield Strength",
+    "event_type": "calibration",
+    "instrument_id": "Tensile T-04",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Tensile",
+    "stream_id": "demo-steel_metals-tensile-t-04-yield-strength",
+    "timestamp": "2026-02-23T07:35:00Z"
+  },
+  {
+    "analyte": "Yield Strength",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "Tensile T-04",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "from": "STE-13-A",
+      "to": "STE-13-B"
+    },
+    "method_id": "Tensile",
+    "stream_id": "demo-steel_metals-tensile-t-04-yield-strength",
+    "timestamp": "2026-02-24T14:05:00Z"
+  },
+  {
+    "analyte": "Yield Strength",
+    "event_type": "maintenance",
+    "instrument_id": "Tensile T-04",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "operator rerun after high action point",
+      "scenario": "high_action_outlier"
+    },
+    "method_id": "Tensile",
+    "stream_id": "demo-steel_metals-tensile-t-04-yield-strength",
+    "timestamp": "2026-02-25T02:05:00Z"
+  },
+  {
+    "analyte": "Ultimate Strength",
+    "event_type": "calibration",
+    "instrument_id": "Tensile T-04",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Tensile",
+    "stream_id": "demo-steel_metals-tensile-t-04-ultimate-strength",
+    "timestamp": "2026-02-23T07:40:00Z"
+  },
+  {
+    "analyte": "Ultimate Strength",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "Tensile T-04",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "from": "STE-14-A",
+      "to": "STE-14-B"
+    },
+    "method_id": "Tensile",
+    "stream_id": "demo-steel_metals-tensile-t-04-ultimate-strength",
+    "timestamp": "2026-02-24T14:10:00Z"
+  },
+  {
+    "analyte": "Ultimate Strength",
+    "event_type": "maintenance",
+    "instrument_id": "Tensile T-04",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "stable baseline review",
+      "scenario": "stable_baseline"
+    },
+    "method_id": "Tensile",
+    "stream_id": "demo-steel_metals-tensile-t-04-ultimate-strength",
+    "timestamp": "2026-02-25T02:10:00Z"
+  },
+  {
+    "analyte": "Elongation",
+    "event_type": "calibration",
+    "instrument_id": "Tensile T-04",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Tensile",
+    "stream_id": "demo-steel_metals-tensile-t-04-elongation",
+    "timestamp": "2026-02-23T07:45:00Z"
+  },
+  {
+    "analyte": "Elongation",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "Tensile T-04",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "from": "STE-15-A",
+      "to": "STE-15-B"
+    },
+    "method_id": "Tensile",
+    "stream_id": "demo-steel_metals-tensile-t-04-elongation",
+    "timestamp": "2026-02-24T14:15:00Z"
+  },
+  {
+    "analyte": "Elongation",
+    "event_type": "maintenance",
+    "instrument_id": "Tensile T-04",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "precision review for high scatter",
+      "scenario": "low_confidence"
+    },
+    "method_id": "Tensile",
+    "stream_id": "demo-steel_metals-tensile-t-04-elongation",
+    "timestamp": "2026-02-25T02:15:00Z"
+  },
+  {
+    "analyte": "Reduction Area",
+    "event_type": "calibration",
+    "instrument_id": "Tensile T-04",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Tensile",
+    "stream_id": "demo-steel_metals-tensile-t-04-reduction-area",
+    "timestamp": "2026-02-23T07:50:00Z"
+  },
+  {
+    "analyte": "Reduction Area",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "Tensile T-04",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "from": "STE-16-A",
+      "to": "STE-16-B"
+    },
+    "method_id": "Tensile",
+    "stream_id": "demo-steel_metals-tensile-t-04-reduction-area",
+    "timestamp": "2026-02-24T14:20:00Z"
+  },
+  {
+    "analyte": "Reduction Area",
+    "event_type": "maintenance",
+    "instrument_id": "Tensile T-04",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "lot-to-lot high bias review",
+      "scenario": "step_shift_lot_high"
+    },
+    "method_id": "Tensile",
+    "stream_id": "demo-steel_metals-tensile-t-04-reduction-area",
+    "timestamp": "2026-02-25T02:20:00Z"
+  },
+  {
+    "analyte": "Charpy 0C",
+    "event_type": "calibration",
+    "instrument_id": "Impact I-05",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Charpy Impact",
+    "stream_id": "demo-steel_metals-impact-i-05-charpy-0c",
+    "timestamp": "2026-02-23T07:55:00Z"
+  },
+  {
+    "analyte": "Charpy 0C",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "Impact I-05",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "from": "STE-17-A",
+      "to": "STE-17-B"
+    },
+    "method_id": "Charpy Impact",
+    "stream_id": "demo-steel_metals-impact-i-05-charpy-0c",
+    "timestamp": "2026-02-24T14:25:00Z"
+  },
+  {
+    "analyte": "Charpy 0C",
+    "event_type": "maintenance",
+    "instrument_id": "Impact I-05",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "drift investigation opened",
+      "scenario": "slow_drift_high"
+    },
+    "method_id": "Charpy Impact",
+    "stream_id": "demo-steel_metals-impact-i-05-charpy-0c",
+    "timestamp": "2026-02-25T02:25:00Z"
+  },
+  {
+    "analyte": "Charpy -20C",
+    "event_type": "calibration",
+    "instrument_id": "Impact I-05",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Charpy Impact",
+    "stream_id": "demo-steel_metals-impact-i-05-charpy-20c",
+    "timestamp": "2026-02-23T07:30:00Z"
+  },
+  {
+    "analyte": "Charpy -20C",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "Impact I-05",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "from": "STE-18-A",
+      "to": "STE-18-B"
+    },
+    "method_id": "Charpy Impact",
+    "stream_id": "demo-steel_metals-impact-i-05-charpy-20c",
+    "timestamp": "2026-02-24T14:00:00Z"
+  },
+  {
+    "analyte": "Charpy -20C",
+    "event_type": "maintenance",
+    "instrument_id": "Impact I-05",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "operator rerun after low action point",
+      "scenario": "low_action_outlier"
+    },
+    "method_id": "Charpy Impact",
+    "stream_id": "demo-steel_metals-impact-i-05-charpy-20c",
+    "timestamp": "2026-02-25T02:00:00Z"
+  },
+  {
+    "analyte": "Charpy Lateral",
+    "event_type": "calibration",
+    "instrument_id": "Impact I-05",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Charpy Impact",
+    "stream_id": "demo-steel_metals-impact-i-05-charpy-lateral",
+    "timestamp": "2026-02-23T07:35:00Z"
+  },
+  {
+    "analyte": "Charpy Lateral",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "Impact I-05",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "from": "STE-19-A",
+      "to": "STE-19-B"
+    },
+    "method_id": "Charpy Impact",
+    "stream_id": "demo-steel_metals-impact-i-05-charpy-lateral",
+    "timestamp": "2026-02-24T14:05:00Z"
+  },
+  {
+    "analyte": "Charpy Lateral",
+    "event_type": "maintenance",
+    "instrument_id": "Impact I-05",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "maintenance restored baseline",
+      "scenario": "maintenance_recovery"
+    },
+    "method_id": "Charpy Impact",
+    "stream_id": "demo-steel_metals-impact-i-05-charpy-lateral",
+    "timestamp": "2026-02-25T02:05:00Z"
+  },
+  {
+    "analyte": "Zinc Coating",
+    "event_type": "calibration",
+    "instrument_id": "CoatGauge C-06",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Coating",
+    "stream_id": "demo-steel_metals-coatgauge-c-06-zinc-coating",
+    "timestamp": "2026-02-23T07:40:00Z"
+  },
+  {
+    "analyte": "Zinc Coating",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "CoatGauge C-06",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "from": "STE-20-A",
+      "to": "STE-20-B"
+    },
+    "method_id": "Coating",
+    "stream_id": "demo-steel_metals-coatgauge-c-06-zinc-coating",
+    "timestamp": "2026-02-24T14:10:00Z"
+  },
+  {
+    "analyte": "Zinc Coating",
+    "event_type": "maintenance",
+    "instrument_id": "CoatGauge C-06",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "lot-to-lot low bias review",
+      "scenario": "step_shift_lot_low"
+    },
+    "method_id": "Coating",
+    "stream_id": "demo-steel_metals-coatgauge-c-06-zinc-coating",
+    "timestamp": "2026-02-25T02:10:00Z"
+  },
+  {
+    "analyte": "Tin Coating",
+    "event_type": "calibration",
+    "instrument_id": "CoatGauge C-06",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Coating",
+    "stream_id": "demo-steel_metals-coatgauge-c-06-tin-coating",
+    "timestamp": "2026-02-23T07:45:00Z"
+  },
+  {
+    "analyte": "Tin Coating",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "CoatGauge C-06",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "from": "STE-21-A",
+      "to": "STE-21-B"
+    },
+    "method_id": "Coating",
+    "stream_id": "demo-steel_metals-coatgauge-c-06-tin-coating",
+    "timestamp": "2026-02-24T14:15:00Z"
+  },
+  {
+    "analyte": "Tin Coating",
+    "event_type": "maintenance",
+    "instrument_id": "CoatGauge C-06",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "low drift investigation opened",
+      "scenario": "slow_drift_low"
+    },
+    "method_id": "Coating",
+    "stream_id": "demo-steel_metals-coatgauge-c-06-tin-coating",
+    "timestamp": "2026-02-25T02:15:00Z"
+  },
+  {
+    "analyte": "Phosphate Weight",
+    "event_type": "calibration",
+    "instrument_id": "CoatGauge C-06",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Coating",
+    "stream_id": "demo-steel_metals-coatgauge-c-06-phosphate-weight",
+    "timestamp": "2026-02-23T07:50:00Z"
+  },
+  {
+    "analyte": "Phosphate Weight",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "CoatGauge C-06",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "from": "STE-22-A",
+      "to": "STE-22-B"
+    },
+    "method_id": "Coating",
+    "stream_id": "demo-steel_metals-coatgauge-c-06-phosphate-weight",
+    "timestamp": "2026-02-24T14:20:00Z"
+  },
+  {
+    "analyte": "Phosphate Weight",
+    "event_type": "maintenance",
+    "instrument_id": "CoatGauge C-06",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "precision failure review",
+      "scenario": "r4s_precision"
+    },
+    "method_id": "Coating",
+    "stream_id": "demo-steel_metals-coatgauge-c-06-phosphate-weight",
+    "timestamp": "2026-02-25T02:20:00Z"
+  },
+  {
+    "analyte": "Grain Size",
+    "event_type": "calibration",
+    "instrument_id": "MicroScope M-07",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Metallography",
+    "stream_id": "demo-steel_metals-microscope-m-07-grain-size",
+    "timestamp": "2026-02-23T07:55:00Z"
+  },
+  {
+    "analyte": "Grain Size",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "MicroScope M-07",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "from": "STE-23-A",
+      "to": "STE-23-B"
+    },
+    "method_id": "Metallography",
+    "stream_id": "demo-steel_metals-microscope-m-07-grain-size",
+    "timestamp": "2026-02-24T14:25:00Z"
+  },
+  {
+    "analyte": "Grain Size",
+    "event_type": "maintenance",
+    "instrument_id": "MicroScope M-07",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "duplicate retry cluster reviewed",
+      "scenario": "duplicate_retry_cluster"
+    },
+    "method_id": "Metallography",
+    "stream_id": "demo-steel_metals-microscope-m-07-grain-size",
+    "timestamp": "2026-02-25T02:25:00Z"
+  },
+  {
+    "analyte": "Inclusion Rating",
+    "event_type": "calibration",
+    "instrument_id": "MicroScope M-07",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Metallography",
+    "stream_id": "demo-steel_metals-microscope-m-07-inclusion-rating",
+    "timestamp": "2026-02-23T07:30:00Z"
+  },
+  {
+    "analyte": "Inclusion Rating",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "MicroScope M-07",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "from": "STE-24-A",
+      "to": "STE-24-B"
+    },
+    "method_id": "Metallography",
+    "stream_id": "demo-steel_metals-microscope-m-07-inclusion-rating",
+    "timestamp": "2026-02-24T14:00:00Z"
+  },
+  {
+    "analyte": "Inclusion Rating",
+    "event_type": "maintenance",
+    "instrument_id": "MicroScope M-07",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "stable lot transition review",
+      "scenario": "stable_lot_b"
+    },
+    "method_id": "Metallography",
+    "stream_id": "demo-steel_metals-microscope-m-07-inclusion-rating",
+    "timestamp": "2026-02-25T02:00:00Z"
+  },
+  {
+    "analyte": "Austenitizing Temp",
+    "event_type": "calibration",
+    "instrument_id": "FurnaceProbe F-08",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Furnace Profile",
+    "stream_id": "demo-steel_metals-furnaceprobe-f-08-austenitizing-temp",
+    "timestamp": "2026-02-23T07:35:00Z"
+  },
+  {
+    "analyte": "Austenitizing Temp",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "FurnaceProbe F-08",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "from": "STE-25-A",
+      "to": "STE-25-B"
+    },
+    "method_id": "Furnace Profile",
+    "stream_id": "demo-steel_metals-furnaceprobe-f-08-austenitizing-temp",
+    "timestamp": "2026-02-24T14:05:00Z"
+  },
+  {
+    "analyte": "Austenitizing Temp",
+    "event_type": "maintenance",
+    "instrument_id": "FurnaceProbe F-08",
+    "metadata": {
+      "family": "steel_metals",
+      "fixture": "demo-kiosk",
+      "note": "operator rerun after high action point",
+      "scenario": "high_action_outlier"
+    },
+    "method_id": "Furnace Profile",
+    "stream_id": "demo-steel_metals-furnaceprobe-f-08-austenitizing-temp",
+    "timestamp": "2026-02-25T02:05:00Z"
+  }
+]

@@ -5,7 +5,7 @@
         <h2>Investigations</h2>
         <div class="muted">Track investigations linked to alerts.</div>
       </div>
-      <el-button type="primary" @click="openCreate">New Investigation</el-button>
+      <el-button v-if="canApprove" type="primary" @click="openCreate">New Investigation</el-button>
     </div>
 
     <el-table :data="investigations" stripe class="full-width">
@@ -13,7 +13,7 @@
       <el-table-column prop="status" label="Status" />
       <el-table-column prop="problem_statement" label="Problem Statement" />
       <el-table-column prop="alert_id" label="Alert ID" />
-      <el-table-column label="Actions" width="140">
+      <el-table-column v-if="canApprove" label="Actions" width="140">
         <template #default="{ row }">
           <el-button size="small" @click="openEdit(row)">Edit</el-button>
         </template>
@@ -47,7 +47,7 @@
       </el-form>
       <template #footer>
         <el-button @click="dialogOpen = false">Cancel</el-button>
-        <el-button type="primary" @click="saveInvestigation">Save</el-button>
+        <el-button v-if="canApprove" type="primary" @click="saveInvestigation">Save</el-button>
       </template>
     </el-dialog>
   </div>
@@ -55,9 +55,10 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import { api } from "../api/client";
 import type { InvestigationIn, InvestigationOut, InvestigationStatus } from "../api/contracts";
+import { canApprove } from "../api/session";
 
 type InvestigationForm = {
   alert_id: string;
@@ -125,6 +126,14 @@ async function saveInvestigation() {
       status: form.status,
     };
     if (editingId.value !== null) {
+      const reason = await ElMessageBox.prompt("Reason", "Update Investigation", {
+        confirmButtonText: "Save",
+        cancelButtonText: "Cancel",
+      }).catch(() => null);
+      if (!reason) {
+        return;
+      }
+      payload.reason = reason.value;
       await api.patch(`/investigations/${editingId.value}`, payload);
     } else {
       await api.post("/investigations", payload);

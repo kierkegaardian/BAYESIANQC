@@ -1,0 +1,288 @@
+{
+  "analytes": [
+    {
+      "active": true,
+      "instrument_name": "ChemMax C8000",
+      "method_name": "Clinical Chemistry",
+      "name": "Glucose",
+      "units": "mg/dL"
+    },
+    {
+      "active": true,
+      "instrument_name": "ChemMax C8000",
+      "method_name": "Clinical Chemistry",
+      "name": "Creatinine",
+      "units": "mg/dL"
+    },
+    {
+      "active": true,
+      "instrument_name": "ChemMax C8000",
+      "method_name": "Clinical Chemistry",
+      "name": "Sodium",
+      "units": "mmol/L"
+    },
+    {
+      "active": true,
+      "instrument_name": "ChemMax C8000",
+      "method_name": "Clinical Chemistry",
+      "name": "Potassium",
+      "units": "mmol/L"
+    },
+    {
+      "active": true,
+      "instrument_name": "A1cTrack H900",
+      "method_name": "HbA1c HPLC",
+      "name": "HbA1c Low",
+      "units": "%"
+    },
+    {
+      "active": true,
+      "instrument_name": "A1cTrack H900",
+      "method_name": "HbA1c HPLC",
+      "name": "HbA1c High",
+      "units": "%"
+    },
+    {
+      "active": true,
+      "instrument_name": "A1cTrack H900",
+      "method_name": "HbA1c HPLC",
+      "name": "Fructosamine",
+      "units": "umol/L"
+    },
+    {
+      "active": true,
+      "instrument_name": "HemeFlow XN-20",
+      "method_name": "CBC",
+      "name": "WBC",
+      "units": "10^3/uL"
+    },
+    {
+      "active": true,
+      "instrument_name": "HemeFlow XN-20",
+      "method_name": "CBC",
+      "name": "RBC",
+      "units": "10^6/uL"
+    },
+    {
+      "active": true,
+      "instrument_name": "HemeFlow XN-20",
+      "method_name": "CBC",
+      "name": "Hemoglobin",
+      "units": "g/dL"
+    },
+    {
+      "active": true,
+      "instrument_name": "HemeFlow XN-20",
+      "method_name": "CBC",
+      "name": "Platelets",
+      "units": "10^3/uL"
+    },
+    {
+      "active": true,
+      "instrument_name": "CoagStar CS-1",
+      "method_name": "Coagulation",
+      "name": "PT",
+      "units": "sec"
+    },
+    {
+      "active": true,
+      "instrument_name": "CoagStar CS-1",
+      "method_name": "Coagulation",
+      "name": "INR",
+      "units": "ratio"
+    },
+    {
+      "active": true,
+      "instrument_name": "CoagStar CS-1",
+      "method_name": "Coagulation",
+      "name": "aPTT",
+      "units": "sec"
+    },
+    {
+      "active": true,
+      "instrument_name": "ImmunoBright I200",
+      "method_name": "Immunoassay",
+      "name": "TSH",
+      "units": "uIU/mL"
+    },
+    {
+      "active": true,
+      "instrument_name": "ImmunoBright I200",
+      "method_name": "Immunoassay",
+      "name": "Free T4",
+      "units": "ng/dL"
+    },
+    {
+      "active": true,
+      "instrument_name": "ImmunoBright I200",
+      "method_name": "Immunoassay",
+      "name": "Troponin I",
+      "units": "ng/L"
+    },
+    {
+      "active": true,
+      "instrument_name": "ImmunoBright I200",
+      "method_name": "Immunoassay",
+      "name": "Vitamin D",
+      "units": "ng/mL"
+    },
+    {
+      "active": true,
+      "instrument_name": "GasLab ABL-90",
+      "method_name": "Blood Gas",
+      "name": "pH",
+      "units": "pH"
+    },
+    {
+      "active": true,
+      "instrument_name": "GasLab ABL-90",
+      "method_name": "Blood Gas",
+      "name": "pCO2",
+      "units": "mmHg"
+    },
+    {
+      "active": true,
+      "instrument_name": "GasLab ABL-90",
+      "method_name": "Blood Gas",
+      "name": "Lactate",
+      "units": "mmol/L"
+    },
+    {
+      "active": true,
+      "instrument_name": "UriScan U500",
+      "method_name": "Urinalysis",
+      "name": "Specific Gravity",
+      "units": "ratio"
+    },
+    {
+      "active": true,
+      "instrument_name": "UriScan U500",
+      "method_name": "Urinalysis",
+      "name": "Urine Protein",
+      "units": "mg/dL"
+    },
+    {
+      "active": true,
+      "instrument_name": "Inflamark P200",
+      "method_name": "Inflammation Panel",
+      "name": "CRP",
+      "units": "mg/L"
+    },
+    {
+      "active": true,
+      "instrument_name": "Inflamark P200",
+      "method_name": "Inflammation Panel",
+      "name": "Procalcitonin",
+      "units": "ng/mL"
+    }
+  ],
+  "instruments": [
+    {
+      "active": true,
+      "manufacturer": "Abbott",
+      "model": "Architect",
+      "name": "ChemMax C8000",
+      "site": "Synthetic Clinical Lab"
+    },
+    {
+      "active": true,
+      "manufacturer": "Tosoh",
+      "model": "G8",
+      "name": "A1cTrack H900",
+      "site": "Synthetic Clinical Lab"
+    },
+    {
+      "active": true,
+      "manufacturer": "Sysmex",
+      "model": "XN",
+      "name": "HemeFlow XN-20",
+      "site": "Synthetic Clinical Lab"
+    },
+    {
+      "active": true,
+      "manufacturer": "Diagnostica",
+      "model": "CS",
+      "name": "CoagStar CS-1",
+      "site": "Synthetic Clinical Lab"
+    },
+    {
+      "active": true,
+      "manufacturer": "Roche",
+      "model": "Cobas e",
+      "name": "ImmunoBright I200",
+      "site": "Synthetic Clinical Lab"
+    },
+    {
+      "active": true,
+      "manufacturer": "Radiometer",
+      "model": "ABL",
+      "name": "GasLab ABL-90",
+      "site": "Synthetic Clinical Lab"
+    },
+    {
+      "active": true,
+      "manufacturer": "Arkray",
+      "model": "Aution",
+      "name": "UriScan U500",
+      "site": "Synthetic Clinical Lab"
+    },
+    {
+      "active": true,
+      "manufacturer": "Thermo",
+      "model": "PCT",
+      "name": "Inflamark P200",
+      "site": "Synthetic Clinical Lab"
+    }
+  ],
+  "methods": [
+    {
+      "active": true,
+      "instrument_name": "ChemMax C8000",
+      "name": "Clinical Chemistry",
+      "technique": "Photometric chemistry"
+    },
+    {
+      "active": true,
+      "instrument_name": "A1cTrack H900",
+      "name": "HbA1c HPLC",
+      "technique": "Glycohemoglobin"
+    },
+    {
+      "active": true,
+      "instrument_name": "HemeFlow XN-20",
+      "name": "CBC",
+      "technique": "Hematology impedance"
+    },
+    {
+      "active": true,
+      "instrument_name": "CoagStar CS-1",
+      "name": "Coagulation",
+      "technique": "Optical clot"
+    },
+    {
+      "active": true,
+      "instrument_name": "ImmunoBright I200",
+      "name": "Immunoassay",
+      "technique": "ECL immunoassay"
+    },
+    {
+      "active": true,
+      "instrument_name": "GasLab ABL-90",
+      "name": "Blood Gas",
+      "technique": "Electrochemical"
+    },
+    {
+      "active": true,
+      "instrument_name": "UriScan U500",
+      "name": "Urinalysis",
+      "technique": "Reflectance"
+    },
+    {
+      "active": true,
+      "instrument_name": "Inflamark P200",
+      "name": "Inflammation Panel",
+      "technique": "Immunoturbidimetry"
+    }
+  ],
+  "synthetic_data_notice": "Synthetic demo data only; not validated ASTM, manufacturer, clinical, pharmacological, or regulatory reference data."
+}

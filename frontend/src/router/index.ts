@@ -8,11 +8,19 @@ import Methods from "../pages/Methods.vue";
 import Analytes from "../pages/Analytes.vue";
 import Streams from "../pages/Streams.vue";
 import Ingestion from "../pages/Ingestion.vue";
+import Backlog from "../pages/Backlog.vue";
+import Quarantine from "../pages/Quarantine.vue";
+import Imports from "../pages/Imports.vue";
 import Alerts from "../pages/Alerts.vue";
+import Audit from "../pages/Audit.vue";
 import Investigations from "../pages/Investigations.vue";
 import Capas from "../pages/Capas.vue";
 import Events from "../pages/Events.vue";
 import ChartView from "../pages/ChartView.vue";
+import ChartKiosk from "../pages/ChartKiosk.vue";
+import KioskBuilder from "../pages/KioskBuilder.vue";
+import DatastreamSetup from "../pages/DatastreamSetup.vue";
+import ImportProfiles from "../pages/ImportProfiles.vue";
 import { getApiKey } from "../api/client";
 
 const routes = [
@@ -22,7 +30,79 @@ const routes = [
     meta: {
       helpTitle: "Login",
       helpText:
-        "Enter a valid API key and click Connect. The default local key is local-dev-key.",
+        "Enter a valid API key and click Connect. Local demos may seed local-dev-key.",
+    },
+  },
+  {
+    path: "/kiosk/charts",
+    component: ChartKiosk,
+    meta: {
+      hideHelp: true,
+      helpTitle: "Chart Kiosk",
+      helpText: "Rotates the seeded HbA1c and D86 chart streams.",
+    },
+  },
+  {
+    path: "/kiosk/refinery",
+    component: ChartKiosk,
+    meta: {
+      hideHelp: true,
+      helpTitle: "Refinery Kiosk",
+      helpText: "Rotates the seeded refinery D86, color, pour point, and sulfur streams.",
+    },
+  },
+  {
+    path: "/kiosk/demo",
+    component: ChartKiosk,
+    meta: {
+      hideHelp: true,
+      helpTitle: "Demo Kiosk",
+      helpText: "Rotates representative synthetic fuel, medical, pharma, and steel QC streams.",
+    },
+  },
+  {
+    path: "/kiosk/fuel",
+    component: ChartKiosk,
+    meta: {
+      hideHelp: true,
+      helpTitle: "Fuel ASTM Kiosk",
+      helpText: "Rotates synthetic fuel and ASTM-style QC demo streams.",
+    },
+  },
+  {
+    path: "/kiosk/medical",
+    component: ChartKiosk,
+    meta: {
+      hideHelp: true,
+      helpTitle: "Medical Kiosk",
+      helpText: "Rotates synthetic clinical laboratory QC demo streams.",
+    },
+  },
+  {
+    path: "/kiosk/pharma",
+    component: ChartKiosk,
+    meta: {
+      hideHelp: true,
+      helpTitle: "Pharma QC Kiosk",
+      helpText: "Rotates synthetic pharmaceutical QC demo streams.",
+    },
+  },
+  {
+    path: "/kiosk/steel",
+    component: ChartKiosk,
+    meta: {
+      hideHelp: true,
+      helpTitle: "Steel Kiosk",
+      helpText: "Rotates synthetic steel and metals QC demo streams.",
+    },
+  },
+  {
+    path: "/kiosk/:slug",
+    component: ChartKiosk,
+    meta: {
+      hideHelp: true,
+      helpTitle: "Saved Kiosk",
+      helpText: "Displays a saved kiosk layout configured from datastream setup.",
     },
   },
   {
@@ -36,6 +116,24 @@ const routes = [
           helpTitle: "Dashboard",
           helpText:
             "Review alert/investigation/CAPA counts and click Refresh to reload the data.",
+        },
+      },
+      {
+        path: "config/datastreams",
+        component: DatastreamSetup,
+        meta: {
+          helpTitle: "Add Datastream",
+          helpText:
+            "Create or reuse instrument, method, parameter, material, stream, prior, and optional kiosk assignment.",
+        },
+      },
+      {
+        path: "config/import-profiles",
+        component: ImportProfiles,
+        meta: {
+          helpTitle: "Parser Profiles",
+          helpText:
+            "Create active or draft parser profiles that map instrument files into import previews.",
         },
       },
       {
@@ -75,6 +173,15 @@ const routes = [
         },
       },
       {
+        path: "backlog",
+        component: Backlog,
+        meta: {
+          helpTitle: "QC Backlog",
+          helpText:
+            "Review scheduled or requested QC work by instrument, bench, group, or assignee.",
+        },
+      },
+      {
         path: "ingest",
         component: Ingestion,
         meta: {
@@ -84,12 +191,39 @@ const routes = [
         },
       },
       {
+        path: "quarantine",
+        component: Quarantine,
+        meta: {
+          helpTitle: "Quarantine",
+          helpText:
+            "Review rows preserved before ingestion and record a reviewed or rejected decision.",
+        },
+      },
+      {
+        path: "imports",
+        component: Imports,
+        meta: {
+          helpTitle: "Import Batches",
+          helpText:
+            "Upload instrument files, review parsed rows, associate runs, inspect artifacts, and apply ready QC rows.",
+        },
+      },
+      {
         path: "alerts",
         component: Alerts,
         meta: {
           helpTitle: "Alerts",
           helpText:
             "Review alerts, update status or assignment, then click Save on the row.",
+        },
+      },
+      {
+        path: "audit",
+        component: Audit,
+        meta: {
+          helpTitle: "Audit Log",
+          helpText:
+            "Filter audit entries, expand rows to compare before and after snapshots, or export the current result set.",
         },
       },
       {
@@ -117,6 +251,15 @@ const routes = [
           helpTitle: "Events",
           helpText:
             "Add calibration/maintenance/lot-change events to annotate QC timelines.",
+        },
+      },
+      {
+        path: "kiosks",
+        component: KioskBuilder,
+        meta: {
+          helpTitle: "Kiosk Builder",
+          helpText:
+            "Create saved kiosk layouts, add stream panels, and open the fullscreen kiosk display.",
         },
       },
       {

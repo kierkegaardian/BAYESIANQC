@@ -88,7 +88,12 @@ from app.models import (
     StreamConfigOut,
 )
 from app.rbac import ROLE_PERMISSIONS, UserContext, require_permission
+from app.routers.control_materials import router as control_materials_router
+from app.routers.imports import router as imports_router
+from app.routers.kiosks import router as kiosks_router
 from app.routers.qc_backlog import router as qc_backlog_router
+from app.routers.qc_comments import router as qc_comments_router
+from app.routers.stream_setups import router as stream_setups_router
 from app.services.ingestion import audit_out as _audit_out
 from app.services.ingestion import alert_out as _alert_out
 from app.services.ingestion import process_ingestion
@@ -142,7 +147,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(control_materials_router)
+app.include_router(imports_router)
+app.include_router(kiosks_router)
 app.include_router(qc_backlog_router)
+app.include_router(qc_comments_router)
+app.include_router(stream_setups_router)
 
 
 def _help_button(content: str) -> str:
@@ -812,11 +822,18 @@ def update_analyte(
 
 @app.get("/streams", response_model=list[StreamConfigOut])
 def list_streams(
+    site: Optional[str] = None,
+    lab_bench: Optional[str] = None,
     user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ):
+    query = select(StreamConfig)
+    if site:
+        query = query.where(StreamConfig.site == site)
+    if lab_bench:
+        query = query.where(StreamConfig.lab_bench == lab_bench)
     configs = session.exec(
-        select(StreamConfig).order_by(
+        query.order_by(
             col(StreamConfig.stream_id),
             col(StreamConfig.effective_from).desc(),
             col(StreamConfig.version).desc(),

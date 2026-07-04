@@ -1,0 +1,1027 @@
+[
+  {
+    "analyte": "Glucose",
+    "event_type": "calibration",
+    "instrument_id": "ChemMax C8000",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Clinical Chemistry",
+    "stream_id": "demo-medical_clinical-chemmax-c8000-glucose",
+    "timestamp": "2026-02-09T07:35:00Z"
+  },
+  {
+    "analyte": "Glucose",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "ChemMax C8000",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "from": "MED-01-A",
+      "to": "MED-01-B"
+    },
+    "method_id": "Clinical Chemistry",
+    "stream_id": "demo-medical_clinical-chemmax-c8000-glucose",
+    "timestamp": "2026-02-10T14:05:00Z"
+  },
+  {
+    "analyte": "Glucose",
+    "event_type": "maintenance",
+    "instrument_id": "ChemMax C8000",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "operator rerun after high action point",
+      "scenario": "high_action_outlier"
+    },
+    "method_id": "Clinical Chemistry",
+    "stream_id": "demo-medical_clinical-chemmax-c8000-glucose",
+    "timestamp": "2026-02-11T02:05:00Z"
+  },
+  {
+    "analyte": "Creatinine",
+    "event_type": "calibration",
+    "instrument_id": "ChemMax C8000",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Clinical Chemistry",
+    "stream_id": "demo-medical_clinical-chemmax-c8000-creatinine",
+    "timestamp": "2026-02-09T07:40:00Z"
+  },
+  {
+    "analyte": "Creatinine",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "ChemMax C8000",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "from": "MED-02-A",
+      "to": "MED-02-B"
+    },
+    "method_id": "Clinical Chemistry",
+    "stream_id": "demo-medical_clinical-chemmax-c8000-creatinine",
+    "timestamp": "2026-02-10T14:10:00Z"
+  },
+  {
+    "analyte": "Creatinine",
+    "event_type": "maintenance",
+    "instrument_id": "ChemMax C8000",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "stable baseline review",
+      "scenario": "stable_baseline"
+    },
+    "method_id": "Clinical Chemistry",
+    "stream_id": "demo-medical_clinical-chemmax-c8000-creatinine",
+    "timestamp": "2026-02-11T02:10:00Z"
+  },
+  {
+    "analyte": "Sodium",
+    "event_type": "calibration",
+    "instrument_id": "ChemMax C8000",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Clinical Chemistry",
+    "stream_id": "demo-medical_clinical-chemmax-c8000-sodium",
+    "timestamp": "2026-02-09T07:45:00Z"
+  },
+  {
+    "analyte": "Sodium",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "ChemMax C8000",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "from": "MED-03-A",
+      "to": "MED-03-B"
+    },
+    "method_id": "Clinical Chemistry",
+    "stream_id": "demo-medical_clinical-chemmax-c8000-sodium",
+    "timestamp": "2026-02-10T14:15:00Z"
+  },
+  {
+    "analyte": "Sodium",
+    "event_type": "maintenance",
+    "instrument_id": "ChemMax C8000",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "precision review for high scatter",
+      "scenario": "low_confidence"
+    },
+    "method_id": "Clinical Chemistry",
+    "stream_id": "demo-medical_clinical-chemmax-c8000-sodium",
+    "timestamp": "2026-02-11T02:15:00Z"
+  },
+  {
+    "analyte": "Potassium",
+    "event_type": "calibration",
+    "instrument_id": "ChemMax C8000",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Clinical Chemistry",
+    "stream_id": "demo-medical_clinical-chemmax-c8000-potassium",
+    "timestamp": "2026-02-09T07:50:00Z"
+  },
+  {
+    "analyte": "Potassium",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "ChemMax C8000",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "from": "MED-04-A",
+      "to": "MED-04-B"
+    },
+    "method_id": "Clinical Chemistry",
+    "stream_id": "demo-medical_clinical-chemmax-c8000-potassium",
+    "timestamp": "2026-02-10T14:20:00Z"
+  },
+  {
+    "analyte": "Potassium",
+    "event_type": "maintenance",
+    "instrument_id": "ChemMax C8000",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "lot-to-lot high bias review",
+      "scenario": "step_shift_lot_high"
+    },
+    "method_id": "Clinical Chemistry",
+    "stream_id": "demo-medical_clinical-chemmax-c8000-potassium",
+    "timestamp": "2026-02-11T02:20:00Z"
+  },
+  {
+    "analyte": "HbA1c Low",
+    "event_type": "calibration",
+    "instrument_id": "A1cTrack H900",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "HbA1c HPLC",
+    "stream_id": "demo-medical_clinical-a1ctrack-h900-hba1c-low",
+    "timestamp": "2026-02-09T07:55:00Z"
+  },
+  {
+    "analyte": "HbA1c Low",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "A1cTrack H900",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "from": "MED-05-A",
+      "to": "MED-05-B"
+    },
+    "method_id": "HbA1c HPLC",
+    "stream_id": "demo-medical_clinical-a1ctrack-h900-hba1c-low",
+    "timestamp": "2026-02-10T14:25:00Z"
+  },
+  {
+    "analyte": "HbA1c Low",
+    "event_type": "maintenance",
+    "instrument_id": "A1cTrack H900",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "drift investigation opened",
+      "scenario": "slow_drift_high"
+    },
+    "method_id": "HbA1c HPLC",
+    "stream_id": "demo-medical_clinical-a1ctrack-h900-hba1c-low",
+    "timestamp": "2026-02-11T02:25:00Z"
+  },
+  {
+    "analyte": "HbA1c High",
+    "event_type": "calibration",
+    "instrument_id": "A1cTrack H900",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "HbA1c HPLC",
+    "stream_id": "demo-medical_clinical-a1ctrack-h900-hba1c-high",
+    "timestamp": "2026-02-09T07:30:00Z"
+  },
+  {
+    "analyte": "HbA1c High",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "A1cTrack H900",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "from": "MED-06-A",
+      "to": "MED-06-B"
+    },
+    "method_id": "HbA1c HPLC",
+    "stream_id": "demo-medical_clinical-a1ctrack-h900-hba1c-high",
+    "timestamp": "2026-02-10T14:00:00Z"
+  },
+  {
+    "analyte": "HbA1c High",
+    "event_type": "maintenance",
+    "instrument_id": "A1cTrack H900",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "operator rerun after low action point",
+      "scenario": "low_action_outlier"
+    },
+    "method_id": "HbA1c HPLC",
+    "stream_id": "demo-medical_clinical-a1ctrack-h900-hba1c-high",
+    "timestamp": "2026-02-11T02:00:00Z"
+  },
+  {
+    "analyte": "Fructosamine",
+    "event_type": "calibration",
+    "instrument_id": "A1cTrack H900",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "HbA1c HPLC",
+    "stream_id": "demo-medical_clinical-a1ctrack-h900-fructosamine",
+    "timestamp": "2026-02-09T07:35:00Z"
+  },
+  {
+    "analyte": "Fructosamine",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "A1cTrack H900",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "from": "MED-07-A",
+      "to": "MED-07-B"
+    },
+    "method_id": "HbA1c HPLC",
+    "stream_id": "demo-medical_clinical-a1ctrack-h900-fructosamine",
+    "timestamp": "2026-02-10T14:05:00Z"
+  },
+  {
+    "analyte": "Fructosamine",
+    "event_type": "maintenance",
+    "instrument_id": "A1cTrack H900",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "maintenance restored baseline",
+      "scenario": "maintenance_recovery"
+    },
+    "method_id": "HbA1c HPLC",
+    "stream_id": "demo-medical_clinical-a1ctrack-h900-fructosamine",
+    "timestamp": "2026-02-11T02:05:00Z"
+  },
+  {
+    "analyte": "WBC",
+    "event_type": "calibration",
+    "instrument_id": "HemeFlow XN-20",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "CBC",
+    "stream_id": "demo-medical_clinical-hemeflow-xn-20-wbc",
+    "timestamp": "2026-02-09T07:40:00Z"
+  },
+  {
+    "analyte": "WBC",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "HemeFlow XN-20",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "from": "MED-08-A",
+      "to": "MED-08-B"
+    },
+    "method_id": "CBC",
+    "stream_id": "demo-medical_clinical-hemeflow-xn-20-wbc",
+    "timestamp": "2026-02-10T14:10:00Z"
+  },
+  {
+    "analyte": "WBC",
+    "event_type": "maintenance",
+    "instrument_id": "HemeFlow XN-20",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "lot-to-lot low bias review",
+      "scenario": "step_shift_lot_low"
+    },
+    "method_id": "CBC",
+    "stream_id": "demo-medical_clinical-hemeflow-xn-20-wbc",
+    "timestamp": "2026-02-11T02:10:00Z"
+  },
+  {
+    "analyte": "RBC",
+    "event_type": "calibration",
+    "instrument_id": "HemeFlow XN-20",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "CBC",
+    "stream_id": "demo-medical_clinical-hemeflow-xn-20-rbc",
+    "timestamp": "2026-02-09T07:45:00Z"
+  },
+  {
+    "analyte": "RBC",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "HemeFlow XN-20",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "from": "MED-09-A",
+      "to": "MED-09-B"
+    },
+    "method_id": "CBC",
+    "stream_id": "demo-medical_clinical-hemeflow-xn-20-rbc",
+    "timestamp": "2026-02-10T14:15:00Z"
+  },
+  {
+    "analyte": "RBC",
+    "event_type": "maintenance",
+    "instrument_id": "HemeFlow XN-20",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "low drift investigation opened",
+      "scenario": "slow_drift_low"
+    },
+    "method_id": "CBC",
+    "stream_id": "demo-medical_clinical-hemeflow-xn-20-rbc",
+    "timestamp": "2026-02-11T02:15:00Z"
+  },
+  {
+    "analyte": "Hemoglobin",
+    "event_type": "calibration",
+    "instrument_id": "HemeFlow XN-20",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "CBC",
+    "stream_id": "demo-medical_clinical-hemeflow-xn-20-hemoglobin",
+    "timestamp": "2026-02-09T07:50:00Z"
+  },
+  {
+    "analyte": "Hemoglobin",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "HemeFlow XN-20",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "from": "MED-10-A",
+      "to": "MED-10-B"
+    },
+    "method_id": "CBC",
+    "stream_id": "demo-medical_clinical-hemeflow-xn-20-hemoglobin",
+    "timestamp": "2026-02-10T14:20:00Z"
+  },
+  {
+    "analyte": "Hemoglobin",
+    "event_type": "maintenance",
+    "instrument_id": "HemeFlow XN-20",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "precision failure review",
+      "scenario": "r4s_precision"
+    },
+    "method_id": "CBC",
+    "stream_id": "demo-medical_clinical-hemeflow-xn-20-hemoglobin",
+    "timestamp": "2026-02-11T02:20:00Z"
+  },
+  {
+    "analyte": "Platelets",
+    "event_type": "calibration",
+    "instrument_id": "HemeFlow XN-20",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "CBC",
+    "stream_id": "demo-medical_clinical-hemeflow-xn-20-platelets",
+    "timestamp": "2026-02-09T07:55:00Z"
+  },
+  {
+    "analyte": "Platelets",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "HemeFlow XN-20",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "from": "MED-11-A",
+      "to": "MED-11-B"
+    },
+    "method_id": "CBC",
+    "stream_id": "demo-medical_clinical-hemeflow-xn-20-platelets",
+    "timestamp": "2026-02-10T14:25:00Z"
+  },
+  {
+    "analyte": "Platelets",
+    "event_type": "maintenance",
+    "instrument_id": "HemeFlow XN-20",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "duplicate retry cluster reviewed",
+      "scenario": "duplicate_retry_cluster"
+    },
+    "method_id": "CBC",
+    "stream_id": "demo-medical_clinical-hemeflow-xn-20-platelets",
+    "timestamp": "2026-02-11T02:25:00Z"
+  },
+  {
+    "analyte": "PT",
+    "event_type": "calibration",
+    "instrument_id": "CoagStar CS-1",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Coagulation",
+    "stream_id": "demo-medical_clinical-coagstar-cs-1-pt",
+    "timestamp": "2026-02-09T07:30:00Z"
+  },
+  {
+    "analyte": "PT",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "CoagStar CS-1",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "from": "MED-12-A",
+      "to": "MED-12-B"
+    },
+    "method_id": "Coagulation",
+    "stream_id": "demo-medical_clinical-coagstar-cs-1-pt",
+    "timestamp": "2026-02-10T14:00:00Z"
+  },
+  {
+    "analyte": "PT",
+    "event_type": "maintenance",
+    "instrument_id": "CoagStar CS-1",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "stable lot transition review",
+      "scenario": "stable_lot_b"
+    },
+    "method_id": "Coagulation",
+    "stream_id": "demo-medical_clinical-coagstar-cs-1-pt",
+    "timestamp": "2026-02-11T02:00:00Z"
+  },
+  {
+    "analyte": "INR",
+    "event_type": "calibration",
+    "instrument_id": "CoagStar CS-1",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Coagulation",
+    "stream_id": "demo-medical_clinical-coagstar-cs-1-inr",
+    "timestamp": "2026-02-09T07:35:00Z"
+  },
+  {
+    "analyte": "INR",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "CoagStar CS-1",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "from": "MED-13-A",
+      "to": "MED-13-B"
+    },
+    "method_id": "Coagulation",
+    "stream_id": "demo-medical_clinical-coagstar-cs-1-inr",
+    "timestamp": "2026-02-10T14:05:00Z"
+  },
+  {
+    "analyte": "INR",
+    "event_type": "maintenance",
+    "instrument_id": "CoagStar CS-1",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "operator rerun after high action point",
+      "scenario": "high_action_outlier"
+    },
+    "method_id": "Coagulation",
+    "stream_id": "demo-medical_clinical-coagstar-cs-1-inr",
+    "timestamp": "2026-02-11T02:05:00Z"
+  },
+  {
+    "analyte": "aPTT",
+    "event_type": "calibration",
+    "instrument_id": "CoagStar CS-1",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Coagulation",
+    "stream_id": "demo-medical_clinical-coagstar-cs-1-aptt",
+    "timestamp": "2026-02-09T07:40:00Z"
+  },
+  {
+    "analyte": "aPTT",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "CoagStar CS-1",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "from": "MED-14-A",
+      "to": "MED-14-B"
+    },
+    "method_id": "Coagulation",
+    "stream_id": "demo-medical_clinical-coagstar-cs-1-aptt",
+    "timestamp": "2026-02-10T14:10:00Z"
+  },
+  {
+    "analyte": "aPTT",
+    "event_type": "maintenance",
+    "instrument_id": "CoagStar CS-1",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "stable baseline review",
+      "scenario": "stable_baseline"
+    },
+    "method_id": "Coagulation",
+    "stream_id": "demo-medical_clinical-coagstar-cs-1-aptt",
+    "timestamp": "2026-02-11T02:10:00Z"
+  },
+  {
+    "analyte": "TSH",
+    "event_type": "calibration",
+    "instrument_id": "ImmunoBright I200",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Immunoassay",
+    "stream_id": "demo-medical_clinical-immunobright-i200-tsh",
+    "timestamp": "2026-02-09T07:45:00Z"
+  },
+  {
+    "analyte": "TSH",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "ImmunoBright I200",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "from": "MED-15-A",
+      "to": "MED-15-B"
+    },
+    "method_id": "Immunoassay",
+    "stream_id": "demo-medical_clinical-immunobright-i200-tsh",
+    "timestamp": "2026-02-10T14:15:00Z"
+  },
+  {
+    "analyte": "TSH",
+    "event_type": "maintenance",
+    "instrument_id": "ImmunoBright I200",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "precision review for high scatter",
+      "scenario": "low_confidence"
+    },
+    "method_id": "Immunoassay",
+    "stream_id": "demo-medical_clinical-immunobright-i200-tsh",
+    "timestamp": "2026-02-11T02:15:00Z"
+  },
+  {
+    "analyte": "Free T4",
+    "event_type": "calibration",
+    "instrument_id": "ImmunoBright I200",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Immunoassay",
+    "stream_id": "demo-medical_clinical-immunobright-i200-free-t4",
+    "timestamp": "2026-02-09T07:50:00Z"
+  },
+  {
+    "analyte": "Free T4",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "ImmunoBright I200",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "from": "MED-16-A",
+      "to": "MED-16-B"
+    },
+    "method_id": "Immunoassay",
+    "stream_id": "demo-medical_clinical-immunobright-i200-free-t4",
+    "timestamp": "2026-02-10T14:20:00Z"
+  },
+  {
+    "analyte": "Free T4",
+    "event_type": "maintenance",
+    "instrument_id": "ImmunoBright I200",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "lot-to-lot high bias review",
+      "scenario": "step_shift_lot_high"
+    },
+    "method_id": "Immunoassay",
+    "stream_id": "demo-medical_clinical-immunobright-i200-free-t4",
+    "timestamp": "2026-02-11T02:20:00Z"
+  },
+  {
+    "analyte": "Troponin I",
+    "event_type": "calibration",
+    "instrument_id": "ImmunoBright I200",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Immunoassay",
+    "stream_id": "demo-medical_clinical-immunobright-i200-troponin-i",
+    "timestamp": "2026-02-09T07:55:00Z"
+  },
+  {
+    "analyte": "Troponin I",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "ImmunoBright I200",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "from": "MED-17-A",
+      "to": "MED-17-B"
+    },
+    "method_id": "Immunoassay",
+    "stream_id": "demo-medical_clinical-immunobright-i200-troponin-i",
+    "timestamp": "2026-02-10T14:25:00Z"
+  },
+  {
+    "analyte": "Troponin I",
+    "event_type": "maintenance",
+    "instrument_id": "ImmunoBright I200",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "drift investigation opened",
+      "scenario": "slow_drift_high"
+    },
+    "method_id": "Immunoassay",
+    "stream_id": "demo-medical_clinical-immunobright-i200-troponin-i",
+    "timestamp": "2026-02-11T02:25:00Z"
+  },
+  {
+    "analyte": "Vitamin D",
+    "event_type": "calibration",
+    "instrument_id": "ImmunoBright I200",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Immunoassay",
+    "stream_id": "demo-medical_clinical-immunobright-i200-vitamin-d",
+    "timestamp": "2026-02-09T07:30:00Z"
+  },
+  {
+    "analyte": "Vitamin D",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "ImmunoBright I200",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "from": "MED-18-A",
+      "to": "MED-18-B"
+    },
+    "method_id": "Immunoassay",
+    "stream_id": "demo-medical_clinical-immunobright-i200-vitamin-d",
+    "timestamp": "2026-02-10T14:00:00Z"
+  },
+  {
+    "analyte": "Vitamin D",
+    "event_type": "maintenance",
+    "instrument_id": "ImmunoBright I200",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "operator rerun after low action point",
+      "scenario": "low_action_outlier"
+    },
+    "method_id": "Immunoassay",
+    "stream_id": "demo-medical_clinical-immunobright-i200-vitamin-d",
+    "timestamp": "2026-02-11T02:00:00Z"
+  },
+  {
+    "analyte": "pH",
+    "event_type": "calibration",
+    "instrument_id": "GasLab ABL-90",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Blood Gas",
+    "stream_id": "demo-medical_clinical-gaslab-abl-90-ph",
+    "timestamp": "2026-02-09T07:35:00Z"
+  },
+  {
+    "analyte": "pH",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "GasLab ABL-90",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "from": "MED-19-A",
+      "to": "MED-19-B"
+    },
+    "method_id": "Blood Gas",
+    "stream_id": "demo-medical_clinical-gaslab-abl-90-ph",
+    "timestamp": "2026-02-10T14:05:00Z"
+  },
+  {
+    "analyte": "pH",
+    "event_type": "maintenance",
+    "instrument_id": "GasLab ABL-90",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "maintenance restored baseline",
+      "scenario": "maintenance_recovery"
+    },
+    "method_id": "Blood Gas",
+    "stream_id": "demo-medical_clinical-gaslab-abl-90-ph",
+    "timestamp": "2026-02-11T02:05:00Z"
+  },
+  {
+    "analyte": "pCO2",
+    "event_type": "calibration",
+    "instrument_id": "GasLab ABL-90",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Blood Gas",
+    "stream_id": "demo-medical_clinical-gaslab-abl-90-pco2",
+    "timestamp": "2026-02-09T07:40:00Z"
+  },
+  {
+    "analyte": "pCO2",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "GasLab ABL-90",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "from": "MED-20-A",
+      "to": "MED-20-B"
+    },
+    "method_id": "Blood Gas",
+    "stream_id": "demo-medical_clinical-gaslab-abl-90-pco2",
+    "timestamp": "2026-02-10T14:10:00Z"
+  },
+  {
+    "analyte": "pCO2",
+    "event_type": "maintenance",
+    "instrument_id": "GasLab ABL-90",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "lot-to-lot low bias review",
+      "scenario": "step_shift_lot_low"
+    },
+    "method_id": "Blood Gas",
+    "stream_id": "demo-medical_clinical-gaslab-abl-90-pco2",
+    "timestamp": "2026-02-11T02:10:00Z"
+  },
+  {
+    "analyte": "Lactate",
+    "event_type": "calibration",
+    "instrument_id": "GasLab ABL-90",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Blood Gas",
+    "stream_id": "demo-medical_clinical-gaslab-abl-90-lactate",
+    "timestamp": "2026-02-09T07:45:00Z"
+  },
+  {
+    "analyte": "Lactate",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "GasLab ABL-90",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "from": "MED-21-A",
+      "to": "MED-21-B"
+    },
+    "method_id": "Blood Gas",
+    "stream_id": "demo-medical_clinical-gaslab-abl-90-lactate",
+    "timestamp": "2026-02-10T14:15:00Z"
+  },
+  {
+    "analyte": "Lactate",
+    "event_type": "maintenance",
+    "instrument_id": "GasLab ABL-90",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "low drift investigation opened",
+      "scenario": "slow_drift_low"
+    },
+    "method_id": "Blood Gas",
+    "stream_id": "demo-medical_clinical-gaslab-abl-90-lactate",
+    "timestamp": "2026-02-11T02:15:00Z"
+  },
+  {
+    "analyte": "Specific Gravity",
+    "event_type": "calibration",
+    "instrument_id": "UriScan U500",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Urinalysis",
+    "stream_id": "demo-medical_clinical-uriscan-u500-specific-gravity",
+    "timestamp": "2026-02-09T07:50:00Z"
+  },
+  {
+    "analyte": "Specific Gravity",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "UriScan U500",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "from": "MED-22-A",
+      "to": "MED-22-B"
+    },
+    "method_id": "Urinalysis",
+    "stream_id": "demo-medical_clinical-uriscan-u500-specific-gravity",
+    "timestamp": "2026-02-10T14:20:00Z"
+  },
+  {
+    "analyte": "Specific Gravity",
+    "event_type": "maintenance",
+    "instrument_id": "UriScan U500",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "precision failure review",
+      "scenario": "r4s_precision"
+    },
+    "method_id": "Urinalysis",
+    "stream_id": "demo-medical_clinical-uriscan-u500-specific-gravity",
+    "timestamp": "2026-02-11T02:20:00Z"
+  },
+  {
+    "analyte": "Urine Protein",
+    "event_type": "calibration",
+    "instrument_id": "UriScan U500",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Urinalysis",
+    "stream_id": "demo-medical_clinical-uriscan-u500-urine-protein",
+    "timestamp": "2026-02-09T07:55:00Z"
+  },
+  {
+    "analyte": "Urine Protein",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "UriScan U500",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "from": "MED-23-A",
+      "to": "MED-23-B"
+    },
+    "method_id": "Urinalysis",
+    "stream_id": "demo-medical_clinical-uriscan-u500-urine-protein",
+    "timestamp": "2026-02-10T14:25:00Z"
+  },
+  {
+    "analyte": "Urine Protein",
+    "event_type": "maintenance",
+    "instrument_id": "UriScan U500",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "duplicate retry cluster reviewed",
+      "scenario": "duplicate_retry_cluster"
+    },
+    "method_id": "Urinalysis",
+    "stream_id": "demo-medical_clinical-uriscan-u500-urine-protein",
+    "timestamp": "2026-02-11T02:25:00Z"
+  },
+  {
+    "analyte": "CRP",
+    "event_type": "calibration",
+    "instrument_id": "Inflamark P200",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Inflammation Panel",
+    "stream_id": "demo-medical_clinical-inflamark-p200-crp",
+    "timestamp": "2026-02-09T07:30:00Z"
+  },
+  {
+    "analyte": "CRP",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "Inflamark P200",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "from": "MED-24-A",
+      "to": "MED-24-B"
+    },
+    "method_id": "Inflammation Panel",
+    "stream_id": "demo-medical_clinical-inflamark-p200-crp",
+    "timestamp": "2026-02-10T14:00:00Z"
+  },
+  {
+    "analyte": "CRP",
+    "event_type": "maintenance",
+    "instrument_id": "Inflamark P200",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "stable lot transition review",
+      "scenario": "stable_lot_b"
+    },
+    "method_id": "Inflammation Panel",
+    "stream_id": "demo-medical_clinical-inflamark-p200-crp",
+    "timestamp": "2026-02-11T02:00:00Z"
+  },
+  {
+    "analyte": "Procalcitonin",
+    "event_type": "calibration",
+    "instrument_id": "Inflamark P200",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Inflammation Panel",
+    "stream_id": "demo-medical_clinical-inflamark-p200-procalcitonin",
+    "timestamp": "2026-02-09T07:35:00Z"
+  },
+  {
+    "analyte": "Procalcitonin",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "Inflamark P200",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "from": "MED-25-A",
+      "to": "MED-25-B"
+    },
+    "method_id": "Inflammation Panel",
+    "stream_id": "demo-medical_clinical-inflamark-p200-procalcitonin",
+    "timestamp": "2026-02-10T14:05:00Z"
+  },
+  {
+    "analyte": "Procalcitonin",
+    "event_type": "maintenance",
+    "instrument_id": "Inflamark P200",
+    "metadata": {
+      "family": "medical_clinical",
+      "fixture": "demo-kiosk",
+      "note": "operator rerun after high action point",
+      "scenario": "high_action_outlier"
+    },
+    "method_id": "Inflammation Panel",
+    "stream_id": "demo-medical_clinical-inflamark-p200-procalcitonin",
+    "timestamp": "2026-02-11T02:05:00Z"
+  }
+]

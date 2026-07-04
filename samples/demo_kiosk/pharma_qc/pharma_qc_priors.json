@@ -1,0 +1,202 @@
+[
+  {
+    "alpha0": 2.0,
+    "beta0": 0.49,
+    "effective_from": "2026-02-01T00:00:00Z",
+    "kappa0": 1.0,
+    "mu0": 100,
+    "stream_id": "demo-pharma_qc-hplc-assay-01-api-potency"
+  },
+  {
+    "alpha0": 2.0,
+    "beta0": 0.0009,
+    "effective_from": "2026-02-01T00:00:00Z",
+    "kappa0": 1.0,
+    "mu0": 1.5,
+    "stream_id": "demo-pharma_qc-hplc-assay-01-preservative-a"
+  },
+  {
+    "alpha0": 1.25,
+    "beta0": 0.00072,
+    "effective_from": "2026-02-01T00:00:00Z",
+    "kappa0": 0.35,
+    "mu0": 0.4,
+    "stream_id": "demo-pharma_qc-hplc-assay-01-degradant-total"
+  },
+  {
+    "alpha0": 2.0,
+    "beta0": 0.0004,
+    "effective_from": "2026-02-01T00:00:00Z",
+    "kappa0": 1.0,
+    "mu0": 0.12,
+    "stream_id": "demo-pharma_qc-hplc-assay-01-related-substance-a"
+  },
+  {
+    "alpha0": 2.0,
+    "beta0": 0.000225,
+    "effective_from": "2026-02-01T00:00:00Z",
+    "kappa0": 1.0,
+    "mu0": 0.08,
+    "stream_id": "demo-pharma_qc-uplc-impurity-02-impurity-b"
+  },
+  {
+    "alpha0": 2.0,
+    "beta0": 0.0004,
+    "effective_from": "2026-02-01T00:00:00Z",
+    "kappa0": 1.0,
+    "mu0": 0.11,
+    "stream_id": "demo-pharma_qc-uplc-impurity-02-impurity-c"
+  },
+  {
+    "alpha0": 2.0,
+    "beta0": 0.0144,
+    "effective_from": "2026-02-01T00:00:00Z",
+    "kappa0": 1.0,
+    "mu0": 99.2,
+    "stream_id": "demo-pharma_qc-uplc-impurity-02-main-peak-purity"
+  },
+  {
+    "alpha0": 2.0,
+    "beta0": 0.0064,
+    "effective_from": "2026-02-01T00:00:00Z",
+    "kappa0": 1.0,
+    "mu0": 2.5,
+    "stream_id": "demo-pharma_qc-uplc-impurity-02-resolution-r1"
+  },
+  {
+    "alpha0": 2.0,
+    "beta0": 1.96,
+    "effective_from": "2026-02-01T00:00:00Z",
+    "kappa0": 1.0,
+    "mu0": 42,
+    "stream_id": "demo-pharma_qc-dissolution-dt-03-dissolution-15-min"
+  },
+  {
+    "alpha0": 2.0,
+    "beta0": 3.24,
+    "effective_from": "2026-02-01T00:00:00Z",
+    "kappa0": 1.0,
+    "mu0": 78,
+    "stream_id": "demo-pharma_qc-dissolution-dt-03-dissolution-30-min"
+  },
+  {
+    "alpha0": 2.0,
+    "beta0": 1.44,
+    "effective_from": "2026-02-01T00:00:00Z",
+    "kappa0": 1.0,
+    "mu0": 92,
+    "stream_id": "demo-pharma_qc-dissolution-dt-03-dissolution-45-min"
+  },
+  {
+    "alpha0": 2.0,
+    "beta0": 0.0036,
+    "effective_from": "2026-02-01T00:00:00Z",
+    "kappa0": 1.0,
+    "mu0": 1.8,
+    "stream_id": "demo-pharma_qc-kf-aqua-04-water-content"
+  },
+  {
+    "alpha0": 2.0,
+    "beta0": 0.0064,
+    "effective_from": "2026-02-01T00:00:00Z",
+    "kappa0": 1.0,
+    "mu0": 2.1,
+    "stream_id": "demo-pharma_qc-kf-aqua-04-lod"
+  },
+  {
+    "alpha0": 2.0,
+    "beta0": 324.0,
+    "effective_from": "2026-02-01T00:00:00Z",
+    "kappa0": 1.0,
+    "mu0": 450,
+    "stream_id": "demo-pharma_qc-kf-aqua-04-residual-moisture"
+  },
+  {
+    "alpha0": 1.25,
+    "beta0": 0.000405,
+    "effective_from": "2026-02-01T00:00:00Z",
+    "kappa0": 0.35,
+    "mu0": 6.8,
+    "stream_id": "demo-pharma_qc-formulation-bench-05-ph"
+  },
+  {
+    "alpha0": 2.0,
+    "beta0": 16.0,
+    "effective_from": "2026-02-01T00:00:00Z",
+    "kappa0": 1.0,
+    "mu0": 290,
+    "stream_id": "demo-pharma_qc-formulation-bench-05-osmolality"
+  },
+  {
+    "alpha0": 2.0,
+    "beta0": 324.0,
+    "effective_from": "2026-02-01T00:00:00Z",
+    "kappa0": 1.0,
+    "mu0": 820,
+    "stream_id": "demo-pharma_qc-formulation-bench-05-conductivity"
+  },
+  {
+    "alpha0": 2.0,
+    "beta0": 4.0,
+    "effective_from": "2026-02-01T00:00:00Z",
+    "kappa0": 1.0,
+    "mu0": 50,
+    "stream_id": "demo-pharma_qc-lcms-drug-06-drug-a-control"
+  },
+  {
+    "alpha0": 2.0,
+    "beta0": 16.0,
+    "effective_from": "2026-02-01T00:00:00Z",
+    "kappa0": 1.0,
+    "mu0": 120,
+    "stream_id": "demo-pharma_qc-lcms-drug-06-drug-b-control"
+  },
+  {
+    "alpha0": 2.0,
+    "beta0": 2.25,
+    "effective_from": "2026-02-01T00:00:00Z",
+    "kappa0": 1.0,
+    "mu0": 35,
+    "stream_id": "demo-pharma_qc-lcms-drug-06-metabolite-m1"
+  },
+  {
+    "alpha0": 2.0,
+    "beta0": 0.0016,
+    "effective_from": "2026-02-01T00:00:00Z",
+    "kappa0": 1.0,
+    "mu0": 1.0,
+    "stream_id": "demo-pharma_qc-lcms-drug-06-internal-standard-area"
+  },
+  {
+    "alpha0": 2.0,
+    "beta0": 16.0,
+    "effective_from": "2026-02-01T00:00:00Z",
+    "kappa0": 1.0,
+    "mu0": 60,
+    "stream_id": "demo-pharma_qc-toc-clean-07-toc-rinse"
+  },
+  {
+    "alpha0": 2.0,
+    "beta0": 64.0,
+    "effective_from": "2026-02-01T00:00:00Z",
+    "kappa0": 1.0,
+    "mu0": 180,
+    "stream_id": "demo-pharma_qc-toc-clean-07-toc-wfi"
+  },
+  {
+    "alpha0": 2.0,
+    "beta0": 2025.0,
+    "effective_from": "2026-02-01T00:00:00Z",
+    "kappa0": 1.0,
+    "mu0": 1200,
+    "stream_id": "demo-pharma_qc-gc-solvent-08-residual-ethanol"
+  },
+  {
+    "alpha0": 2.0,
+    "beta0": 400.0,
+    "effective_from": "2026-02-01T00:00:00Z",
+    "kappa0": 1.0,
+    "mu0": 400,
+    "stream_id": "demo-pharma_qc-gc-solvent-08-residual-acetone"
+  }
+]

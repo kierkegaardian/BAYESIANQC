@@ -5,6 +5,10 @@ body,
   margin: 0;
 }
 
+* {
+  box-sizing: border-box;
+}
+
 body {
   font-family: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
   background: #f4f6fb;
@@ -12,14 +16,17 @@ body {
 }
 
 .page {
+  max-width: 100%;
   padding: 24px;
 }
 
 .page-header {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
   margin-bottom: 16px;
+  min-width: 0;
 }
 
 .muted {
@@ -47,4 +54,146 @@ body {
   right: 20px;
   bottom: 20px;
   z-index: 2000;
+}
+
+.section-card {
+  margin-bottom: 20px;
+}
+
+.manual-header,
+.batch-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.stream-picker {
+  min-width: 320px;
+}
+
+.entry-layout {
+  align-items: start;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  min-width: 0;
+}
+
+.entry-grid {
+  display: grid;
+  gap: 0 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 0;
+}
+
+.entry-grid .el-date-editor,
+.entry-grid .el-form-item,
+.entry-grid .el-input,
+.entry-grid .el-select,
+.entry-grid .el-textarea {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.context-panel {
+  border: 1px solid #d8dee9;
+  border-radius: 8px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding: 14px;
+}
+
+.context-title {
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.context-row,
+.recent-box {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.context-row strong,
+.recent-box strong {
+  min-width: 0;
+  text-align: right;
+}
+
+.limit-grid,
+.risk-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 12px 0;
+}
+
+.limit-grid div,
+.risk-grid div {
+  background: #f8fafc;
+  border-radius: 6px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding: 8px;
+}
+
+.limit-grid span,
+.risk-grid span,
+.recent-box span {
+  color: #6b7280;
+  display: block;
+  font-size: 12px;
+}
+
+.small-text {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.tag-gap {
+  margin: 0 4px 4px 0;
+  white-space: normal;
+}
+
+.permission-note,
+.summary-text {
+  margin-top: 12px;
+}
+
+.comment-panel {
+  border-top: 1px solid #e5e7eb;
+  margin-top: 16px;
+  padding-top: 16px;
+}
+
+@media (max-width: 1180px) {
+  .entry-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 980px) {
+  .stream-picker {
+    min-width: 100%;
+  }
+}
+
+@media (max-width: 760px) {
+  .page {
+    padding: 16px;
+  }
+
+  .entry-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page-header {
+    align-items: stretch;
+  }
 }

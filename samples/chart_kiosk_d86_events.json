@@ -1,0 +1,110 @@
+[
+  {
+    "event_type": "calibration",
+    "timestamp": "2026-01-07T07:30:00Z",
+    "stream_id": "d86-optidist-od1-ibp",
+    "instrument_id": "OptiDist OD-1",
+    "analyte": "D86 IBP",
+    "method_id": "ASTM D86",
+    "metadata": { "fixture": "chart-kiosk-suite", "note": "OD-1 pre-run calibration" }
+  },
+  {
+    "event_type": "control_material_lot_change",
+    "timestamp": "2026-01-08T12:00:00Z",
+    "stream_id": "d86-optidist-od1-ibp",
+    "instrument_id": "OptiDist OD-1",
+    "analyte": "D86 IBP",
+    "method_id": "ASTM D86",
+    "metadata": { "fixture": "chart-kiosk-suite", "from": "D86-STD-A", "to": "D86-STD-B" }
+  },
+  {
+    "event_type": "calibration",
+    "timestamp": "2026-01-07T07:30:00Z",
+    "stream_id": "d86-optidist-od1-50pct",
+    "instrument_id": "OptiDist OD-1",
+    "analyte": "D86 50% Recovered",
+    "method_id": "ASTM D86",
+    "metadata": { "fixture": "chart-kiosk-suite", "note": "OD-1 pre-run calibration" }
+  },
+  {
+    "event_type": "control_material_lot_change",
+    "timestamp": "2026-01-08T12:00:00Z",
+    "stream_id": "d86-optidist-od1-50pct",
+    "instrument_id": "OptiDist OD-1",
+    "analyte": "D86 50% Recovered",
+    "method_id": "ASTM D86",
+    "metadata": { "fixture": "chart-kiosk-suite", "from": "D86-STD-A", "to": "D86-STD-B" }
+  },
+  {
+    "event_type": "calibration",
+    "timestamp": "2026-01-07T07:30:00Z",
+    "stream_id": "d86-optidist-od1-fbp",
+    "instrument_id": "OptiDist OD-1",
+    "analyte": "D86 FBP",
+    "method_id": "ASTM D86",
+    "metadata": { "fixture": "chart-kiosk-suite", "note": "OD-1 pre-run calibration" }
+  },
+  {
+    "event_type": "control_material_lot_change",
+    "timestamp": "2026-01-08T12:00:00Z",
+    "stream_id": "d86-optidist-od1-fbp",
+    "instrument_id": "OptiDist OD-1",
+    "analyte": "D86 FBP",
+    "method_id": "ASTM D86",
+    "metadata": { "fixture": "chart-kiosk-suite", "from": "D86-STD-A", "to": "D86-STD-B" }
+  },
+  {
+    "event_type": "maintenance",
+    "timestamp": "2026-01-07T07:40:00Z",
+    "stream_id": "d86-optidist-od2-ibp",
+    "instrument_id": "OptiDist OD-2",
+    "analyte": "D86 IBP",
+    "method_id": "ASTM D86",
+    "metadata": { "fixture": "chart-kiosk-suite", "note": "OD-2 condenser inspection" }
+  },
+  {
+    "event_type": "control_material_lot_change",
+    "timestamp": "2026-01-08T12:00:00Z",
+    "stream_id": "d86-optidist-od2-ibp",
+    "instrument_id": "OptiDist OD-2",
+    "analyte": "D86 IBP",
+    "method_id": "ASTM D86",
+    "metadata": { "fixture": "chart-kiosk-suite", "from": "D86-STD-A", "to": "D86-STD-B" }
+  },
+  {
+    "event_type": "maintenance",
+    "timestamp": "2026-01-07T07:40:00Z",
+    "stream_id": "d86-optidist-od2-50pct",
+    "instrument_id": "OptiDist OD-2",
+    "analyte": "D86 50% Recovered",
+    "method_id": "ASTM D86",
+    "metadata": { "fixture": "chart-kiosk-suite", "note": "OD-2 condenser inspection" }
+  },
+  {
+    "event_type": "control_material_lot_change",
+    "timestamp": "2026-01-08T12:00:00Z",
+    "stream_id": "d86-optidist-od2-50pct",
+    "instrument_id": "OptiDist OD-2",
+    "analyte": "D86 50% Recovered",
+    "method_id": "ASTM D86",
+    "metadata": { "fixture": "chart-kiosk-suite", "from": "D86-STD-A", "to": "D86-STD-B" }
+  },
+  {
+    "event_type": "maintenance",
+    "timestamp": "2026-01-07T07:40:00Z",
+    "stream_id": "d86-optidist-od2-fbp",
+    "instrument_id": "OptiDist OD-2",
+    "analyte": "D86 FBP",
+    "method_id": "ASTM D86",
+    "metadata": { "fixture": "chart-kiosk-suite", "note": "OD-2 condenser inspection" }
+  },
+  {
+    "event_type": "control_material_lot_change",
+    "timestamp": "2026-01-08T12:00:00Z",
+    "stream_id": "d86-optidist-od2-fbp",
+    "instrument_id": "OptiDist OD-2",
+    "analyte": "D86 FBP",
+    "method_id": "ASTM D86",
+    "metadata": { "fixture": "chart-kiosk-suite", "from": "D86-STD-A", "to": "D86-STD-B" }
+  }
+]

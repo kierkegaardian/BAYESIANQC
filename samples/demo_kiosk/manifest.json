@@ -1,0 +1,29 @@
+{
+  "families": {
+    "fuel_astm": {
+      "events": 75,
+      "instruments": 8,
+      "records": 625,
+      "streams": 25
+    },
+    "medical_clinical": {
+      "events": 75,
+      "instruments": 8,
+      "records": 625,
+      "streams": 25
+    },
+    "pharma_qc": {
+      "events": 75,
+      "instruments": 8,
+      "records": 625,
+      "streams": 25
+    },
+    "steel_metals": {
+      "events": 75,
+      "instruments": 8,
+      "records": 625,
+      "streams": 25
+    }
+  },
+  "synthetic_data_notice": "Synthetic demo data only; not validated ASTM, manufacturer, clinical, pharmacological, or regulatory reference data."
+}

@@ -14,7 +14,7 @@ from app.security import api_key_hash_needs_migration, api_key_lookup_hash, hash
 
 ROLE_PERMISSIONS: Dict[Role, List[Permission]] = {
     Role.QC_ANALYST: [Permission.READ, Permission.INGEST_QC],
-    Role.SUPERVISOR: [Permission.READ, Permission.INGEST_QC, Permission.APPROVE],
+    Role.SUPERVISOR: [Permission.READ, Permission.INGEST_QC, Permission.APPROVE, Permission.MANAGE_IMPORTS],
     Role.QA_MANAGER: [Permission.READ, Permission.INGEST_QC, Permission.APPROVE, Permission.OVERRIDE],
     Role.ADMIN: [
         Permission.READ,
@@ -22,6 +22,7 @@ ROLE_PERMISSIONS: Dict[Role, List[Permission]] = {
         Permission.APPROVE,
         Permission.OVERRIDE,
         Permission.EDIT_CONFIG,
+        Permission.MANAGE_IMPORTS,
     ],
     Role.AUDITOR: [Permission.READ],
     Role.DATA_STEWARD: [Permission.READ, Permission.EDIT_CONFIG],

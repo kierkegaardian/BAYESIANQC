@@ -1,0 +1,208 @@
+{
+  "backlog": [
+    {
+      "action_id": "fuel_astm:demo-fuel_astm-optidist-fuel-01-d86-10-recovered:open",
+      "assigned_to": null,
+      "assignment_group": "fuel_astm demo group",
+      "due_offset_hours": -6,
+      "lab_bench": "fuel_astm demo bench",
+      "notes": "synthetic demo_action_id=fuel_astm:demo-fuel_astm-optidist-fuel-01-d86-10-recovered:open",
+      "priority": "soon",
+      "reference_material_label": "Naphtha D86 QC",
+      "requested_by": "demo-fixture-generator",
+      "status": "open",
+      "stream_id": "demo-fuel_astm-optidist-fuel-01-d86-10-recovered"
+    },
+    {
+      "action_id": "fuel_astm:demo-fuel_astm-optidist-fuel-01-d86-10-recovered:completed",
+      "assigned_to": null,
+      "assignment_group": "fuel_astm demo group",
+      "completion_record": {
+        "analyte": "D86 10% Recovered",
+        "calibration_status": "ok",
+        "comments": "completed synthetic scheduled QC for fuel_astm",
+        "control_material_lot": "FUE-02-A",
+        "entry_source": "manual",
+        "flags": [],
+        "instrument_id": "OptiDist Fuel-01",
+        "method_id": "ASTM D86",
+        "operator_id": "demo-backlog",
+        "qc_level": "Naphtha D86 QC",
+        "reagent_lot": "FUE-BACKLOG",
+        "result_value": 92.1,
+        "run_id": "demo-backlog-demo-fuel-astm-optidist-fuel-01-d86-10-recovered",
+        "stream_id": "demo-fuel_astm-optidist-fuel-01-d86-10-recovered",
+        "units": "deg C"
+      },
+      "due_offset_hours": -3,
+      "lab_bench": "fuel_astm demo bench",
+      "notes": "synthetic demo_action_id=fuel_astm:demo-fuel_astm-optidist-fuel-01-d86-10-recovered:completed",
+      "priority": "soon",
+      "reference_material_label": "Naphtha D86 QC",
+      "requested_by": "demo-fixture-generator",
+      "status": "completed",
+      "stream_id": "demo-fuel_astm-optidist-fuel-01-d86-10-recovered"
+    },
+    {
+      "action_id": "fuel_astm:demo-fuel_astm-sindie-fuel-03-total-sulfur:open",
+      "assigned_to": null,
+      "assignment_group": "fuel_astm demo group",
+      "due_offset_hours": -6,
+      "lab_bench": "fuel_astm demo bench",
+      "notes": "synthetic demo_action_id=fuel_astm:demo-fuel_astm-sindie-fuel-03-total-sulfur:open",
+      "priority": "soon",
+      "reference_material_label": "Gasoline sulfur QC",
+      "requested_by": "demo-fixture-generator",
+      "status": "open",
+      "stream_id": "demo-fuel_astm-sindie-fuel-03-total-sulfur"
+    },
+    {
+      "action_id": "fuel_astm:demo-fuel_astm-sindie-fuel-03-total-sulfur:completed",
+      "assigned_to": null,
+      "assignment_group": "fuel_astm demo group",
+      "completion_record": {
+        "analyte": "Total Sulfur",
+        "calibration_status": "ok",
+        "comments": "completed synthetic scheduled QC for fuel_astm",
+        "control_material_lot": "FUE-08-A",
+        "entry_source": "manual",
+        "flags": [],
+        "instrument_id": "Sindie Fuel-03",
+        "method_id": "ASTM D4294",
+        "operator_id": "demo-backlog",
+        "qc_level": "Gasoline sulfur QC",
+        "reagent_lot": "FUE-BACKLOG",
+        "result_value": 8.1,
+        "run_id": "demo-backlog-demo-fuel-astm-sindie-fuel-03-total-sulfur",
+        "stream_id": "demo-fuel_astm-sindie-fuel-03-total-sulfur",
+        "units": "mg/kg"
+      },
+      "due_offset_hours": -3,
+      "lab_bench": "fuel_astm demo bench",
+      "notes": "synthetic demo_action_id=fuel_astm:demo-fuel_astm-sindie-fuel-03-total-sulfur:completed",
+      "priority": "soon",
+      "reference_material_label": "Gasoline sulfur QC",
+      "requested_by": "demo-fixture-generator",
+      "status": "completed",
+      "stream_id": "demo-fuel_astm-sindie-fuel-03-total-sulfur"
+    }
+  ],
+  "exclusions": [
+    {
+      "reason": "fuel_astm demo excludes a known bad point",
+      "result_value": 79.4,
+      "run_id": "fuel_astm-001-009",
+      "stream_id": "demo-fuel_astm-optidist-fuel-01-d86-ibp",
+      "timestamp": "2026-02-03T00:05:00Z"
+    },
+    {
+      "reason": "fuel_astm demo excludes a known bad point",
+      "result_value": 93.12,
+      "run_id": "fuel_astm-007-011",
+      "stream_id": "demo-fuel_astm-flashcheck-fuel-02-fire-point",
+      "timestamp": "2026-02-03T04:05:00Z"
+    },
+    {
+      "reason": "fuel_astm demo excludes a known bad point",
+      "result_value": 0.8268,
+      "run_id": "fuel_astm-013-009",
+      "stream_id": "demo-fuel_astm-densitypro-fuel-04-relative-density",
+      "timestamp": "2026-02-03T00:05:00Z"
+    },
+    {
+      "reason": "fuel_astm demo excludes a known bad point",
+      "result_value": -8.48,
+      "run_id": "fuel_astm-019-011",
+      "stream_id": "demo-fuel_astm-pourcloud-fuel-06-cold-filter-plugging",
+      "timestamp": "2026-02-03T04:05:00Z"
+    }
+  ],
+  "family_id": "fuel_astm",
+  "quarantine_examples": [
+    {
+      "action_id": "fuel_astm:demo-fuel_astm-optidist-fuel-01-d86-50-recovered:unit",
+      "kind": "unit_mismatch",
+      "payload": {
+        "analyte": "D86 50% Recovered",
+        "calibration_status": "ok",
+        "comments": "synthetic unit mismatch quarantine",
+        "control_material_lot": "FUE-03-A",
+        "entry_source": "manual",
+        "flags": [],
+        "instrument_id": "OptiDist Fuel-01",
+        "method_id": "ASTM D86",
+        "operator_id": "demo-quarantine",
+        "qc_level": "Naphtha D86 QC",
+        "reagent_lot": "FUE-QUAR",
+        "result_value": 121,
+        "run_id": "demo-quarantine-unit-demo-fuel-astm-optidist-fuel-01-d86-50-recovered",
+        "stream_id": "demo-fuel_astm-optidist-fuel-01-d86-50-recovered",
+        "units": "wrong-deg C"
+      }
+    },
+    {
+      "action_id": "fuel_astm:demo-fuel_astm-optidist-fuel-01-d86-50-recovered:future",
+      "kind": "future_timestamp",
+      "payload": {
+        "analyte": "D86 50% Recovered",
+        "calibration_status": "ok",
+        "comments": "synthetic future timestamp quarantine",
+        "control_material_lot": "FUE-03-A",
+        "entry_source": "manual",
+        "flags": [],
+        "instrument_id": "OptiDist Fuel-01",
+        "method_id": "ASTM D86",
+        "operator_id": "demo-quarantine",
+        "qc_level": "Naphtha D86 QC",
+        "reagent_lot": "FUE-QUAR",
+        "result_value": 121,
+        "run_id": "demo-quarantine-future-demo-fuel-astm-optidist-fuel-01-d86-50-recovered",
+        "stream_id": "demo-fuel_astm-optidist-fuel-01-d86-50-recovered",
+        "units": "deg C"
+      }
+    },
+    {
+      "action_id": "fuel_astm:demo-fuel_astm-sindie-fuel-03-ulsd-sulfur:unit",
+      "kind": "unit_mismatch",
+      "payload": {
+        "analyte": "ULSD Sulfur",
+        "calibration_status": "ok",
+        "comments": "synthetic unit mismatch quarantine",
+        "control_material_lot": "FUE-09-A",
+        "entry_source": "manual",
+        "flags": [],
+        "instrument_id": "Sindie Fuel-03",
+        "method_id": "ASTM D4294",
+        "operator_id": "demo-quarantine",
+        "qc_level": "Diesel sulfur QC",
+        "reagent_lot": "FUE-QUAR",
+        "result_value": 4.5,
+        "run_id": "demo-quarantine-unit-demo-fuel-astm-sindie-fuel-03-ulsd-sulfur",
+        "stream_id": "demo-fuel_astm-sindie-fuel-03-ulsd-sulfur",
+        "units": "wrong-mg/kg"
+      }
+    },
+    {
+      "action_id": "fuel_astm:demo-fuel_astm-sindie-fuel-03-ulsd-sulfur:future",
+      "kind": "future_timestamp",
+      "payload": {
+        "analyte": "ULSD Sulfur",
+        "calibration_status": "ok",
+        "comments": "synthetic future timestamp quarantine",
+        "control_material_lot": "FUE-09-A",
+        "entry_source": "manual",
+        "flags": [],
+        "instrument_id": "Sindie Fuel-03",
+        "method_id": "ASTM D4294",
+        "operator_id": "demo-quarantine",
+        "qc_level": "Diesel sulfur QC",
+        "reagent_lot": "FUE-QUAR",
+        "result_value": 4.5,
+        "run_id": "demo-quarantine-future-demo-fuel-astm-sindie-fuel-03-ulsd-sulfur",
+        "stream_id": "demo-fuel_astm-sindie-fuel-03-ulsd-sulfur",
+        "units": "mg/kg"
+      }
+    }
+  ],
+  "synthetic_data_notice": "Synthetic demo data only; not validated ASTM, manufacturer, clinical, pharmacological, or regulatory reference data."
+}

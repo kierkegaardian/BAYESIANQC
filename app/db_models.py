@@ -16,6 +16,7 @@ from app.models import (
     QCBacklogPriority,
     QCBacklogSource,
     QCBacklogStatus,
+    QCCommentTargetType,
     QuarantineReason,
     QuarantineStatus,
     Role,
@@ -45,6 +46,7 @@ class Instrument(SQLModel, table=True):
     manufacturer: Optional[str] = None
     model: Optional[str] = None
     site: Optional[str] = None
+    lab_bench: Optional[str] = Field(default=None, index=True)
     active: bool = True
     created_at: datetime = Field(default_factory=utcnow)
     created_by: str = Field(default="system")
@@ -70,6 +72,28 @@ class Analyte(SQLModel, table=True):
     created_by: str = Field(default="system")
 
 
+class ControlMaterial(SQLModel, table=True):
+    __table_args__ = (
+        UniqueConstraint(
+            "name",
+            "lot",
+            "qc_level",
+            "matrix",
+            name="uq_controlmaterial_identity",
+        ),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(index=True)
+    lot: str = Field(index=True)
+    qc_level: str = Field(index=True)
+    matrix: Optional[str] = None
+    manufacturer: Optional[str] = None
+    active: bool = True
+    created_at: datetime = Field(default_factory=utcnow)
+    created_by: str = Field(default="system")
+
+
 class StreamConfig(SQLModel, table=True):
     __table_args__ = (UniqueConstraint("stream_id", "version", name="uq_streamconfig_stream_version"),)
 
@@ -83,9 +107,11 @@ class StreamConfig(SQLModel, table=True):
     method: str
     instrument: str
     site: Optional[str] = None
+    lab_bench: Optional[str] = Field(default=None, index=True)
     matrix: Optional[str] = None
     qc_level: str
     control_material_lot: str
+    control_material_id: Optional[int] = Field(default=None, index=True)
     units: str
     target_value: float
     sigma: float
@@ -228,10 +254,66 @@ class QCBacklogItem(SQLModel, table=True):
     created_by: str = Field(default="system")
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
+    started_at: Optional[datetime] = None
+    started_by: Optional[str] = None
     completed_at: Optional[datetime] = None
     completed_by: Optional[str] = None
     completed_qc_record_id: Optional[int] = Field(default=None, index=True)
     last_quarantine_id: Optional[int] = Field(default=None, index=True)
+
+
+class QCComment(SQLModel, table=True):
+    __table_args__ = (
+        Index("ix_qccomment_target_created", "target_type", "target_id", "created_at"),
+        Index("ix_qccomment_stream_created", "stream_id", "created_at"),
+        Index("ix_qccomment_qc_record_created", "qc_record_id", "created_at"),
+        Index("ix_qccomment_alert_created", "alert_id", "created_at"),
+        Index("ix_qccomment_run_created", "run_id", "created_at"),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    target_type: QCCommentTargetType = Field(sa_column=Column(SAEnum(QCCommentTargetType)))
+    target_id: str = Field(index=True)
+    stream_id: Optional[str] = Field(default=None, index=True)
+    qc_record_id: Optional[int] = Field(default=None, index=True)
+    alert_id: Optional[str] = Field(default=None, index=True)
+    run_id: Optional[str] = Field(default=None, index=True)
+    body: str
+    actor: str
+    actor_role: Optional[Role] = Field(default=None, sa_column=Column(SAEnum(Role), nullable=True))
+    api_key_id: Optional[int] = Field(default=None, index=True)
+    created_at: datetime = Field(default_factory=utcnow, index=True)
+
+
+class KioskLayout(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    slug: str = Field(index=True, unique=True)
+    label: str
+    site: Optional[str] = None
+    lab_bench: Optional[str] = None
+    active: bool = True
+    created_at: datetime = Field(default_factory=utcnow)
+    created_by: str = Field(default="system")
+
+
+class KioskPanel(SQLModel, table=True):
+    __table_args__ = (
+        Index("ix_kioskpanel_kiosk_order", "kiosk_id", "display_order"),
+        Index("ix_kioskpanel_stream", "stream_id"),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    kiosk_id: int = Field(index=True, foreign_key="kiosklayout.id")
+    stream_id: str = Field(index=True)
+    title: str
+    display_order: int = Field(index=True)
+    start: Optional[str] = None
+    end: Optional[str] = None
+    window_label: Optional[str] = None
+    mode: str = "both"
+    active: bool = True
+    created_at: datetime = Field(default_factory=utcnow)
+    created_by: str = Field(default="system")
 
 
 class QCEvent(SQLModel, table=True):

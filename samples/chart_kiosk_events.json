@@ -1,0 +1,52 @@
+[
+  {
+    "event_type": "calibration",
+    "timestamp": "2026-01-05T07:45:00Z",
+    "stream_id": "hba1c-kiosk",
+    "instrument_id": "Architect",
+    "analyte": "HbA1c",
+    "method_id": "HPLC",
+    "metadata": {
+      "fixture": "chart-kiosk-suite",
+      "note": "Pre-run calibration for baseline segment"
+    }
+  },
+  {
+    "event_type": "reagent_lot_change",
+    "timestamp": "2026-01-05T10:45:00Z",
+    "stream_id": "hba1c-kiosk",
+    "instrument_id": "Architect",
+    "analyte": "HbA1c",
+    "method_id": "HPLC",
+    "metadata": {
+      "fixture": "chart-kiosk-suite",
+      "from": "RL-K001",
+      "to": "RL-K002"
+    }
+  },
+  {
+    "event_type": "control_material_lot_change",
+    "timestamp": "2026-01-05T12:30:00Z",
+    "stream_id": "hba1c-kiosk",
+    "instrument_id": "Architect",
+    "analyte": "HbA1c",
+    "method_id": "HPLC",
+    "metadata": {
+      "fixture": "chart-kiosk-suite",
+      "from": "LOT-001",
+      "to": "LOT-002"
+    }
+  },
+  {
+    "event_type": "maintenance",
+    "timestamp": "2026-01-06T09:15:00Z",
+    "stream_id": "hba1c-kiosk",
+    "instrument_id": "Architect",
+    "analyte": "HbA1c",
+    "method_id": "HPLC",
+    "metadata": {
+      "fixture": "chart-kiosk-suite",
+      "note": "Short instrument maintenance marker"
+    }
+  }
+]

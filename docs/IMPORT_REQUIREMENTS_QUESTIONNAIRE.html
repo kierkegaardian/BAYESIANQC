@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BAYESIANQC Import Requirements Questionnaire</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --ink: #17202a;
+      --muted: #5d6876;
+      --line: #d8dee8;
+      --accent: #0f6f63;
+      --accent-dark: #0a5148;
+      --warn: #a15c05;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(8px);
+    }
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 14px 18px;
+    }
+    h1 { margin: 0; font-size: 1.2rem; letter-spacing: 0; }
+    .subtitle { margin: 2px 0 0; color: var(--muted); font-size: 0.9rem; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+    button {
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      padding: 0 12px;
+      font: inherit;
+      cursor: pointer;
+    }
+    button.primary { border-color: var(--accent); background: var(--accent); color: #fff; }
+    button.primary:hover { background: var(--accent-dark); }
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+      gap: 18px;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 18px;
+    }
+    form, aside {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+    section { padding: 18px; border-top: 1px solid var(--line); }
+    section:first-child { border-top: 0; }
+    h2 { margin: 0 0 14px; font-size: 1rem; letter-spacing: 0; }
+    .field { display: grid; gap: 7px; margin: 0 0 16px; }
+    .field:last-child { margin-bottom: 0; }
+    label, legend { font-weight: 650; }
+    .field small { color: var(--muted); }
+    textarea, input[type="text"], select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      padding: 9px 10px;
+      font: inherit;
+    }
+    textarea { min-height: 76px; resize: vertical; }
+    fieldset {
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+    .choices {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 8px;
+    }
+    .choice {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 7px 9px;
+      background: #fbfcfd;
+      font-weight: 500;
+    }
+    aside { position: sticky; top: 84px; align-self: start; overflow: hidden; }
+    .preview-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .preview-head strong { font-size: 0.95rem; }
+    .status { color: var(--warn); font-size: 0.84rem; }
+    pre {
+      min-height: 480px;
+      max-height: calc(100vh - 180px);
+      margin: 0;
+      padding: 14px;
+      overflow: auto;
+      background: #10151b;
+      color: #e9eef5;
+      font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      white-space: pre-wrap;
+    }
+    @media (max-width: 920px) {
+      .topbar, main { grid-template-columns: 1fr; }
+      .actions { justify-content: flex-start; }
+      aside { position: static; }
+      pre { max-height: none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topbar">
+      <div>
+        <h1>BAYESIANQC Import Requirements Questionnaire</h1>
+        <p class="subtitle">Delimited file ingestion, parser profiles, run matching, archive policy, and collector scope.</p>
+      </div>
+      <div class="actions">
+        <button type="button" id="downloadJson" class="primary">Download JSON</button>
+        <button type="button" id="resetForm">Reset</button>
+      </div>
+    </div>
+  </header>
+  <main>
+    <form id="questionnaire" autocomplete="off"></form>
+    <aside aria-label="JSON preview">
+      <div class="preview-head">
+        <strong>JSON Preview</strong>
+        <span id="status" class="status">Unsaved</span>
+      </div>
+      <pre id="preview"></pre>
+    </aside>
+  </main>
+  <script>
+    const sections = [
+      { id: "source_files", title: "Source Files", questions: [
+        ["target_sources", "Which instruments or middleware exports are first target?", "textarea"],
+        ["file_types", "What file types do they produce?", "checkbox", ["CSV", "TSV", "fixed-width", "XLSX", "ASTM/LIS2-A", "HL7", "XML", "JSON", "other"]],
+        ["file_granularity", "Are files one QC result per row, one run per file, or mixed patient/QC/result/event data?", "select", ["", "one_result_per_row", "one_run_per_file", "mixed_patient_qc_result_event", "unknown"]],
+        ["delivery_modes", "Will the app receive files by manual upload, watched folders, collector agent, API upload, or all of these?", "checkbox", ["manual upload", "watched folder", "collector agent", "API upload", "all", "other"]]
+      ]},
+      { id: "parser_profiles", title: "Parser Profiles", questions: [
+        ["profile_editors", "Who can configure parser profiles?", "checkbox", ["admin", "data steward", "supervisor", "QC analyst", "other"]],
+        ["profile_approval", "Do profiles need version approval before use, or is draft/active enough for MVP?", "select", ["", "draft_active_enough", "approval_required", "approval_later"]],
+        ["mapping_support", "Should profiles support column aliases and defaults, or only exact column names at first?", "select", ["", "exact_columns_only", "aliases_and_defaults", "aliases_defaults_transforms"]],
+        ["profile_auto_selection", "Do we need per-instrument filename patterns or other rules to auto-select a parser?", "textarea"]
+      ]},
+      { id: "run_matching", title: "Run Matching", questions: [
+        ["run_definition", "What counts as a run: one file, one instrument batch, one QC level, or one scheduled backlog item?", "checkbox", ["one file", "instrument batch", "QC level", "scheduled backlog item", "other"]],
+        ["provisional_runs", "If no run id exists, should the app create a provisional run automatically?", "select", ["", "yes", "no", "only_after_preview", "manual_choice"]],
+        ["matching_window", "What matching window is reasonable around scheduled/manual start time?", "text"],
+        ["ambiguous_match_policy", "If two scheduled runs match, should the row stop for manual association?", "select", ["", "stop_for_manual_association", "nearest_time_if_clear", "never_guess"]],
+        ["manual_run_fields", "Should manually initiated runs have started_at, started_by, and expected stream/QC level?", "textarea"]
+      ]},
+      { id: "data_acceptance", title: "Data Acceptance", questions: [
+        ["minimum_fields", "What minimum fields must a row have to be accepted?", "textarea"],
+        ["fillable_fields", "What missing fields can be filled from parser defaults or matched backlog context?", "textarea"],
+        ["partial_file_behavior", "Should partial files apply good rows immediately, or wait for user approval of the whole import?", "select", ["", "apply_good_rows_immediately", "preview_approval_before_apply", "all_or_nothing"]],
+        ["exception_destination", "Should out-of-bounds or mismatched rows go to QC quarantine or import exception review first?", "select", ["", "qc_quarantine", "import_exception_review", "both"]]
+      ]},
+      { id: "audit_archive", title: "Audit And Archive", questions: [
+        ["archive_location", "Where should raw files be archived, and how long retained?", "textarea"],
+        ["failed_file_archive", "Should failed files also be archived with hash and failure reason?", "select", ["", "yes", "no"]],
+        ["immutable_storage", "Do we need immutable raw-file storage, or is filesystem path plus DB hash enough for now?", "select", ["", "filesystem_path_and_hash_enough", "immutable_storage_required", "decide_later"]],
+        ["raw_row_storage", "Should every row store raw row JSON plus parser profile version?", "select", ["", "always", "accepted_rows_only", "no"]]
+      ]},
+      { id: "operator_workflow", title: "Operator Workflow", questions: [
+        ["exception_reviewers", "Who reviews import exceptions?", "checkbox", ["QC analyst", "supervisor", "QA manager", "data steward", "admin"]],
+        ["preview_required", "Do users need a preview screen before apply?", "select", ["", "yes", "no", "depends_on_source"]],
+        ["edit_policy", "Can users edit parsed values, or only fix mappings/run association and re-parse?", "select", ["", "no_value_edits", "mapping_and_run_only", "value_edits_with_reason", "admin_only_value_edits"]],
+        ["repreview_policy", "Should parser/profile changes trigger re-preview of old failed files?", "select", ["", "yes", "no", "only_when_requested"]]
+      ]},
+      { id: "collector_deployment", title: "Collector And Deployment", questions: [
+        ["mvp_surface", "Should the first version be API upload only, or include a folder-watching collector?", "select", ["", "api_upload_only", "api_upload_plus_watcher", "collector_first"]],
+        ["collector_os_targets", "If collector exists, what OS targets matter?", "checkbox", ["Windows instrument PCs", "Linux server", "network share", "macOS", "other"]],
+        ["collector_source_handling", "Should collector delete source files, move them, or only copy/upload and leave originals alone?", "select", ["", "leave_originals", "copy_upload_only", "move_after_ack", "delete_after_ack"]]
+      ]},
+      { id: "integration_boundaries", title: "Integration Boundaries", questions: [
+        ["lims_same_model", "Should LIMS payloads use the same import batch model as instrument files?", "select", ["", "yes", "no", "depends_on_payload"]],
+        ["outbound_callbacks", "Do we need outbound callbacks/webhooks to notify LIMS when QC is accepted, held, or rejected?", "textarea"],
+        ["additional_notes", "Additional decisions, constraints, or sample-file notes", "textarea"]
+      ]}
+    ];
+    const form = document.querySelector("#questionnaire");
+    const preview = document.querySelector("#preview");
+    const statusEl = document.querySelector("#status");
+    const storageKey = "bayesianqc.importRequirementsQuestionnaire.v1";
+
+    function labelText(text) { return text.replaceAll("_", " "); }
+    function renderField(sectionId, item) {
+      const [id, prompt, type, options = []] = item;
+      const name = `${sectionId}.${id}`;
+      const wrap = document.createElement("div");
+      wrap.className = "field";
+      if (type === "checkbox") {
+        wrap.innerHTML = `<fieldset><legend>${prompt}</legend><div class="choices">${options.map(option => `<label class="choice"><input type="checkbox" name="${name}" value="${option}">${option}</label>`).join("")}</div></fieldset>`;
+      } else if (type === "select") {
+        wrap.innerHTML = `<label for="${name}">${prompt}</label><select id="${name}" name="${name}">${options.map(option => `<option value="${option}">${option ? labelText(option) : ""}</option>`).join("")}</select>`;
+      } else if (type === "text") {
+        wrap.innerHTML = `<label for="${name}">${prompt}</label><input id="${name}" name="${name}" type="text">`;
+      } else {
+        wrap.innerHTML = `<label for="${name}">${prompt}</label><textarea id="${name}" name="${name}"></textarea>`;
+      }
+      return wrap;
+    }
+    function render() {
+      form.innerHTML = "";
+      sections.forEach(section => {
+        const node = document.createElement("section");
+        node.innerHTML = `<h2>${section.title}</h2>`;
+        section.questions.forEach(item => node.appendChild(renderField(section.id, item)));
+        form.appendChild(node);
+      });
+    }
+    function collect() {
+      const responses = {};
+      sections.forEach(section => {
+        responses[section.id] = {};
+        section.questions.forEach(([id, prompt, type]) => {
+          const name = `${section.id}.${id}`;
+          const nodes = [...form.elements].filter(el => el.name === name);
+          const value = type === "checkbox" ? nodes.filter(el => el.checked).map(el => el.value) : nodes[0]?.value || "";
+          responses[section.id][id] = { prompt, answer: value };
+        });
+      });
+      return { schema: "bayesianqc_import_requirements_questionnaire.v1", project: "BAYESIANQC", exportedAt: new Date().toISOString(), responses };
+    }
+    function updatePreview() {
+      const data = collect();
+      preview.textContent = JSON.stringify(data, null, 2);
+      localStorage.setItem(storageKey, JSON.stringify(data));
+      statusEl.textContent = "Ready";
+    }
+    function restore() {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      Object.entries(data.responses || {}).forEach(([sectionId, values]) => {
+        Object.entries(values).forEach(([id, value]) => {
+          const name = `${sectionId}.${id}`;
+          const answer = value.answer;
+          const nodes = [...form.elements].filter(el => el.name === name);
+          if (Array.isArray(answer)) nodes.forEach(el => { el.checked = answer.includes(el.value); });
+          else if (nodes[0]) nodes[0].value = answer;
+        });
+      });
+    }
+    function downloadJson() {
+      const blob = new Blob([preview.textContent], { type: "application/json" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `bayesianqc-import-requirements-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+    render();
+    restore();
+    updatePreview();
+    form.addEventListener("input", updatePreview);
+    document.querySelector("#downloadJson").addEventListener("click", downloadJson);
+    document.querySelector("#resetForm").addEventListener("click", () => {
+      form.reset();
+      localStorage.removeItem(storageKey);
+      updatePreview();
+    });
+  </script>
+</body>
+</html>

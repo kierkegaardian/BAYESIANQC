@@ -14,14 +14,31 @@
         active-text-color="#f59e0b"
       >
         <el-menu-item index="/">Dashboard</el-menu-item>
+        <el-menu-item index="/backlog">QC Backlog</el-menu-item>
         <el-menu-item index="/ingest">Ingest QC</el-menu-item>
+        <el-menu-item index="/quarantine">Quarantine</el-menu-item>
+        <el-menu-item index="/imports">Imports</el-menu-item>
         <el-menu-item index="/alerts">Alerts</el-menu-item>
+        <el-menu-item index="/audit">Audit</el-menu-item>
         <el-menu-item index="/investigations">Investigations</el-menu-item>
         <el-menu-item index="/capas">CAPAs</el-menu-item>
         <el-menu-item index="/events">Events</el-menu-item>
         <el-menu-item index="/charts">Charts</el-menu-item>
+        <el-sub-menu index="/kiosk">
+          <template #title>Kiosks</template>
+          <el-menu-item index="/kiosks">Kiosk Builder</el-menu-item>
+          <el-menu-item index="/kiosk/demo">Demo Suite</el-menu-item>
+          <el-menu-item index="/kiosk/fuel">Fuel ASTM</el-menu-item>
+          <el-menu-item index="/kiosk/medical">Medical</el-menu-item>
+          <el-menu-item index="/kiosk/pharma">Pharma QC</el-menu-item>
+          <el-menu-item index="/kiosk/steel">Steel / Metals</el-menu-item>
+          <el-menu-item index="/kiosk/refinery">Refinery</el-menu-item>
+          <el-menu-item index="/kiosk/charts">Base Charts</el-menu-item>
+        </el-sub-menu>
         <el-sub-menu index="/config">
           <template #title>Configuration</template>
+          <el-menu-item index="/config/datastreams">Add Datastream</el-menu-item>
+          <el-menu-item index="/config/import-profiles">Parser Profiles</el-menu-item>
           <el-menu-item index="/config/instruments">Instruments</el-menu-item>
           <el-menu-item index="/config/methods">Methods</el-menu-item>
           <el-menu-item index="/config/analytes">Analytes</el-menu-item>
@@ -36,6 +53,9 @@
           <div class="muted">
             API: {{ apiBase }}
           </div>
+          <div v-if="sessionUser" class="muted">
+            Role: {{ sessionUser.role }} · Key #{{ sessionUser.api_key_id ?? "unknown" }}
+          </div>
         </div>
         <div class="header-actions">
           <el-button type="primary" plain @click="logout">Log out</el-button>
@@ -49,9 +69,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { clearApiKey, getApiBase } from "../api/client";
+import { clearSessionUser, loadSessionUser, sessionUser } from "../api/session";
 
 const route = useRoute();
 const router = useRouter();
@@ -64,14 +85,24 @@ const apiBase = getApiBase();
 
 function logout() {
   clearApiKey();
+  clearSessionUser();
   router.push("/login");
 }
+
+onMounted(() => {
+  void loadSessionUser().catch(() => {
+    clearApiKey();
+    clearSessionUser();
+    router.push("/login");
+  });
+});
 </script>
 
 <style scoped>
 .sidebar {
   background: #0f172a;
   color: #cbd5f5;
+  flex-shrink: 0;
   padding: 16px 0;
 }
 
@@ -95,16 +126,32 @@ function logout() {
 }
 
 .header {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
   background: #ffffff;
   border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  gap: 16px;
+  height: auto;
+  justify-content: space-between;
+  min-height: 84px;
   padding: 12px 24px;
 }
 
 .header-title {
   font-size: 18px;
   font-weight: 600;
+}
+
+.header > div:first-child {
+  min-width: 0;
+}
+
+.header-actions {
+  flex-shrink: 0;
+}
+
+.el-main {
+  min-width: 0;
+  overflow: auto;
 }
 </style>

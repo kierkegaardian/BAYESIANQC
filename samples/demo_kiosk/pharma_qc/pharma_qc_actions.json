@@ -1,0 +1,208 @@
+{
+  "backlog": [
+    {
+      "action_id": "pharma_qc:demo-pharma_qc-hplc-assay-01-preservative-a:open",
+      "assigned_to": null,
+      "assignment_group": "pharma_qc demo group",
+      "due_offset_hours": -6,
+      "lab_bench": "pharma_qc demo bench",
+      "notes": "synthetic demo_action_id=pharma_qc:demo-pharma_qc-hplc-assay-01-preservative-a:open",
+      "priority": "soon",
+      "reference_material_label": "Assay QC",
+      "requested_by": "demo-fixture-generator",
+      "status": "open",
+      "stream_id": "demo-pharma_qc-hplc-assay-01-preservative-a"
+    },
+    {
+      "action_id": "pharma_qc:demo-pharma_qc-hplc-assay-01-preservative-a:completed",
+      "assigned_to": null,
+      "assignment_group": "pharma_qc demo group",
+      "completion_record": {
+        "analyte": "Preservative A",
+        "calibration_status": "ok",
+        "comments": "completed synthetic scheduled QC for pharma_qc",
+        "control_material_lot": "PHA-02-A",
+        "entry_source": "manual",
+        "flags": [],
+        "instrument_id": "HPLC Assay-01",
+        "method_id": "HPLC Assay",
+        "operator_id": "demo-backlog",
+        "qc_level": "Assay QC",
+        "reagent_lot": "PHA-BACKLOG",
+        "result_value": 1.6,
+        "run_id": "demo-backlog-demo-pharma-qc-hplc-assay-01-preservative-a",
+        "stream_id": "demo-pharma_qc-hplc-assay-01-preservative-a",
+        "units": "mg/mL"
+      },
+      "due_offset_hours": -3,
+      "lab_bench": "pharma_qc demo bench",
+      "notes": "synthetic demo_action_id=pharma_qc:demo-pharma_qc-hplc-assay-01-preservative-a:completed",
+      "priority": "soon",
+      "reference_material_label": "Assay QC",
+      "requested_by": "demo-fixture-generator",
+      "status": "completed",
+      "stream_id": "demo-pharma_qc-hplc-assay-01-preservative-a"
+    },
+    {
+      "action_id": "pharma_qc:demo-pharma_qc-uplc-impurity-02-resolution-r1:open",
+      "assigned_to": null,
+      "assignment_group": "pharma_qc demo group",
+      "due_offset_hours": -6,
+      "lab_bench": "pharma_qc demo bench",
+      "notes": "synthetic demo_action_id=pharma_qc:demo-pharma_qc-uplc-impurity-02-resolution-r1:open",
+      "priority": "soon",
+      "reference_material_label": "System suitability",
+      "requested_by": "demo-fixture-generator",
+      "status": "open",
+      "stream_id": "demo-pharma_qc-uplc-impurity-02-resolution-r1"
+    },
+    {
+      "action_id": "pharma_qc:demo-pharma_qc-uplc-impurity-02-resolution-r1:completed",
+      "assigned_to": null,
+      "assignment_group": "pharma_qc demo group",
+      "completion_record": {
+        "analyte": "Resolution R1",
+        "calibration_status": "ok",
+        "comments": "completed synthetic scheduled QC for pharma_qc",
+        "control_material_lot": "PHA-08-A",
+        "entry_source": "manual",
+        "flags": [],
+        "instrument_id": "UPLC Impurity-02",
+        "method_id": "UPLC Impurity",
+        "operator_id": "demo-backlog",
+        "qc_level": "System suitability",
+        "reagent_lot": "PHA-BACKLOG",
+        "result_value": 2.6,
+        "run_id": "demo-backlog-demo-pharma-qc-uplc-impurity-02-resolution-r1",
+        "stream_id": "demo-pharma_qc-uplc-impurity-02-resolution-r1",
+        "units": "USP"
+      },
+      "due_offset_hours": -3,
+      "lab_bench": "pharma_qc demo bench",
+      "notes": "synthetic demo_action_id=pharma_qc:demo-pharma_qc-uplc-impurity-02-resolution-r1:completed",
+      "priority": "soon",
+      "reference_material_label": "System suitability",
+      "requested_by": "demo-fixture-generator",
+      "status": "completed",
+      "stream_id": "demo-pharma_qc-uplc-impurity-02-resolution-r1"
+    }
+  ],
+  "exclusions": [
+    {
+      "reason": "pharma_qc demo excludes a known bad point",
+      "result_value": 102.38,
+      "run_id": "pharma_qc-001-009",
+      "stream_id": "demo-pharma_qc-hplc-assay-01-api-potency",
+      "timestamp": "2026-02-17T00:05:00Z"
+    },
+    {
+      "reason": "pharma_qc demo excludes a known bad point",
+      "result_value": 99.584,
+      "run_id": "pharma_qc-007-011",
+      "stream_id": "demo-pharma_qc-uplc-impurity-02-main-peak-purity",
+      "timestamp": "2026-02-17T04:05:00Z"
+    },
+    {
+      "reason": "pharma_qc demo excludes a known bad point",
+      "result_value": 2.372,
+      "run_id": "pharma_qc-013-009",
+      "stream_id": "demo-pharma_qc-kf-aqua-04-lod",
+      "timestamp": "2026-02-17T00:05:00Z"
+    },
+    {
+      "reason": "pharma_qc demo excludes a known bad point",
+      "result_value": 132.8,
+      "run_id": "pharma_qc-019-011",
+      "stream_id": "demo-pharma_qc-lcms-drug-06-drug-b-control",
+      "timestamp": "2026-02-17T04:05:00Z"
+    }
+  ],
+  "family_id": "pharma_qc",
+  "quarantine_examples": [
+    {
+      "action_id": "pharma_qc:demo-pharma_qc-hplc-assay-01-degradant-total:unit",
+      "kind": "unit_mismatch",
+      "payload": {
+        "analyte": "Degradant Total",
+        "calibration_status": "ok",
+        "comments": "synthetic unit mismatch quarantine",
+        "control_material_lot": "PHA-03-A",
+        "entry_source": "manual",
+        "flags": [],
+        "instrument_id": "HPLC Assay-01",
+        "method_id": "HPLC Assay",
+        "operator_id": "demo-quarantine",
+        "qc_level": "Impurity QC",
+        "reagent_lot": "PHA-QUAR",
+        "result_value": 0.4,
+        "run_id": "demo-quarantine-unit-demo-pharma-qc-hplc-assay-01-degradant-total",
+        "stream_id": "demo-pharma_qc-hplc-assay-01-degradant-total",
+        "units": "wrong-% area"
+      }
+    },
+    {
+      "action_id": "pharma_qc:demo-pharma_qc-hplc-assay-01-degradant-total:future",
+      "kind": "future_timestamp",
+      "payload": {
+        "analyte": "Degradant Total",
+        "calibration_status": "ok",
+        "comments": "synthetic future timestamp quarantine",
+        "control_material_lot": "PHA-03-A",
+        "entry_source": "manual",
+        "flags": [],
+        "instrument_id": "HPLC Assay-01",
+        "method_id": "HPLC Assay",
+        "operator_id": "demo-quarantine",
+        "qc_level": "Impurity QC",
+        "reagent_lot": "PHA-QUAR",
+        "result_value": 0.4,
+        "run_id": "demo-quarantine-future-demo-pharma-qc-hplc-assay-01-degradant-total",
+        "stream_id": "demo-pharma_qc-hplc-assay-01-degradant-total",
+        "units": "% area"
+      }
+    },
+    {
+      "action_id": "pharma_qc:demo-pharma_qc-dissolution-dt-03-dissolution-15-min:unit",
+      "kind": "unit_mismatch",
+      "payload": {
+        "analyte": "Dissolution 15 min",
+        "calibration_status": "ok",
+        "comments": "synthetic unit mismatch quarantine",
+        "control_material_lot": "PHA-09-A",
+        "entry_source": "manual",
+        "flags": [],
+        "instrument_id": "Dissolution DT-03",
+        "method_id": "Dissolution",
+        "operator_id": "demo-quarantine",
+        "qc_level": "Dissolution QC",
+        "reagent_lot": "PHA-QUAR",
+        "result_value": 42,
+        "run_id": "demo-quarantine-unit-demo-pharma-qc-dissolution-dt-03-dissolution-15-min",
+        "stream_id": "demo-pharma_qc-dissolution-dt-03-dissolution-15-min",
+        "units": "wrong-% dissolved"
+      }
+    },
+    {
+      "action_id": "pharma_qc:demo-pharma_qc-dissolution-dt-03-dissolution-15-min:future",
+      "kind": "future_timestamp",
+      "payload": {
+        "analyte": "Dissolution 15 min",
+        "calibration_status": "ok",
+        "comments": "synthetic future timestamp quarantine",
+        "control_material_lot": "PHA-09-A",
+        "entry_source": "manual",
+        "flags": [],
+        "instrument_id": "Dissolution DT-03",
+        "method_id": "Dissolution",
+        "operator_id": "demo-quarantine",
+        "qc_level": "Dissolution QC",
+        "reagent_lot": "PHA-QUAR",
+        "result_value": 42,
+        "run_id": "demo-quarantine-future-demo-pharma-qc-dissolution-dt-03-dissolution-15-min",
+        "stream_id": "demo-pharma_qc-dissolution-dt-03-dissolution-15-min",
+        "units": "% dissolved"
+      }
+    }
+  ],
+  "synthetic_data_notice": "Synthetic demo data only; not validated ASTM, manufacturer, clinical, pharmacological, or regulatory reference data."
+}

@@ -9,6 +9,13 @@
     </div>
 
     <el-table :data="alerts" stripe class="full-width">
+      <el-table-column type="expand">
+        <template #default="{ row }">
+          <div class="comment-panel">
+            <QCCommentThread target-type="alert" :target-id="row.id" title="Alert Comments" />
+          </div>
+        </template>
+      </el-table-column>
       <el-table-column prop="id" label="Alert ID" />
       <el-table-column prop="stream_id" label="Stream" />
       <el-table-column prop="qc_record_timestamp" label="QC Time" width="180" />
@@ -27,12 +34,12 @@
         </template>
       </el-table-column>
       <el-table-column prop="status" label="Status" />
-      <el-table-column label="Assign">
+      <el-table-column v-if="canApprove" label="Assign">
         <template #default="{ row }">
           <el-input v-model="row.assigned_to" placeholder="Assignee" />
         </template>
       </el-table-column>
-      <el-table-column label="Status Update" width="180">
+      <el-table-column v-if="canApprove" label="Status Update" width="180">
         <template #default="{ row }">
           <el-select v-model="row.status" placeholder="Status">
             <el-option label="open" value="open" />
@@ -41,7 +48,7 @@
           </el-select>
         </template>
       </el-table-column>
-      <el-table-column label="Actions" width="140">
+      <el-table-column v-if="canApprove" label="Actions" width="140">
         <template #default="{ row }">
           <el-button size="small" @click="saveAlert(row)">Save</el-button>
         </template>
@@ -52,9 +59,11 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import { api } from "../api/client";
 import type { AlertOutWithQc, AlertUpdate } from "../api/contracts";
+import { canApprove } from "../api/session";
+import QCCommentThread from "../components/QCCommentThread.vue";
 
 const alerts = ref<AlertOutWithQc[]>([]);
 
@@ -71,10 +80,22 @@ async function loadAlerts() {
 
 async function saveAlert(row: AlertOutWithQc) {
   try {
+    const reason = await ElMessageBox.prompt(
+      "Reason",
+      "Update Alert",
+      {
+        confirmButtonText: "Save",
+        cancelButtonText: "Cancel",
+        inputPlaceholder: "Review outcome or assignment rationale",
+      }
+    ).catch(() => null);
+    if (!reason) {
+      return;
+    }
     const payload: AlertUpdate = {
       status: row.status ?? null,
       assigned_to: row.assigned_to ?? null,
-      acknowledged_by: row.acknowledged_by || "ui-user",
+      reason: reason.value,
     };
     await api.patch(`/alerts/${row.id}`, payload);
     ElMessage.success("Alert updated");

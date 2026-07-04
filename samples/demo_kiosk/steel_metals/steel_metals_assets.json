@@ -1,0 +1,288 @@
+{
+  "analytes": [
+    {
+      "active": true,
+      "instrument_name": "OES Spark-01",
+      "method_name": "OES Chemistry",
+      "name": "Carbon",
+      "units": "% mass"
+    },
+    {
+      "active": true,
+      "instrument_name": "OES Spark-01",
+      "method_name": "OES Chemistry",
+      "name": "Manganese",
+      "units": "% mass"
+    },
+    {
+      "active": true,
+      "instrument_name": "OES Spark-01",
+      "method_name": "OES Chemistry",
+      "name": "Silicon",
+      "units": "% mass"
+    },
+    {
+      "active": true,
+      "instrument_name": "OES Spark-01",
+      "method_name": "OES Chemistry",
+      "name": "Chromium",
+      "units": "% mass"
+    },
+    {
+      "active": true,
+      "instrument_name": "OES Spark-01",
+      "method_name": "OES Chemistry",
+      "name": "Nickel",
+      "units": "% mass"
+    },
+    {
+      "active": true,
+      "instrument_name": "CS Burn-02",
+      "method_name": "Combustion C/S",
+      "name": "Low Carbon",
+      "units": "% mass"
+    },
+    {
+      "active": true,
+      "instrument_name": "CS Burn-02",
+      "method_name": "Combustion C/S",
+      "name": "Sulfur",
+      "units": "% mass"
+    },
+    {
+      "active": true,
+      "instrument_name": "CS Burn-02",
+      "method_name": "Combustion C/S",
+      "name": "High Carbon",
+      "units": "% mass"
+    },
+    {
+      "active": true,
+      "instrument_name": "Hardness H-03",
+      "method_name": "Hardness",
+      "name": "Rockwell B",
+      "units": "HRB"
+    },
+    {
+      "active": true,
+      "instrument_name": "Hardness H-03",
+      "method_name": "Hardness",
+      "name": "Rockwell C",
+      "units": "HRC"
+    },
+    {
+      "active": true,
+      "instrument_name": "Hardness H-03",
+      "method_name": "Hardness",
+      "name": "Vickers HV10",
+      "units": "HV"
+    },
+    {
+      "active": true,
+      "instrument_name": "Hardness H-03",
+      "method_name": "Hardness",
+      "name": "Brinell HBW",
+      "units": "HBW"
+    },
+    {
+      "active": true,
+      "instrument_name": "Tensile T-04",
+      "method_name": "Tensile",
+      "name": "Yield Strength",
+      "units": "MPa"
+    },
+    {
+      "active": true,
+      "instrument_name": "Tensile T-04",
+      "method_name": "Tensile",
+      "name": "Ultimate Strength",
+      "units": "MPa"
+    },
+    {
+      "active": true,
+      "instrument_name": "Tensile T-04",
+      "method_name": "Tensile",
+      "name": "Elongation",
+      "units": "%"
+    },
+    {
+      "active": true,
+      "instrument_name": "Tensile T-04",
+      "method_name": "Tensile",
+      "name": "Reduction Area",
+      "units": "%"
+    },
+    {
+      "active": true,
+      "instrument_name": "Impact I-05",
+      "method_name": "Charpy Impact",
+      "name": "Charpy 0C",
+      "units": "J"
+    },
+    {
+      "active": true,
+      "instrument_name": "Impact I-05",
+      "method_name": "Charpy Impact",
+      "name": "Charpy -20C",
+      "units": "J"
+    },
+    {
+      "active": true,
+      "instrument_name": "Impact I-05",
+      "method_name": "Charpy Impact",
+      "name": "Charpy Lateral",
+      "units": "mils"
+    },
+    {
+      "active": true,
+      "instrument_name": "CoatGauge C-06",
+      "method_name": "Coating",
+      "name": "Zinc Coating",
+      "units": "g/m2"
+    },
+    {
+      "active": true,
+      "instrument_name": "CoatGauge C-06",
+      "method_name": "Coating",
+      "name": "Tin Coating",
+      "units": "g/m2"
+    },
+    {
+      "active": true,
+      "instrument_name": "CoatGauge C-06",
+      "method_name": "Coating",
+      "name": "Phosphate Weight",
+      "units": "g/m2"
+    },
+    {
+      "active": true,
+      "instrument_name": "MicroScope M-07",
+      "method_name": "Metallography",
+      "name": "Grain Size",
+      "units": "ASTM No."
+    },
+    {
+      "active": true,
+      "instrument_name": "MicroScope M-07",
+      "method_name": "Metallography",
+      "name": "Inclusion Rating",
+      "units": "index"
+    },
+    {
+      "active": true,
+      "instrument_name": "FurnaceProbe F-08",
+      "method_name": "Furnace Profile",
+      "name": "Austenitizing Temp",
+      "units": "deg C"
+    }
+  ],
+  "instruments": [
+    {
+      "active": true,
+      "manufacturer": "SPECTRO",
+      "model": "MAXx",
+      "name": "OES Spark-01",
+      "site": "Synthetic Metals Lab"
+    },
+    {
+      "active": true,
+      "manufacturer": "LECO",
+      "model": "CS844",
+      "name": "CS Burn-02",
+      "site": "Synthetic Metals Lab"
+    },
+    {
+      "active": true,
+      "manufacturer": "Wilson",
+      "model": "Rockwell",
+      "name": "Hardness H-03",
+      "site": "Synthetic Metals Lab"
+    },
+    {
+      "active": true,
+      "manufacturer": "Instron",
+      "model": "5980",
+      "name": "Tensile T-04",
+      "site": "Synthetic Metals Lab"
+    },
+    {
+      "active": true,
+      "manufacturer": "Zwick",
+      "model": "Charpy",
+      "name": "Impact I-05",
+      "site": "Synthetic Metals Lab"
+    },
+    {
+      "active": true,
+      "manufacturer": "Fischer",
+      "model": "MMS",
+      "name": "CoatGauge C-06",
+      "site": "Synthetic Metals Lab"
+    },
+    {
+      "active": true,
+      "manufacturer": "Olympus",
+      "model": "GX53",
+      "name": "MicroScope M-07",
+      "site": "Synthetic Metals Lab"
+    },
+    {
+      "active": true,
+      "manufacturer": "Datapaq",
+      "model": "DQ1860",
+      "name": "FurnaceProbe F-08",
+      "site": "Synthetic Metals Lab"
+    }
+  ],
+  "methods": [
+    {
+      "active": true,
+      "instrument_name": "OES Spark-01",
+      "name": "OES Chemistry",
+      "technique": "Spark OES"
+    },
+    {
+      "active": true,
+      "instrument_name": "CS Burn-02",
+      "name": "Combustion C/S",
+      "technique": "Infrared combustion"
+    },
+    {
+      "active": true,
+      "instrument_name": "Hardness H-03",
+      "name": "Hardness",
+      "technique": "Indentation"
+    },
+    {
+      "active": true,
+      "instrument_name": "Tensile T-04",
+      "name": "Tensile",
+      "technique": "Universal testing"
+    },
+    {
+      "active": true,
+      "instrument_name": "Impact I-05",
+      "name": "Charpy Impact",
+      "technique": "Pendulum impact"
+    },
+    {
+      "active": true,
+      "instrument_name": "CoatGauge C-06",
+      "name": "Coating",
+      "technique": "XRF coating"
+    },
+    {
+      "active": true,
+      "instrument_name": "MicroScope M-07",
+      "name": "Metallography",
+      "technique": "Image analysis"
+    },
+    {
+      "active": true,
+      "instrument_name": "FurnaceProbe F-08",
+      "name": "Furnace Profile",
+      "technique": "Thermal profiling"
+    }
+  ],
+  "synthetic_data_notice": "Synthetic demo data only; not validated ASTM, manufacturer, clinical, pharmacological, or regulatory reference data."
+}

@@ -3,7 +3,7 @@
     <el-card class="login-card">
       <h2>BayesianQC Console</h2>
       <p class="muted">
-        Enter your API key to start. Default local key: <code>local-dev-key</code>.
+        Enter an API key to start. Local demos may seed <code>local-dev-key</code>.
       </p>
       <el-form label-position="top" class="login-form">
         <el-form-item label="API Key">
@@ -21,19 +21,21 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
-import { api, setApiKey } from "../api/client";
-import type { ReportSummaryOut } from "../api/contracts";
+import { clearApiKey, setApiKey } from "../api/client";
+import { clearSessionUser, loadSessionUser } from "../api/session";
 
 const router = useRouter();
-const apiKey = ref("local-dev-key");
+const apiKey = ref("");
 
 async function login() {
   try {
     setApiKey(apiKey.value.trim());
-    await api.get<ReportSummaryOut>("/reports/summary");
+    await loadSessionUser();
     ElMessage.success("Connected to API");
     router.push("/");
   } catch (error) {
+    clearApiKey();
+    clearSessionUser();
     ElMessage.error("Could not connect. Check your API key and server.");
   }
 }

@@ -5,7 +5,7 @@
         <h2>QC Events</h2>
         <div class="muted">Log calibration, maintenance, and lot changes.</div>
       </div>
-      <el-button type="primary" @click="openCreate">Add Event</el-button>
+      <el-button v-if="canIngestQc" type="primary" @click="openCreate">Add Event</el-button>
     </div>
 
     <el-table :data="events" stripe class="full-width">
@@ -43,7 +43,7 @@
       </el-form>
       <template #footer>
         <el-button @click="dialogOpen = false">Cancel</el-button>
-        <el-button type="primary" @click="saveEvent">Save</el-button>
+        <el-button v-if="canIngestQc" type="primary" @click="saveEvent">Save</el-button>
       </template>
     </el-dialog>
   </div>
@@ -54,6 +54,7 @@ import { onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { api } from "../api/client";
 import type { EventType, QCEventIn, QCEventOut } from "../api/contracts";
+import { canIngestQc } from "../api/session";
 
 type EventForm = {
   stream_id: string;
@@ -100,14 +101,14 @@ function parseJson(value: string): Record<string, unknown> | null {
 }
 
 async function saveEvent() {
-  const payload: QCEventIn = {
-    stream_id: form.stream_id || null,
-    event_type: form.event_type,
-    timestamp: new Date(form.timestamp).toISOString(),
-    instrument_id: form.instrument_id || null,
-    metadata: parseJson(form.metadata),
-  };
   try {
+    const payload: QCEventIn = {
+      stream_id: form.stream_id || null,
+      event_type: form.event_type,
+      timestamp: new Date(form.timestamp).toISOString(),
+      instrument_id: form.instrument_id || null,
+      metadata: parseJson(form.metadata),
+    };
     await api.post("/qc/events", payload);
     ElMessage.success("Event created");
     dialogOpen.value = false;

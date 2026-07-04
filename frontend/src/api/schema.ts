@@ -125,6 +125,24 @@ export interface paths {
         patch: operations["update_capa_record_capas__capa_id__patch"];
         trace?: never;
     };
+    "/control-materials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Control Materials */
+        get: operations["list_control_materials_control_materials_get"];
+        put?: never;
+        /** Create Control Material */
+        post: operations["create_control_material_control_materials_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/instruments": {
         parameters: {
             query?: never;
@@ -195,6 +213,75 @@ export interface paths {
         patch: operations["update_investigation_record_investigations__investigation_id__patch"];
         trace?: never;
     };
+    "/kiosks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Kiosk Layouts */
+        get: operations["list_kiosk_layouts_kiosks_get"];
+        put?: never;
+        /** Create Kiosk Layout */
+        post: operations["create_kiosk_layout_kiosks_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/kiosks/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Kiosk Layout */
+        get: operations["get_kiosk_layout_kiosks__slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/kiosks/{slug}/panels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Append Panel */
+        post: operations["append_panel_kiosks__slug__panels_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Current User */
+        get: operations["current_user_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/methods": {
         parameters: {
             query?: never;
@@ -230,6 +317,77 @@ export interface paths {
         patch: operations["update_method_methods__method_id__patch"];
         trace?: never;
     };
+    "/qc/backlog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Qc Backlog */
+        get: operations["list_qc_backlog_qc_backlog_get"];
+        put?: never;
+        /** Create Qc Backlog Item */
+        post: operations["create_qc_backlog_item_qc_backlog_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/qc/backlog/{item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Qc Backlog Item */
+        get: operations["get_qc_backlog_item_qc_backlog__item_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Qc Backlog Item */
+        patch: operations["update_qc_backlog_item_qc_backlog__item_id__patch"];
+        trace?: never;
+    };
+    "/qc/collector/transfers/{transfer_id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Collector Transfer Event */
+        post: operations["post_collector_transfer_event_qc_collector_transfers__transfer_id__events_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/qc/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Qc Comments */
+        get: operations["list_qc_comments_qc_comments_get"];
+        put?: never;
+        /** Create Qc Comment */
+        post: operations["create_qc_comment_qc_comments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/qc/events": {
         parameters: {
             query?: never;
@@ -246,6 +404,144 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/qc/import-profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Import Profiles */
+        get: operations["list_import_profiles_qc_import_profiles_get"];
+        put?: never;
+        /** Create Import Profile */
+        post: operations["create_import_profile_qc_import_profiles_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/qc/import-profiles/{profile_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Import Profile */
+        patch: operations["patch_import_profile_qc_import_profiles__profile_id__patch"];
+        trace?: never;
+    };
+    "/qc/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Import Batches */
+        get: operations["list_import_batches_qc_imports_get"];
+        put?: never;
+        /** Upload Import */
+        post: operations["upload_import_qc_imports_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/qc/imports/rows/{row_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Import Row */
+        patch: operations["patch_import_row_qc_imports_rows__row_id__patch"];
+        trace?: never;
+    };
+    "/qc/imports/{batch_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Import Batch */
+        get: operations["get_import_batch_qc_imports__batch_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/qc/imports/{batch_id}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply Import Batch */
+        post: operations["apply_import_batch_qc_imports__batch_id__apply_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/qc/quarantine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Qc Quarantine */
+        get: operations["list_qc_quarantine_qc_quarantine_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/qc/quarantine/{quarantine_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Review Qc Quarantine */
+        patch: operations["review_qc_quarantine_qc_quarantine__quarantine_id__patch"];
         trace?: never;
     };
     "/qc/records": {
@@ -308,6 +604,74 @@ export interface paths {
         };
         /** Report Summary */
         get: operations["report_summary_reports_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/stream-setups/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply Datastream Setup */
+        post: operations["apply_datastream_setup_stream_setups_apply_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/stream-setups/import/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Datastream Import */
+        post: operations["preview_datastream_import_stream_setups_import_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/stream-setups/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Datastream Setup */
+        post: operations["preview_datastream_setup_stream_setups_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/stream-setups/template.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download Datastream Template */
+        get: operations["download_datastream_template_stream_setups_template_xlsx_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -447,6 +811,8 @@ export interface components {
             assigned_to?: string | null;
             /** Due At */
             due_at?: string | null;
+            /** Reason */
+            reason?: string | null;
             status?: components["schemas"]["AlertStatus"] | null;
         };
         /** AnalyteIn */
@@ -503,10 +869,13 @@ export interface components {
             action: string;
             /** Actor */
             actor: string;
+            actor_role?: components["schemas"]["Role"] | null;
             /** After */
             after: {
                 [key: string]: components["schemas"]["JsonValue"];
             };
+            /** Api Key Id */
+            api_key_id?: number | null;
             /** Before */
             before: {
                 [key: string]: components["schemas"]["JsonValue"];
@@ -569,6 +938,33 @@ export interface components {
              */
             file: string;
         };
+        /** Body_preview_datastream_import_stream_setups_import_preview_post */
+        Body_preview_datastream_import_stream_setups_import_preview_post: {
+            /**
+             * File
+             * Format: binary
+             */
+            file: string;
+        };
+        /** Body_upload_import_qc_imports_post */
+        Body_upload_import_qc_imports_post: {
+            /**
+             * Auto Apply
+             * @default false
+             */
+            auto_apply: boolean;
+            /**
+             * File
+             * Format: binary
+             */
+            file: string;
+            /** Profile Id */
+            profile_id?: number | null;
+            /** Source Id */
+            source_id?: string | null;
+            /** Source Path */
+            source_path?: string | null;
+        };
         /** CapaIn */
         CapaIn: {
             /** Alert Id */
@@ -591,6 +987,8 @@ export interface components {
             preventive_actions?: {
                 [key: string]: components["schemas"]["JsonValue"];
             }[] | null;
+            /** Reason */
+            reason?: string | null;
             /** Root Cause Category */
             root_cause_category?: string | null;
             status?: components["schemas"]["CapaStatus"] | null;
@@ -651,14 +1049,113 @@ export interface components {
             /** Total */
             total: number;
         };
+        /**
+         * CollectorAction
+         * @enum {string}
+         */
+        CollectorAction: "move_to_sent" | "move_to_failed" | "retry_later" | "leave_in_place";
+        /**
+         * CollectorEventType
+         * @enum {string}
+         */
+        CollectorEventType: "discovered" | "uploaded" | "server_action_applied" | "failed";
+        /** CollectorTransferEventIn */
+        CollectorTransferEventIn: {
+            event_type: components["schemas"]["CollectorEventType"];
+            /** Message */
+            message?: string | null;
+            /** Payload */
+            payload?: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /** Source Path */
+            source_path?: string | null;
+            /** Status */
+            status: string;
+        };
+        /** CollectorTransferEventOut */
+        CollectorTransferEventOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            event_type: components["schemas"]["CollectorEventType"];
+            /** Id */
+            id: number;
+            /** Message */
+            message?: string | null;
+            /** Payload */
+            payload?: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /** Source Path */
+            source_path?: string | null;
+            /** Status */
+            status: string;
+            /** Transfer Id */
+            transfer_id: string;
+        };
+        /** ControlMaterialIn */
+        ControlMaterialIn: {
+            /**
+             * Active
+             * @default true
+             */
+            active: boolean;
+            /** Lot */
+            lot: string;
+            /** Manufacturer */
+            manufacturer?: string | null;
+            /** Matrix */
+            matrix?: string | null;
+            /** Name */
+            name: string;
+            /** Qc Level */
+            qc_level: string;
+        };
+        /** ControlMaterialOut */
+        ControlMaterialOut: {
+            /**
+             * Active
+             * @default true
+             */
+            active: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /** Id */
+            id: number;
+            /** Lot */
+            lot: string;
+            /** Manufacturer */
+            manufacturer?: string | null;
+            /** Matrix */
+            matrix?: string | null;
+            /** Name */
+            name: string;
+            /** Qc Level */
+            qc_level: string;
+        };
         /** CsvIngestResult */
         CsvIngestResult: {
             /** Accepted */
             accepted: number;
             /** Errors */
             errors: components["schemas"]["CsvRowError"][];
+            /**
+             * Quarantined
+             * @default 0
+             */
+            quarantined: number;
             /** Results */
-            results: components["schemas"]["IngestionResult"][];
+            results: (components["schemas"]["IngestionResult"] | components["schemas"]["QuarantineResult"])[];
         };
         /** CsvRowError */
         CsvRowError: {
@@ -666,6 +1163,14 @@ export interface components {
             error: string;
             /** Row */
             row: number;
+        };
+        /** CurrentUserOut */
+        CurrentUserOut: {
+            /** Api Key Id */
+            api_key_id: number | null;
+            /** Permissions */
+            permissions: components["schemas"]["Permission"][];
+            role: components["schemas"]["Role"];
         };
         /**
          * Disposition
@@ -700,6 +1205,194 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** ImportArtifactOut */
+        ImportArtifactOut: {
+            /** Archived Path */
+            archived_path: string;
+            /** Batch Id */
+            batch_id: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** File Hash */
+            file_hash: string;
+            /** Filename */
+            filename: string;
+            /** Id */
+            id: number;
+            /** Instrument Run Id */
+            instrument_run_id?: number | null;
+            /** Linked Import Row Id */
+            linked_import_row_id?: number | null;
+            role: components["schemas"]["ImportArtifactRole"];
+        };
+        /**
+         * ImportArtifactRole
+         * @enum {string}
+         */
+        ImportArtifactRole: "result_report" | "chromatogram_raw" | "chromatogram_pdf" | "peak_table" | "method_file" | "calibration_report" | "unknown";
+        /** ImportBatchDetailOut */
+        ImportBatchDetailOut: {
+            /** Applied Rows */
+            applied_rows: number;
+            /** Archived Path */
+            archived_path: string;
+            /** Artifact Count */
+            artifact_count: number;
+            /** Artifacts */
+            artifacts: components["schemas"]["ImportArtifactOut"][];
+            collector_action: components["schemas"]["CollectorAction"];
+            /** Created By */
+            created_by: string;
+            /** Exception Rows */
+            exception_rows: number;
+            /** Failure Reason */
+            failure_reason?: string | null;
+            /** File Hash */
+            file_hash: string;
+            /** File Size */
+            file_size: number;
+            /** Filename */
+            filename: string;
+            /** Id */
+            id: number;
+            /** Instrument Runs */
+            instrument_runs: components["schemas"]["InstrumentRunOut"][];
+            /** Parser Profile Id */
+            parser_profile_id?: number | null;
+            /** Parser Profile Version */
+            parser_profile_version?: number | null;
+            /** Peaks */
+            peaks: components["schemas"]["InstrumentPeakOut"][];
+            /** Ready Rows */
+            ready_rows: number;
+            /**
+             * Received At
+             * Format: date-time
+             */
+            received_at: string;
+            /** Rows */
+            rows: components["schemas"]["ImportRowOut"][];
+            /** Source Id */
+            source_id?: string | null;
+            /** Source Path */
+            source_path?: string | null;
+            status: components["schemas"]["ImportBatchStatus"];
+            /** Total Rows */
+            total_rows: number;
+        };
+        /** ImportBatchOut */
+        ImportBatchOut: {
+            /** Applied Rows */
+            applied_rows: number;
+            /** Archived Path */
+            archived_path: string;
+            /** Artifact Count */
+            artifact_count: number;
+            collector_action: components["schemas"]["CollectorAction"];
+            /** Created By */
+            created_by: string;
+            /** Exception Rows */
+            exception_rows: number;
+            /** Failure Reason */
+            failure_reason?: string | null;
+            /** File Hash */
+            file_hash: string;
+            /** File Size */
+            file_size: number;
+            /** Filename */
+            filename: string;
+            /** Id */
+            id: number;
+            /** Parser Profile Id */
+            parser_profile_id?: number | null;
+            /** Parser Profile Version */
+            parser_profile_version?: number | null;
+            /** Ready Rows */
+            ready_rows: number;
+            /**
+             * Received At
+             * Format: date-time
+             */
+            received_at: string;
+            /** Source Id */
+            source_id?: string | null;
+            /** Source Path */
+            source_path?: string | null;
+            status: components["schemas"]["ImportBatchStatus"];
+            /** Total Rows */
+            total_rows: number;
+        };
+        /**
+         * ImportBatchStatus
+         * @enum {string}
+         */
+        ImportBatchStatus: "received" | "failed_to_ingest" | "parsed_with_exceptions" | "ready_to_apply" | "partially_applied" | "applied";
+        /** ImportCreateOut */
+        ImportCreateOut: {
+            batch: components["schemas"]["ImportBatchDetailOut"];
+            collector_action: components["schemas"]["CollectorAction"];
+        };
+        /** ImportRowOut */
+        ImportRowOut: {
+            /** Batch Id */
+            batch_id: number;
+            /** Errors */
+            errors: string[];
+            /** Id */
+            id: number;
+            /** Idempotency Key */
+            idempotency_key: string;
+            /** Instrument Run Id */
+            instrument_run_id?: number | null;
+            /** Parsed Fields */
+            parsed_fields: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /** Qc Backlog Item Id */
+            qc_backlog_item_id?: number | null;
+            /** Qc Record Id */
+            qc_record_id?: number | null;
+            /** Quarantine Id */
+            quarantine_id?: number | null;
+            /** Raw */
+            raw: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /** Row Number */
+            row_number: number;
+            row_type: components["schemas"]["ImportRowType"];
+            status: components["schemas"]["ImportRowStatus"];
+            /** Stream Id */
+            stream_id?: string | null;
+            /** Warnings */
+            warnings: string[];
+        };
+        /**
+         * ImportRowStatus
+         * @enum {string}
+         */
+        ImportRowStatus: "ready_to_apply" | "needs_review" | "parse_error" | "ignored" | "applied" | "quarantined";
+        /**
+         * ImportRowType
+         * @enum {string}
+         */
+        ImportRowType: "qc_result" | "sample" | "event" | "peak" | "ignored" | "parse_error";
+        /** ImportRowUpdate */
+        ImportRowUpdate: {
+            /** Parsed Fields */
+            parsed_fields?: {
+                [key: string]: components["schemas"]["JsonValue"];
+            } | null;
+            /** Qc Backlog Item Id */
+            qc_backlog_item_id?: number | null;
+            /** Reason */
+            reason?: string | null;
+            /** Stream Id */
+            stream_id?: string | null;
+        };
         /** IngestionResult */
         IngestionResult: {
             alert_created: components["schemas"]["AlertOut"] | null;
@@ -718,6 +1411,8 @@ export interface components {
              * @default true
              */
             active: boolean;
+            /** Lab Bench */
+            lab_bench?: string | null;
             /** Manufacturer */
             manufacturer?: string | null;
             /** Model */
@@ -743,6 +1438,8 @@ export interface components {
             created_by: string;
             /** Id */
             id: number;
+            /** Lab Bench */
+            lab_bench?: string | null;
             /** Manufacturer */
             manufacturer?: string | null;
             /** Model */
@@ -752,10 +1449,61 @@ export interface components {
             /** Site */
             site?: string | null;
         };
+        /** InstrumentPeakOut */
+        InstrumentPeakOut: {
+            /** Analyte */
+            analyte?: string | null;
+            /** Area */
+            area?: number | null;
+            /** Artifact Id */
+            artifact_id?: number | null;
+            /** Batch Id */
+            batch_id: number;
+            /** Height */
+            height?: number | null;
+            /** Id */
+            id: number;
+            /** Import Row Id */
+            import_row_id?: number | null;
+            /** Peak Name */
+            peak_name?: string | null;
+            /** Raw */
+            raw: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /** Retention Time */
+            retention_time?: number | null;
+        };
+        /** InstrumentRunOut */
+        InstrumentRunOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: number;
+            /** Import Batch Id */
+            import_batch_id?: number | null;
+            /** Instrument */
+            instrument?: string | null;
+            /** Qc Backlog Item Id */
+            qc_backlog_item_id?: number | null;
+            /** Run Key */
+            run_key: string;
+            /** Source Id */
+            source_id?: string | null;
+            /** Started At */
+            started_at?: string | null;
+            /** Status */
+            status: string;
+        };
         /** InstrumentUpdate */
         InstrumentUpdate: {
             /** Active */
             active?: boolean | null;
+            /** Lab Bench */
+            lab_bench?: string | null;
             /** Manufacturer */
             manufacturer?: string | null;
             /** Model */
@@ -779,6 +1527,8 @@ export interface components {
             outcome?: string | null;
             /** Problem Statement */
             problem_statement: string;
+            /** Reason */
+            reason?: string | null;
             status?: components["schemas"]["InvestigationStatus"] | null;
             /** Suspected Cause */
             suspected_cause?: string | null;
@@ -828,6 +1578,115 @@ export interface components {
             total: number;
         };
         JsonValue: unknown;
+        /** KioskLayoutIn */
+        KioskLayoutIn: {
+            /**
+             * Active
+             * @default true
+             */
+            active: boolean;
+            /** Lab Bench */
+            lab_bench?: string | null;
+            /** Label */
+            label: string;
+            /** Site */
+            site?: string | null;
+            /** Slug */
+            slug: string;
+        };
+        /** KioskLayoutOut */
+        KioskLayoutOut: {
+            /**
+             * Active
+             * @default true
+             */
+            active: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /** Id */
+            id: number;
+            /** Lab Bench */
+            lab_bench?: string | null;
+            /** Label */
+            label: string;
+            /** Panels */
+            panels?: components["schemas"]["KioskPanelOut"][];
+            /** Site */
+            site?: string | null;
+            /** Slug */
+            slug: string;
+        };
+        /** KioskPanelIn */
+        KioskPanelIn: {
+            /**
+             * Active
+             * @default true
+             */
+            active: boolean;
+            /** Display Order */
+            display_order?: number | null;
+            /** End */
+            end?: string | null;
+            /**
+             * Mode
+             * @default both
+             * @enum {string}
+             */
+            mode: "results" | "risk" | "both";
+            /** Start */
+            start?: string | null;
+            /** Stream Id */
+            stream_id: string;
+            /** Title */
+            title: string;
+            /** Window Label */
+            window_label?: string | null;
+        };
+        /** KioskPanelOut */
+        KioskPanelOut: {
+            /**
+             * Active
+             * @default true
+             */
+            active: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /**
+             * Display Order
+             * @default 0
+             */
+            display_order: number;
+            /** End */
+            end?: string | null;
+            /** Id */
+            id: number;
+            /** Kiosk Id */
+            kiosk_id: number;
+            /**
+             * Mode
+             * @default both
+             * @enum {string}
+             */
+            mode: "results" | "risk" | "both";
+            /** Start */
+            start?: string | null;
+            /** Stream Id */
+            stream_id: string;
+            /** Title */
+            title: string;
+            /** Window Label */
+            window_label?: string | null;
+        };
         /** LotSegmentOut */
         LotSegmentOut: {
             /** Control Material Lot */
@@ -893,6 +1752,105 @@ export interface components {
             /** Technique */
             technique?: string | null;
         };
+        /** ParserProfileIn */
+        ParserProfileIn: {
+            /** Config */
+            config?: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /** File Extensions */
+            file_extensions?: string[];
+            /** Filename Patterns */
+            filename_patterns?: string[];
+            /** Instrument */
+            instrument?: string | null;
+            /** Name */
+            name: string;
+            profile_type: components["schemas"]["ParserProfileType"];
+            /** Signature */
+            signature?: string | null;
+            /** Source Id */
+            source_id?: string | null;
+            /** @default draft */
+            status: components["schemas"]["ParserProfileStatus"];
+        };
+        /** ParserProfileOut */
+        ParserProfileOut: {
+            /** Config */
+            config?: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /** File Extensions */
+            file_extensions?: string[];
+            /** Filename Patterns */
+            filename_patterns?: string[];
+            /** Id */
+            id: number;
+            /** Instrument */
+            instrument?: string | null;
+            /** Name */
+            name: string;
+            profile_type: components["schemas"]["ParserProfileType"];
+            /** Signature */
+            signature?: string | null;
+            /** Source Id */
+            source_id?: string | null;
+            /** @default draft */
+            status: components["schemas"]["ParserProfileStatus"];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Updated By */
+            updated_by?: string | null;
+            /** Version */
+            version: number;
+        };
+        /**
+         * ParserProfileStatus
+         * @enum {string}
+         */
+        ParserProfileStatus: "draft" | "active";
+        /**
+         * ParserProfileType
+         * @enum {string}
+         */
+        ParserProfileType: "delimited_direct" | "instrument_table_discovery" | "xml_mapping";
+        /** ParserProfileUpdate */
+        ParserProfileUpdate: {
+            /** Config */
+            config?: {
+                [key: string]: components["schemas"]["JsonValue"];
+            } | null;
+            /** File Extensions */
+            file_extensions?: string[] | null;
+            /** Filename Patterns */
+            filename_patterns?: string[] | null;
+            /** Instrument */
+            instrument?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Reason */
+            reason?: string | null;
+            /** Signature */
+            signature?: string | null;
+            /** Source Id */
+            source_id?: string | null;
+            status?: components["schemas"]["ParserProfileStatus"] | null;
+        };
+        /**
+         * Permission
+         * @enum {string}
+         */
+        Permission: "read" | "ingest_qc" | "edit_config" | "manage_imports" | "approve" | "override";
         /** PriorConfigIn */
         PriorConfigIn: {
             /** Alpha0 */
@@ -935,6 +1893,175 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** QCBacklogItemIn */
+        QCBacklogItemIn: {
+            /** Assigned To */
+            assigned_to?: string | null;
+            /** Assignment Group */
+            assignment_group?: string | null;
+            /**
+             * Due At
+             * Format: date-time
+             */
+            due_at: string;
+            /** Lab Bench */
+            lab_bench?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** @default routine */
+            priority: components["schemas"]["QCBacklogPriority"];
+            /** Reference Material Label */
+            reference_material_label?: string | null;
+            /** Requested By */
+            requested_by?: string | null;
+            source: components["schemas"]["QCBacklogSource"];
+            /** Stream Id */
+            stream_id: string;
+        };
+        /** QCBacklogItemOut */
+        QCBacklogItemOut: {
+            /** Analyte */
+            analyte: string;
+            /** Assigned To */
+            assigned_to?: string | null;
+            /** Assignment Group */
+            assignment_group?: string | null;
+            /** Completed At */
+            completed_at?: string | null;
+            /** Completed By */
+            completed_by?: string | null;
+            /** Completed Qc Record Id */
+            completed_qc_record_id?: number | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /**
+             * Due At
+             * Format: date-time
+             */
+            due_at: string;
+            /** Id */
+            id: number;
+            /** Instrument */
+            instrument: string;
+            /** Lab Bench */
+            lab_bench?: string | null;
+            /** Last Quarantine Id */
+            last_quarantine_id?: number | null;
+            /** Method */
+            method: string;
+            /** Notes */
+            notes?: string | null;
+            priority: components["schemas"]["QCBacklogPriority"];
+            /** Qc Level */
+            qc_level: string;
+            /** Reference Material Label */
+            reference_material_label?: string | null;
+            /** Reference Material Lot */
+            reference_material_lot: string;
+            /** Requested By */
+            requested_by?: string | null;
+            /** Site */
+            site?: string | null;
+            source: components["schemas"]["QCBacklogSource"];
+            /** Started At */
+            started_at?: string | null;
+            /** Started By */
+            started_by?: string | null;
+            status: components["schemas"]["QCBacklogStatus"];
+            /** Stream Id */
+            stream_id: string;
+            /** Units */
+            units: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** QCBacklogItemUpdate */
+        QCBacklogItemUpdate: {
+            /** Assigned To */
+            assigned_to?: string | null;
+            /** Assignment Group */
+            assignment_group?: string | null;
+            /** Due At */
+            due_at?: string | null;
+            /** Lab Bench */
+            lab_bench?: string | null;
+            /** Notes */
+            notes?: string | null;
+            priority?: components["schemas"]["QCBacklogPriority"] | null;
+            /** Reason */
+            reason?: string | null;
+            /** Reference Material Label */
+            reference_material_label?: string | null;
+            /** Started At */
+            started_at?: string | null;
+            status?: components["schemas"]["QCBacklogStatus"] | null;
+        };
+        /**
+         * QCBacklogPriority
+         * @enum {string}
+         */
+        QCBacklogPriority: "routine" | "soon" | "urgent";
+        /**
+         * QCBacklogSource
+         * @enum {string}
+         */
+        QCBacklogSource: "scheduled" | "requested";
+        /**
+         * QCBacklogStatus
+         * @enum {string}
+         */
+        QCBacklogStatus: "open" | "in_progress" | "completed" | "canceled";
+        /** QCCommentIn */
+        QCCommentIn: {
+            /** Body */
+            body: string;
+            /** Stream Id */
+            stream_id?: string | null;
+            /** Target Id */
+            target_id: string;
+            target_type: components["schemas"]["QCCommentTargetType"];
+        };
+        /** QCCommentOut */
+        QCCommentOut: {
+            /** Actor */
+            actor: string;
+            actor_role?: components["schemas"]["Role"] | null;
+            /** Alert Id */
+            alert_id?: string | null;
+            /** Api Key Id */
+            api_key_id?: number | null;
+            /** Body */
+            body: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: number;
+            /** Qc Record Id */
+            qc_record_id?: number | null;
+            /** Run Id */
+            run_id?: string | null;
+            /** Stream Id */
+            stream_id?: string | null;
+            /** Target Id */
+            target_id: string;
+            target_type: components["schemas"]["QCCommentTargetType"];
+        };
+        /**
+         * QCCommentTargetType
+         * @enum {string}
+         */
+        QCCommentTargetType: "qc_record" | "alert" | "qc_run";
         /** QCEventIn */
         QCEventIn: {
             /** Analyte */
@@ -1015,9 +2142,9 @@ export interface components {
             /** Analyte */
             analyte: string;
             /** Calibration Status */
-            calibration_status: string | null;
+            calibration_status?: string | null;
             /** Comments */
-            comments: string | null;
+            comments?: string | null;
             /** Control Material Lot */
             control_material_lot: string;
             /** @default automated */
@@ -1029,15 +2156,17 @@ export interface components {
             /** Method Id */
             method_id: string;
             /** Operator Id */
-            operator_id: string | null;
+            operator_id?: string | null;
+            /** Qc Backlog Item Id */
+            qc_backlog_item_id?: number | null;
             /** Qc Level */
             qc_level: string;
             /** Reagent Lot */
-            reagent_lot: string | null;
+            reagent_lot?: string | null;
             /** Result Value */
             result_value: number;
             /** Run Id */
-            run_id: string | null;
+            run_id?: string | null;
             /** Stream Id */
             stream_id: string;
             /**
@@ -1052,9 +2181,52 @@ export interface components {
         QCRecordOut: {
             bayesian_risk: components["schemas"]["BayesianRisk"];
             disposition: components["schemas"]["Disposition"];
+            /** Id */
+            id?: number | null;
             record: components["schemas"]["QCRecordIn"];
             /** Signals */
             signals: components["schemas"]["FrequentistSignal"][];
+        };
+        /** QCRecordQuarantineOut */
+        QCRecordQuarantineOut: {
+            /** Actor */
+            actor: string;
+            actor_role?: components["schemas"]["Role"] | null;
+            /** Api Key Id */
+            api_key_id?: number | null;
+            /** Context */
+            context: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Failures */
+            failures: components["schemas"]["QuarantineFailureOut"][];
+            /** Id */
+            id: number;
+            /** Idempotency Key */
+            idempotency_key?: string | null;
+            /** Payload */
+            payload: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /** Qc Record Id */
+            qc_record_id?: number | null;
+            reason: components["schemas"]["QuarantineReason"];
+            /** Reason Detail */
+            reason_detail: string;
+            /** Review Reason */
+            review_reason?: string | null;
+            /** Reviewed At */
+            reviewed_at?: string | null;
+            /** Reviewed By */
+            reviewed_by?: string | null;
+            status: components["schemas"]["QuarantineStatus"];
+            /** Stream Id */
+            stream_id?: string | null;
         };
         /** QCRecordResolutionIn */
         QCRecordResolutionIn: {
@@ -1085,12 +2257,55 @@ export interface components {
              */
             timestamp: string;
         };
+        /** QuarantineFailureOut */
+        QuarantineFailureOut: {
+            /** Detail */
+            detail: string;
+            /** Field */
+            field?: string | null;
+            reason: components["schemas"]["QuarantineReason"];
+        };
+        /**
+         * QuarantineReason
+         * @enum {string}
+         */
+        QuarantineReason: "out_of_bounds" | "unit_mismatch" | "suspicious_timestamp" | "mapping_failure";
+        /** QuarantineResult */
+        QuarantineResult: {
+            audit_entry: components["schemas"]["AuditEntryOut"];
+            /** Idempotency Key */
+            idempotency_key?: string | null;
+            quarantine: components["schemas"]["QCRecordQuarantineOut"];
+            /**
+             * Status
+             * @default quarantined
+             * @constant
+             * @enum {string}
+             */
+            status: "quarantined";
+        };
+        /** QuarantineReviewIn */
+        QuarantineReviewIn: {
+            /** Review Reason */
+            review_reason: string;
+            status: components["schemas"]["QuarantineStatus"];
+        };
+        /**
+         * QuarantineStatus
+         * @enum {string}
+         */
+        QuarantineStatus: "open" | "reviewed" | "rejected";
         /** ReportSummaryOut */
         ReportSummaryOut: {
             alerts: components["schemas"]["AlertSummary"];
             capas: components["schemas"]["CapaSummary"];
             investigations: components["schemas"]["InvestigationSummary"];
         };
+        /**
+         * Role
+         * @enum {string}
+         */
+        Role: "qc_analyst" | "supervisor" | "qa_manager" | "admin" | "auditor" | "data_steward";
         /**
          * SignalSeverity
          * @enum {string}
@@ -1130,12 +2345,16 @@ export interface components {
             bayes_warn_consecutive?: number | null;
             /** Bayes Warn Prob Threshold */
             bayes_warn_prob_threshold?: number | null;
+            /** Control Material Id */
+            control_material_id?: number | null;
             /** Control Material Lot */
             control_material_lot: string;
             /** Effective From */
             effective_from?: string | null;
             /** Instrument */
             instrument: string;
+            /** Lab Bench */
+            lab_bench?: string | null;
             /** Matrix */
             matrix?: string | null;
             /** Max Value */
@@ -1203,6 +2422,8 @@ export interface components {
             bayes_warn_consecutive?: number | null;
             /** Bayes Warn Prob Threshold */
             bayes_warn_prob_threshold?: number | null;
+            /** Control Material Id */
+            control_material_id?: number | null;
             /** Control Material Lot */
             control_material_lot: string;
             /**
@@ -1219,6 +2440,8 @@ export interface components {
             effective_from: string;
             /** Instrument */
             instrument: string;
+            /** Lab Bench */
+            lab_bench?: string | null;
             /** Matrix */
             matrix?: string | null;
             /** Max Value */
@@ -1264,6 +2487,189 @@ export interface components {
              * @default 2
              */
             warning_limit_sd: number;
+        };
+        /** StreamSetupAction */
+        StreamSetupAction: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "create" | "reuse" | "version" | "append";
+            /** Detail */
+            detail: string;
+            /** Entity */
+            entity: string;
+        };
+        /** StreamSetupApplyOut */
+        StreamSetupApplyOut: {
+            /** Applied */
+            applied: number;
+            /** Rows */
+            rows: components["schemas"]["StreamSetupApplyRow"][];
+        };
+        /** StreamSetupApplyRow */
+        StreamSetupApplyRow: {
+            /** Actions */
+            actions: components["schemas"]["StreamSetupAction"][];
+            control_material: components["schemas"]["ControlMaterialOut"];
+            kiosk?: components["schemas"]["KioskLayoutOut"] | null;
+            prior: components["schemas"]["PriorConfigOut"];
+            /** Row */
+            row: number;
+            stream: components["schemas"]["StreamConfigOut"];
+            /** Stream Id */
+            stream_id: string;
+        };
+        /** StreamSetupBatchIn */
+        StreamSetupBatchIn: {
+            /** Rows */
+            rows: components["schemas"]["StreamSetupIn"][];
+        };
+        /** StreamSetupIn */
+        StreamSetupIn: {
+            /**
+             * Action Limit Sd
+             * @default 3
+             */
+            action_limit_sd: number;
+            /**
+             * Bayes Hold Consecutive
+             * @default 2
+             */
+            bayes_hold_consecutive: number | null;
+            /**
+             * Bayes Hold Prob Threshold
+             * @default 0.8
+             */
+            bayes_hold_prob_threshold: number | null;
+            /**
+             * Bayes Warn Consecutive
+             * @default 1
+             */
+            bayes_warn_consecutive: number | null;
+            /**
+             * Bayes Warn Prob Threshold
+             * @default 0.25
+             */
+            bayes_warn_prob_threshold: number | null;
+            /** Config Reason */
+            config_reason?: string | null;
+            /** Control Material Lot */
+            control_material_lot: string;
+            /** Effective From */
+            effective_from?: string | null;
+            /** Instrument Manufacturer */
+            instrument_manufacturer?: string | null;
+            /** Instrument Model */
+            instrument_model?: string | null;
+            /** Instrument Name */
+            instrument_name: string;
+            kiosk?: components["schemas"]["StreamSetupKioskAssignment"] | null;
+            /** Lab Bench */
+            lab_bench?: string | null;
+            /** Material Manufacturer */
+            material_manufacturer?: string | null;
+            /** Material Name */
+            material_name: string;
+            /** Matrix */
+            matrix?: string | null;
+            /** Max Value */
+            max_value?: number | null;
+            /** Method Name */
+            method_name: string;
+            /** Method Technique */
+            method_technique?: string | null;
+            /** Min Value */
+            min_value?: number | null;
+            /** Parameter Name */
+            parameter_name: string;
+            /**
+             * Prior Alpha0
+             * @default 2
+             */
+            prior_alpha0: number;
+            /** Prior Beta0 */
+            prior_beta0?: number | null;
+            /** Prior Effective From */
+            prior_effective_from?: string | null;
+            /**
+             * Prior Kappa0
+             * @default 1
+             */
+            prior_kappa0: number;
+            /** Prior Mu0 */
+            prior_mu0?: number | null;
+            /** Qc Level */
+            qc_level: string;
+            /**
+             * Risk Threshold Hold
+             * @default 80
+             */
+            risk_threshold_hold: number;
+            /**
+             * Risk Threshold Warn
+             * @default 50
+             */
+            risk_threshold_warn: number;
+            /** Sigma */
+            sigma: number;
+            /** Site */
+            site?: string | null;
+            /** Stream Id */
+            stream_id: string;
+            /** Target Value */
+            target_value: number;
+            /** Units */
+            units: string;
+            /**
+             * Warning Limit Sd
+             * @default 2
+             */
+            warning_limit_sd: number;
+        };
+        /** StreamSetupKioskAssignment */
+        StreamSetupKioskAssignment: {
+            /** Kiosk Label */
+            kiosk_label?: string | null;
+            /** Kiosk Slug */
+            kiosk_slug?: string | null;
+            /**
+             * Mode
+             * @default both
+             * @enum {string}
+             */
+            mode: "results" | "risk" | "both";
+            /** Panel End */
+            panel_end?: string | null;
+            /** Panel Start */
+            panel_start?: string | null;
+            /** Panel Title */
+            panel_title?: string | null;
+            /** Panel Window Label */
+            panel_window_label?: string | null;
+        };
+        /** StreamSetupPreviewOut */
+        StreamSetupPreviewOut: {
+            /** Invalid */
+            invalid: number;
+            /** Rows */
+            rows: components["schemas"]["StreamSetupPreviewRow"][];
+            /** Valid */
+            valid: number;
+        };
+        /** StreamSetupPreviewRow */
+        StreamSetupPreviewRow: {
+            /** Actions */
+            actions?: components["schemas"]["StreamSetupAction"][];
+            canonical?: components["schemas"]["StreamSetupIn"] | null;
+            /** Errors */
+            errors?: string[];
+            /** Row */
+            row: number;
+            /** Stream Id */
+            stream_id: string;
+            /** Valid */
+            valid: boolean;
         };
         /** ValidationError */
         ValidationError: {
@@ -1593,6 +2999,74 @@ export interface operations {
             };
         };
     };
+    list_control_materials_control_materials_get: {
+        parameters: {
+            query?: {
+                active?: boolean | null;
+            };
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ControlMaterialOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_control_material_control_materials_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ControlMaterialIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ControlMaterialOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_instruments_instruments_get: {
         parameters: {
             query?: {
@@ -1803,6 +3277,177 @@ export interface operations {
             };
         };
     };
+    list_kiosk_layouts_kiosks_get: {
+        parameters: {
+            query?: {
+                active?: boolean | null;
+                site?: string | null;
+                lab_bench?: string | null;
+            };
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KioskLayoutOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_kiosk_layout_kiosks_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KioskLayoutIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KioskLayoutOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_kiosk_layout_kiosks__slug__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KioskLayoutOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    append_panel_kiosks__slug__panels_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KioskPanelIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KioskLayoutOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    current_user_me_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentUserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_methods_methods_get: {
         parameters: {
             query?: {
@@ -1909,6 +3554,264 @@ export interface operations {
             };
         };
     };
+    list_qc_backlog_qc_backlog_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["QCBacklogStatus"][] | null;
+                source?: components["schemas"]["QCBacklogSource"] | null;
+                instrument?: string | null;
+                lab_bench?: string | null;
+                assignment_group?: string | null;
+                assigned_to?: string | null;
+                stream_id?: string | null;
+                due_from?: string | null;
+                due_to?: string | null;
+                limit?: number;
+            };
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QCBacklogItemOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_qc_backlog_item_qc_backlog_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QCBacklogItemIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QCBacklogItemOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_qc_backlog_item_qc_backlog__item_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                item_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QCBacklogItemOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_qc_backlog_item_qc_backlog__item_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                item_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QCBacklogItemUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QCBacklogItemOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_collector_transfer_event_qc_collector_transfers__transfer_id__events_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                transfer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectorTransferEventIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectorTransferEventOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_qc_comments_qc_comments_get: {
+        parameters: {
+            query?: {
+                target_type?: components["schemas"]["QCCommentTargetType"] | null;
+                target_id?: string | null;
+                stream_id?: string | null;
+                qc_record_id?: number | null;
+                alert_id?: string | null;
+                run_id?: string | null;
+                limit?: number;
+            };
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QCCommentOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_qc_comment_qc_comments_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QCCommentIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QCCommentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_events_qc_events_get: {
         parameters: {
             query?: {
@@ -1979,6 +3882,354 @@ export interface operations {
             };
         };
     };
+    list_import_profiles_qc_import_profiles_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["ParserProfileStatus"] | null;
+            };
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParserProfileOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_import_profile_qc_import_profiles_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ParserProfileIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParserProfileOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_import_profile_qc_import_profiles__profile_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                profile_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ParserProfileUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParserProfileOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_import_batches_qc_imports_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["ImportBatchStatus"] | null;
+                limit?: number;
+            };
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatchOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_import_qc_imports_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_import_qc_imports_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportCreateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_import_row_qc_imports_rows__row_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                row_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportRowUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportRowOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_import_batch_qc_imports__batch_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                batch_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatchDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    apply_import_batch_qc_imports__batch_id__apply_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                batch_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatchDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_qc_quarantine_qc_quarantine_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["QuarantineStatus"];
+                limit?: number;
+            };
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QCRecordQuarantineOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    review_qc_quarantine_qc_quarantine__quarantine_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                quarantine_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuarantineReviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QCRecordQuarantineOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     ingest_qc_record_qc_records_post: {
         parameters: {
             query?: never;
@@ -2001,7 +4252,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IngestionResult"];
+                    "application/json": components["schemas"]["IngestionResult"] | components["schemas"]["QuarantineResult"];
                 };
             };
             /** @description Validation Error */
@@ -2118,9 +4369,148 @@ export interface operations {
             };
         };
     };
-    list_streams_streams_get: {
+    apply_datastream_setup_stream_setups_apply_post: {
         parameters: {
             query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StreamSetupBatchIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StreamSetupApplyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_datastream_import_stream_setups_import_preview_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_preview_datastream_import_stream_setups_import_preview_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StreamSetupPreviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_datastream_setup_stream_setups_preview_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StreamSetupBatchIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StreamSetupPreviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_datastream_template_stream_setups_template_xlsx_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_streams_streams_get: {
+        parameters: {
+            query?: {
+                site?: string | null;
+                lab_bench?: string | null;
+            };
             header?: {
                 "X-API-Key"?: string | null;
             };

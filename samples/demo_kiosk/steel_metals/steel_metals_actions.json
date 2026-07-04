@@ -1,0 +1,208 @@
+{
+  "backlog": [
+    {
+      "action_id": "steel_metals:demo-steel_metals-oes-spark-01-manganese:open",
+      "assigned_to": null,
+      "assignment_group": "steel_metals demo group",
+      "due_offset_hours": -6,
+      "lab_bench": "steel_metals demo bench",
+      "notes": "synthetic demo_action_id=steel_metals:demo-steel_metals-oes-spark-01-manganese:open",
+      "priority": "soon",
+      "reference_material_label": "Heat chemistry QC",
+      "requested_by": "demo-fixture-generator",
+      "status": "open",
+      "stream_id": "demo-steel_metals-oes-spark-01-manganese"
+    },
+    {
+      "action_id": "steel_metals:demo-steel_metals-oes-spark-01-manganese:completed",
+      "assigned_to": null,
+      "assignment_group": "steel_metals demo group",
+      "completion_record": {
+        "analyte": "Manganese",
+        "calibration_status": "ok",
+        "comments": "completed synthetic scheduled QC for steel_metals",
+        "control_material_lot": "STE-02-A",
+        "entry_source": "manual",
+        "flags": [],
+        "instrument_id": "OES Spark-01",
+        "method_id": "OES Chemistry",
+        "operator_id": "demo-backlog",
+        "qc_level": "Heat chemistry QC",
+        "reagent_lot": "STE-BACKLOG",
+        "result_value": 1.35,
+        "run_id": "demo-backlog-demo-steel-metals-oes-spark-01-manganese",
+        "stream_id": "demo-steel_metals-oes-spark-01-manganese",
+        "units": "% mass"
+      },
+      "due_offset_hours": -3,
+      "lab_bench": "steel_metals demo bench",
+      "notes": "synthetic demo_action_id=steel_metals:demo-steel_metals-oes-spark-01-manganese:completed",
+      "priority": "soon",
+      "reference_material_label": "Heat chemistry QC",
+      "requested_by": "demo-fixture-generator",
+      "status": "completed",
+      "stream_id": "demo-steel_metals-oes-spark-01-manganese"
+    },
+    {
+      "action_id": "steel_metals:demo-steel_metals-cs-burn-02-high-carbon:open",
+      "assigned_to": null,
+      "assignment_group": "steel_metals demo group",
+      "due_offset_hours": -6,
+      "lab_bench": "steel_metals demo bench",
+      "notes": "synthetic demo_action_id=steel_metals:demo-steel_metals-cs-burn-02-high-carbon:open",
+      "priority": "soon",
+      "reference_material_label": "C/S QC",
+      "requested_by": "demo-fixture-generator",
+      "status": "open",
+      "stream_id": "demo-steel_metals-cs-burn-02-high-carbon"
+    },
+    {
+      "action_id": "steel_metals:demo-steel_metals-cs-burn-02-high-carbon:completed",
+      "assigned_to": null,
+      "assignment_group": "steel_metals demo group",
+      "completion_record": {
+        "analyte": "High Carbon",
+        "calibration_status": "ok",
+        "comments": "completed synthetic scheduled QC for steel_metals",
+        "control_material_lot": "STE-08-A",
+        "entry_source": "manual",
+        "flags": [],
+        "instrument_id": "CS Burn-02",
+        "method_id": "Combustion C/S",
+        "operator_id": "demo-backlog",
+        "qc_level": "C/S QC",
+        "reagent_lot": "STE-BACKLOG",
+        "result_value": 0.88,
+        "run_id": "demo-backlog-demo-steel-metals-cs-burn-02-high-carbon",
+        "stream_id": "demo-steel_metals-cs-burn-02-high-carbon",
+        "units": "% mass"
+      },
+      "due_offset_hours": -3,
+      "lab_bench": "steel_metals demo bench",
+      "notes": "synthetic demo_action_id=steel_metals:demo-steel_metals-cs-burn-02-high-carbon:completed",
+      "priority": "soon",
+      "reference_material_label": "C/S QC",
+      "requested_by": "demo-fixture-generator",
+      "status": "completed",
+      "stream_id": "demo-steel_metals-cs-burn-02-high-carbon"
+    }
+  ],
+  "exclusions": [
+    {
+      "reason": "steel_metals demo excludes a known bad point",
+      "result_value": 0.2004,
+      "run_id": "steel_metals-001-009",
+      "stream_id": "demo-steel_metals-oes-spark-01-carbon",
+      "timestamp": "2026-02-24T00:05:00Z"
+    },
+    {
+      "reason": "steel_metals demo excludes a known bad point",
+      "result_value": 0.0212,
+      "run_id": "steel_metals-007-011",
+      "stream_id": "demo-steel_metals-cs-burn-02-sulfur",
+      "timestamp": "2026-02-24T04:05:00Z"
+    },
+    {
+      "reason": "steel_metals demo excludes a known bad point",
+      "result_value": 375.4,
+      "run_id": "steel_metals-013-009",
+      "stream_id": "demo-steel_metals-tensile-t-04-yield-strength",
+      "timestamp": "2026-02-24T00:05:00Z"
+    },
+    {
+      "reason": "steel_metals demo excludes a known bad point",
+      "result_value": 39.48,
+      "run_id": "steel_metals-019-011",
+      "stream_id": "demo-steel_metals-impact-i-05-charpy-lateral",
+      "timestamp": "2026-02-24T04:05:00Z"
+    }
+  ],
+  "family_id": "steel_metals",
+  "quarantine_examples": [
+    {
+      "action_id": "steel_metals:demo-steel_metals-oes-spark-01-silicon:unit",
+      "kind": "unit_mismatch",
+      "payload": {
+        "analyte": "Silicon",
+        "calibration_status": "ok",
+        "comments": "synthetic unit mismatch quarantine",
+        "control_material_lot": "STE-03-A",
+        "entry_source": "manual",
+        "flags": [],
+        "instrument_id": "OES Spark-01",
+        "method_id": "OES Chemistry",
+        "operator_id": "demo-quarantine",
+        "qc_level": "Heat chemistry QC",
+        "reagent_lot": "STE-QUAR",
+        "result_value": 0.28,
+        "run_id": "demo-quarantine-unit-demo-steel-metals-oes-spark-01-silicon",
+        "stream_id": "demo-steel_metals-oes-spark-01-silicon",
+        "units": "wrong-% mass"
+      }
+    },
+    {
+      "action_id": "steel_metals:demo-steel_metals-oes-spark-01-silicon:future",
+      "kind": "future_timestamp",
+      "payload": {
+        "analyte": "Silicon",
+        "calibration_status": "ok",
+        "comments": "synthetic future timestamp quarantine",
+        "control_material_lot": "STE-03-A",
+        "entry_source": "manual",
+        "flags": [],
+        "instrument_id": "OES Spark-01",
+        "method_id": "OES Chemistry",
+        "operator_id": "demo-quarantine",
+        "qc_level": "Heat chemistry QC",
+        "reagent_lot": "STE-QUAR",
+        "result_value": 0.28,
+        "run_id": "demo-quarantine-future-demo-steel-metals-oes-spark-01-silicon",
+        "stream_id": "demo-steel_metals-oes-spark-01-silicon",
+        "units": "% mass"
+      }
+    },
+    {
+      "action_id": "steel_metals:demo-steel_metals-hardness-h-03-rockwell-b:unit",
+      "kind": "unit_mismatch",
+      "payload": {
+        "analyte": "Rockwell B",
+        "calibration_status": "ok",
+        "comments": "synthetic unit mismatch quarantine",
+        "control_material_lot": "STE-09-A",
+        "entry_source": "manual",
+        "flags": [],
+        "instrument_id": "Hardness H-03",
+        "method_id": "Hardness",
+        "operator_id": "demo-quarantine",
+        "qc_level": "Hardness QC",
+        "reagent_lot": "STE-QUAR",
+        "result_value": 82,
+        "run_id": "demo-quarantine-unit-demo-steel-metals-hardness-h-03-rockwell-b",
+        "stream_id": "demo-steel_metals-hardness-h-03-rockwell-b",
+        "units": "wrong-HRB"
+      }
+    },
+    {
+      "action_id": "steel_metals:demo-steel_metals-hardness-h-03-rockwell-b:future",
+      "kind": "future_timestamp",
+      "payload": {
+        "analyte": "Rockwell B",
+        "calibration_status": "ok",
+        "comments": "synthetic future timestamp quarantine",
+        "control_material_lot": "STE-09-A",
+        "entry_source": "manual",
+        "flags": [],
+        "instrument_id": "Hardness H-03",
+        "method_id": "Hardness",
+        "operator_id": "demo-quarantine",
+        "qc_level": "Hardness QC",
+        "reagent_lot": "STE-QUAR",
+        "result_value": 82,
+        "run_id": "demo-quarantine-future-demo-steel-metals-hardness-h-03-rockwell-b",
+        "stream_id": "demo-steel_metals-hardness-h-03-rockwell-b",
+        "units": "HRB"
+      }
+    }
+  ],
+  "synthetic_data_notice": "Synthetic demo data only; not validated ASTM, manufacturer, clinical, pharmacological, or regulatory reference data."
+}

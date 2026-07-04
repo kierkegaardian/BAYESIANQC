@@ -1,0 +1,361 @@
+{
+  "families": {
+    "fuel_astm": {
+      "label": "Fuel ASTM Demo",
+      "panels": [
+        {
+          "end": "2026-02-05",
+          "start": "2026-02-02",
+          "streamId": "demo-fuel_astm-optidist-fuel-01-d86-ibp",
+          "title": "D86 IBP - OptiDist Fuel-01",
+          "windowLabel": "Feb 2-5, 2026"
+        },
+        {
+          "end": "2026-02-05",
+          "start": "2026-02-02",
+          "streamId": "demo-fuel_astm-optidist-fuel-01-d86-10-recovered",
+          "title": "D86 10% Recovered - OptiDist Fuel-01",
+          "windowLabel": "Feb 2-5, 2026"
+        },
+        {
+          "end": "2026-02-05",
+          "start": "2026-02-02",
+          "streamId": "demo-fuel_astm-optidist-fuel-01-d86-50-recovered",
+          "title": "D86 50% Recovered - OptiDist Fuel-01",
+          "windowLabel": "Feb 2-5, 2026"
+        },
+        {
+          "end": "2026-02-05",
+          "start": "2026-02-02",
+          "streamId": "demo-fuel_astm-optidist-fuel-01-d86-90-recovered",
+          "title": "D86 90% Recovered - OptiDist Fuel-01",
+          "windowLabel": "Feb 2-5, 2026"
+        },
+        {
+          "end": "2026-02-05",
+          "start": "2026-02-02",
+          "streamId": "demo-fuel_astm-flashcheck-fuel-02-pensky-flash-point",
+          "title": "Pensky Flash Point - FlashCheck Fuel-02",
+          "windowLabel": "Feb 2-5, 2026"
+        },
+        {
+          "end": "2026-02-05",
+          "start": "2026-02-02",
+          "streamId": "demo-fuel_astm-flashcheck-fuel-02-low-flash-solvent",
+          "title": "Low Flash Solvent - FlashCheck Fuel-02",
+          "windowLabel": "Feb 2-5, 2026"
+        },
+        {
+          "end": "2026-02-05",
+          "start": "2026-02-02",
+          "streamId": "demo-fuel_astm-flashcheck-fuel-02-fire-point",
+          "title": "Fire Point - FlashCheck Fuel-02",
+          "windowLabel": "Feb 2-5, 2026"
+        },
+        {
+          "end": "2026-02-05",
+          "start": "2026-02-02",
+          "streamId": "demo-fuel_astm-sindie-fuel-03-total-sulfur",
+          "title": "Total Sulfur - Sindie Fuel-03",
+          "windowLabel": "Feb 2-5, 2026"
+        },
+        {
+          "end": "2026-02-05",
+          "start": "2026-02-02",
+          "streamId": "demo-fuel_astm-sindie-fuel-03-ulsd-sulfur",
+          "title": "ULSD Sulfur - Sindie Fuel-03",
+          "windowLabel": "Feb 2-5, 2026"
+        },
+        {
+          "end": "2026-02-05",
+          "start": "2026-02-02",
+          "streamId": "demo-fuel_astm-sindie-fuel-03-crude-sulfur",
+          "title": "Crude Sulfur - Sindie Fuel-03",
+          "windowLabel": "Feb 2-5, 2026"
+        },
+        {
+          "end": "2026-02-05",
+          "start": "2026-02-02",
+          "streamId": "demo-fuel_astm-densitypro-fuel-04-density-15c",
+          "title": "Density 15C - DensityPro Fuel-04",
+          "windowLabel": "Feb 2-5, 2026"
+        },
+        {
+          "end": "2026-02-05",
+          "start": "2026-02-02",
+          "streamId": "demo-fuel_astm-densitypro-fuel-04-api-gravity",
+          "title": "API Gravity - DensityPro Fuel-04",
+          "windowLabel": "Feb 2-5, 2026"
+        }
+      ]
+    },
+    "medical_clinical": {
+      "label": "Medical QC Demo",
+      "panels": [
+        {
+          "end": "2026-02-12",
+          "start": "2026-02-09",
+          "streamId": "demo-medical_clinical-chemmax-c8000-glucose",
+          "title": "Glucose - ChemMax C8000",
+          "windowLabel": "Feb 9-12, 2026"
+        },
+        {
+          "end": "2026-02-12",
+          "start": "2026-02-09",
+          "streamId": "demo-medical_clinical-chemmax-c8000-creatinine",
+          "title": "Creatinine - ChemMax C8000",
+          "windowLabel": "Feb 9-12, 2026"
+        },
+        {
+          "end": "2026-02-12",
+          "start": "2026-02-09",
+          "streamId": "demo-medical_clinical-chemmax-c8000-sodium",
+          "title": "Sodium - ChemMax C8000",
+          "windowLabel": "Feb 9-12, 2026"
+        },
+        {
+          "end": "2026-02-12",
+          "start": "2026-02-09",
+          "streamId": "demo-medical_clinical-chemmax-c8000-potassium",
+          "title": "Potassium - ChemMax C8000",
+          "windowLabel": "Feb 9-12, 2026"
+        },
+        {
+          "end": "2026-02-12",
+          "start": "2026-02-09",
+          "streamId": "demo-medical_clinical-a1ctrack-h900-hba1c-low",
+          "title": "HbA1c Low - A1cTrack H900",
+          "windowLabel": "Feb 9-12, 2026"
+        },
+        {
+          "end": "2026-02-12",
+          "start": "2026-02-09",
+          "streamId": "demo-medical_clinical-a1ctrack-h900-hba1c-high",
+          "title": "HbA1c High - A1cTrack H900",
+          "windowLabel": "Feb 9-12, 2026"
+        },
+        {
+          "end": "2026-02-12",
+          "start": "2026-02-09",
+          "streamId": "demo-medical_clinical-a1ctrack-h900-fructosamine",
+          "title": "Fructosamine - A1cTrack H900",
+          "windowLabel": "Feb 9-12, 2026"
+        },
+        {
+          "end": "2026-02-12",
+          "start": "2026-02-09",
+          "streamId": "demo-medical_clinical-hemeflow-xn-20-wbc",
+          "title": "WBC - HemeFlow XN-20",
+          "windowLabel": "Feb 9-12, 2026"
+        },
+        {
+          "end": "2026-02-12",
+          "start": "2026-02-09",
+          "streamId": "demo-medical_clinical-hemeflow-xn-20-rbc",
+          "title": "RBC - HemeFlow XN-20",
+          "windowLabel": "Feb 9-12, 2026"
+        },
+        {
+          "end": "2026-02-12",
+          "start": "2026-02-09",
+          "streamId": "demo-medical_clinical-hemeflow-xn-20-hemoglobin",
+          "title": "Hemoglobin - HemeFlow XN-20",
+          "windowLabel": "Feb 9-12, 2026"
+        },
+        {
+          "end": "2026-02-12",
+          "start": "2026-02-09",
+          "streamId": "demo-medical_clinical-hemeflow-xn-20-platelets",
+          "title": "Platelets - HemeFlow XN-20",
+          "windowLabel": "Feb 9-12, 2026"
+        },
+        {
+          "end": "2026-02-12",
+          "start": "2026-02-09",
+          "streamId": "demo-medical_clinical-coagstar-cs-1-pt",
+          "title": "PT - CoagStar CS-1",
+          "windowLabel": "Feb 9-12, 2026"
+        }
+      ]
+    },
+    "pharma_qc": {
+      "label": "Pharma QC Demo",
+      "panels": [
+        {
+          "end": "2026-02-19",
+          "start": "2026-02-16",
+          "streamId": "demo-pharma_qc-hplc-assay-01-api-potency",
+          "title": "API Potency - HPLC Assay-01",
+          "windowLabel": "Feb 16-19, 2026"
+        },
+        {
+          "end": "2026-02-19",
+          "start": "2026-02-16",
+          "streamId": "demo-pharma_qc-hplc-assay-01-preservative-a",
+          "title": "Preservative A - HPLC Assay-01",
+          "windowLabel": "Feb 16-19, 2026"
+        },
+        {
+          "end": "2026-02-19",
+          "start": "2026-02-16",
+          "streamId": "demo-pharma_qc-hplc-assay-01-degradant-total",
+          "title": "Degradant Total - HPLC Assay-01",
+          "windowLabel": "Feb 16-19, 2026"
+        },
+        {
+          "end": "2026-02-19",
+          "start": "2026-02-16",
+          "streamId": "demo-pharma_qc-hplc-assay-01-related-substance-a",
+          "title": "Related Substance A - HPLC Assay-01",
+          "windowLabel": "Feb 16-19, 2026"
+        },
+        {
+          "end": "2026-02-19",
+          "start": "2026-02-16",
+          "streamId": "demo-pharma_qc-uplc-impurity-02-impurity-b",
+          "title": "Impurity B - UPLC Impurity-02",
+          "windowLabel": "Feb 16-19, 2026"
+        },
+        {
+          "end": "2026-02-19",
+          "start": "2026-02-16",
+          "streamId": "demo-pharma_qc-uplc-impurity-02-impurity-c",
+          "title": "Impurity C - UPLC Impurity-02",
+          "windowLabel": "Feb 16-19, 2026"
+        },
+        {
+          "end": "2026-02-19",
+          "start": "2026-02-16",
+          "streamId": "demo-pharma_qc-uplc-impurity-02-main-peak-purity",
+          "title": "Main Peak Purity - UPLC Impurity-02",
+          "windowLabel": "Feb 16-19, 2026"
+        },
+        {
+          "end": "2026-02-19",
+          "start": "2026-02-16",
+          "streamId": "demo-pharma_qc-uplc-impurity-02-resolution-r1",
+          "title": "Resolution R1 - UPLC Impurity-02",
+          "windowLabel": "Feb 16-19, 2026"
+        },
+        {
+          "end": "2026-02-19",
+          "start": "2026-02-16",
+          "streamId": "demo-pharma_qc-dissolution-dt-03-dissolution-15-min",
+          "title": "Dissolution 15 min - Dissolution DT-03",
+          "windowLabel": "Feb 16-19, 2026"
+        },
+        {
+          "end": "2026-02-19",
+          "start": "2026-02-16",
+          "streamId": "demo-pharma_qc-dissolution-dt-03-dissolution-30-min",
+          "title": "Dissolution 30 min - Dissolution DT-03",
+          "windowLabel": "Feb 16-19, 2026"
+        },
+        {
+          "end": "2026-02-19",
+          "start": "2026-02-16",
+          "streamId": "demo-pharma_qc-dissolution-dt-03-dissolution-45-min",
+          "title": "Dissolution 45 min - Dissolution DT-03",
+          "windowLabel": "Feb 16-19, 2026"
+        },
+        {
+          "end": "2026-02-19",
+          "start": "2026-02-16",
+          "streamId": "demo-pharma_qc-kf-aqua-04-water-content",
+          "title": "Water Content - KF Aqua-04",
+          "windowLabel": "Feb 16-19, 2026"
+        }
+      ]
+    },
+    "steel_metals": {
+      "label": "Steel Metals Demo",
+      "panels": [
+        {
+          "end": "2026-02-26",
+          "start": "2026-02-23",
+          "streamId": "demo-steel_metals-oes-spark-01-carbon",
+          "title": "Carbon - OES Spark-01",
+          "windowLabel": "Feb 23-26, 2026"
+        },
+        {
+          "end": "2026-02-26",
+          "start": "2026-02-23",
+          "streamId": "demo-steel_metals-oes-spark-01-manganese",
+          "title": "Manganese - OES Spark-01",
+          "windowLabel": "Feb 23-26, 2026"
+        },
+        {
+          "end": "2026-02-26",
+          "start": "2026-02-23",
+          "streamId": "demo-steel_metals-oes-spark-01-silicon",
+          "title": "Silicon - OES Spark-01",
+          "windowLabel": "Feb 23-26, 2026"
+        },
+        {
+          "end": "2026-02-26",
+          "start": "2026-02-23",
+          "streamId": "demo-steel_metals-oes-spark-01-chromium",
+          "title": "Chromium - OES Spark-01",
+          "windowLabel": "Feb 23-26, 2026"
+        },
+        {
+          "end": "2026-02-26",
+          "start": "2026-02-23",
+          "streamId": "demo-steel_metals-oes-spark-01-nickel",
+          "title": "Nickel - OES Spark-01",
+          "windowLabel": "Feb 23-26, 2026"
+        },
+        {
+          "end": "2026-02-26",
+          "start": "2026-02-23",
+          "streamId": "demo-steel_metals-cs-burn-02-low-carbon",
+          "title": "Low Carbon - CS Burn-02",
+          "windowLabel": "Feb 23-26, 2026"
+        },
+        {
+          "end": "2026-02-26",
+          "start": "2026-02-23",
+          "streamId": "demo-steel_metals-cs-burn-02-sulfur",
+          "title": "Sulfur - CS Burn-02",
+          "windowLabel": "Feb 23-26, 2026"
+        },
+        {
+          "end": "2026-02-26",
+          "start": "2026-02-23",
+          "streamId": "demo-steel_metals-cs-burn-02-high-carbon",
+          "title": "High Carbon - CS Burn-02",
+          "windowLabel": "Feb 23-26, 2026"
+        },
+        {
+          "end": "2026-02-26",
+          "start": "2026-02-23",
+          "streamId": "demo-steel_metals-hardness-h-03-rockwell-b",
+          "title": "Rockwell B - Hardness H-03",
+          "windowLabel": "Feb 23-26, 2026"
+        },
+        {
+          "end": "2026-02-26",
+          "start": "2026-02-23",
+          "streamId": "demo-steel_metals-hardness-h-03-rockwell-c",
+          "title": "Rockwell C - Hardness H-03",
+          "windowLabel": "Feb 23-26, 2026"
+        },
+        {
+          "end": "2026-02-26",
+          "start": "2026-02-23",
+          "streamId": "demo-steel_metals-hardness-h-03-vickers-hv10",
+          "title": "Vickers HV10 - Hardness H-03",
+          "windowLabel": "Feb 23-26, 2026"
+        },
+        {
+          "end": "2026-02-26",
+          "start": "2026-02-23",
+          "streamId": "demo-steel_metals-hardness-h-03-brinell-hbw",
+          "title": "Brinell HBW - Hardness H-03",
+          "windowLabel": "Feb 23-26, 2026"
+        }
+      ]
+    }
+  },
+  "synthetic_data_notice": "Synthetic demo data only; not validated ASTM, manufacturer, clinical, pharmacological, or regulatory reference data."
+}

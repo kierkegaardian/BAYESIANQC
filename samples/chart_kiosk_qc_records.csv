@@ -1,0 +1,21 @@
+stream_id,result_value,timestamp,analyte,qc_level,instrument_id,method_id,operator_id,reagent_lot,control_material_lot,calibration_status,run_id,units,flags,entry_source,comments
+hba1c-kiosk,5.18,2026-01-05T08:00:00Z,HbA1c,Level 1,Architect,HPLC,kiosk-tech,RL-K001,LOT-001,ok,kiosk-run-001,%,[],manual,chart-kiosk-suite stable baseline
+hba1c-kiosk,5.22,2026-01-05T08:30:00Z,HbA1c,Level 1,Architect,HPLC,kiosk-tech,RL-K001,LOT-001,ok,kiosk-run-002,%,[],manual,chart-kiosk-suite stable baseline
+hba1c-kiosk,5.20,2026-01-05T09:00:00Z,HbA1c,Level 1,Architect,HPLC,kiosk-tech,RL-K001,LOT-001,ok,kiosk-run-003,%,[],manual,chart-kiosk-suite stable baseline
+hba1c-kiosk,5.24,2026-01-05T09:30:00Z,HbA1c,Level 1,Architect,HPLC,kiosk-tech,RL-K001,LOT-001,ok,kiosk-run-004,%,[],manual,chart-kiosk-suite stable baseline
+hba1c-kiosk,5.48,2026-01-05T10:00:00Z,HbA1c,Level 1,Architect,HPLC,kiosk-tech,RL-K001,LOT-001,ok,kiosk-run-005,%,[],manual,chart-kiosk-suite high drift starts
+hba1c-kiosk,5.51,2026-01-05T10:30:00Z,HbA1c,Level 1,Architect,HPLC,kiosk-tech,RL-K001,LOT-001,ok,kiosk-run-006,%,[],manual,chart-kiosk-suite high drift continues
+hba1c-kiosk,5.73,2026-01-05T11:00:00Z,HbA1c,Level 1,Architect,HPLC,kiosk-tech,RL-K001,LOT-001,ok,kiosk-run-007,%,[],manual,chart-kiosk-suite warning high
+hba1c-kiosk,5.74,2026-01-05T11:30:00Z,HbA1c,Level 1,Architect,HPLC,kiosk-tech,RL-K001,LOT-001,ok,kiosk-run-008,%,[],manual,chart-kiosk-suite consecutive warning high
+hba1c-kiosk,6.04,2026-01-05T12:00:00Z,HbA1c,Level 1,Architect,HPLC,kiosk-tech,RL-K001,LOT-001,ok,kiosk-run-009,%,[],manual,chart-kiosk-suite high action outlier
+hba1c-kiosk,5.19,2026-01-05T12:30:00Z,HbA1c,Level 1,Architect,HPLC,kiosk-tech,RL-K002,LOT-002,ok,kiosk-run-010,%,[],manual,chart-kiosk-suite lot two recovery
+hba1c-kiosk,5.16,2026-01-05T13:00:00Z,HbA1c,Level 1,Architect,HPLC,kiosk-tech,RL-K002,LOT-002,ok,kiosk-run-011,%,[],manual,chart-kiosk-suite lot two recovery
+hba1c-kiosk,4.68,2026-01-05T13:30:00Z,HbA1c,Level 1,Architect,HPLC,kiosk-tech,RL-K002,LOT-002,ok,kiosk-run-012,%,[],manual,chart-kiosk-suite warning low
+hba1c-kiosk,4.66,2026-01-05T14:00:00Z,HbA1c,Level 1,Architect,HPLC,kiosk-tech,RL-K002,LOT-002,ok,kiosk-run-013,%,[],manual,chart-kiosk-suite consecutive warning low
+hba1c-kiosk,4.32,2026-01-05T14:30:00Z,HbA1c,Level 1,Architect,HPLC,kiosk-tech,RL-K002,LOT-002,ok,kiosk-run-014,%,[],manual,chart-kiosk-suite low action outlier
+hba1c-kiosk,5.25,2026-01-06T08:00:00Z,HbA1c,Level 1,Architect,HPLC,kiosk-tech,RL-K003,LOT-003,ok,kiosk-run-015,%,[],manual,chart-kiosk-suite new lot baseline
+hba1c-kiosk,5.29,2026-01-06T08:30:00Z,HbA1c,Level 1,Architect,HPLC,kiosk-tech,RL-K003,LOT-003,ok,kiosk-run-016,%,[],manual,chart-kiosk-suite new lot baseline
+hba1c-kiosk,5.32,2026-01-06T09:00:00Z,HbA1c,Level 1,Architect,HPLC,kiosk-tech,RL-K003,LOT-003,ok,kiosk-run-017,%,[],manual,chart-kiosk-suite new lot mild high
+hba1c-kiosk,5.35,2026-01-06T09:30:00Z,HbA1c,Level 1,Architect,HPLC,kiosk-tech,RL-K003,LOT-003,ok,kiosk-run-018,%,[],manual,chart-kiosk-suite new lot mild high
+hba1c-kiosk,5.39,2026-01-06T10:00:00Z,HbA1c,Level 1,Architect,HPLC,kiosk-tech,RL-K003,LOT-003,ok,kiosk-run-019,%,[],manual,chart-kiosk-suite new lot mild high
+hba1c-kiosk,5.42,2026-01-06T10:30:00Z,HbA1c,Level 1,Architect,HPLC,kiosk-tech,RL-K003,LOT-003,ok,kiosk-run-020,%,[],manual,chart-kiosk-suite new lot mild high

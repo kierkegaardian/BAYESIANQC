@@ -93,7 +93,7 @@ def create_backlog_item(session: Session, payload: QCBacklogItemIn, user: UserCo
         reference_material_lot=config.control_material_lot,
         reference_material_label=payload.reference_material_label,
         due_at=payload.due_at,
-        lab_bench=payload.lab_bench,
+        lab_bench=payload.lab_bench or config.lab_bench,
         assignment_group=payload.assignment_group,
         assigned_to=payload.assigned_to,
         notes=payload.notes,
@@ -140,8 +140,13 @@ def update_backlog_item(
         if not reason or not reason.strip():
             raise HTTPException(status_code=422, detail="reason is required when changing QC backlog status")
         item.status = target_status
+        if target_status == QCBacklogStatus.IN_PROGRESS and item.started_at is None:
+            item.started_at = utcnow()
+            item.started_by = user.actor
     for field, value in data.items():
         setattr(item, field, value)
+    if item.status == QCBacklogStatus.IN_PROGRESS and item.started_at is not None and item.started_by is None:
+        item.started_by = user.actor
     item.updated_at = utcnow()
     session.add(item)
     session.flush()

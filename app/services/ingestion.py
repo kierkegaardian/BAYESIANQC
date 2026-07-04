@@ -272,7 +272,13 @@ def process_ingestion(
                 session.add(record)
 
             record_payload = payload.model_copy(update={"result_value": normalized_value, "units": normalized_units})
-            qc_out = QCRecordOut(record=record_payload, signals=signals, bayesian_risk=risk, disposition=disposition)
+            qc_out = QCRecordOut(
+                id=record.id,
+                record=record_payload,
+                signals=signals,
+                bayesian_risk=risk,
+                disposition=disposition,
+            )
 
             audit_entry = record_audit(
                 session=session,

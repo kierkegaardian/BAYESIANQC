@@ -1,6 +1,6 @@
 <template>
-  <div class="page">
-    <div class="page-header">
+  <div class="page chart-page" :class="{ 'chart-page--kiosk': isKiosk }">
+    <div v-if="!isKiosk" class="page-header">
       <div>
         <h2>QC Charts</h2>
         <div class="muted">Visualize QC results, alerts, and events.</div>
@@ -8,7 +8,7 @@
       <el-button @click="loadChart">Refresh</el-button>
     </div>
 
-    <div class="toolbar" style="margin-bottom: 16px">
+    <div v-if="!isKiosk" class="toolbar" style="margin-bottom: 16px">
       <el-select v-model="streamId" placeholder="Select stream" class="full-width" style="max-width: 260px">
         <el-option
           v-for="stream in streams"
@@ -33,21 +33,72 @@
       <el-button type="primary" @click="loadChart">Load</el-button>
     </div>
 
-    <el-card v-show="chartMode !== 'risk'" style="margin-bottom: 16px">
-      <div ref="resultsChartRef" style="height: 420px"></div>
+    <el-card :class="['chart-card', { 'chart-card--kiosk': isKiosk }]">
+      <div v-if="!isKiosk" class="chart-panel-header">
+        <div>
+          <h3>{{ currentStreamLabel }}</h3>
+          <div class="muted">{{ chartSubtitle }}</div>
+        </div>
+        <ChartRiskBadge :summary="latestRiskSummary" />
+      </div>
+
+      <div v-show="chartMode !== 'risk'" ref="resultsChartRef" :style="resultsChartStyle"></div>
+
+      <div
+        class="risk-rail"
+        :class="{ 'risk-rail--standalone': chartMode === 'risk', 'risk-rail--kiosk': isKiosk }"
+      >
+        <div v-if="!isKiosk" class="risk-rail-header">
+          <span>Bayesian risk</span>
+          <span>{{ latestRiskSummary?.detailLabel ?? "No risk history" }}</span>
+        </div>
+        <div ref="riskChartRef" :style="riskChartStyle"></div>
+      </div>
     </el-card>
 
-    <el-card v-show="chartMode !== 'results'">
-      <div class="muted" style="margin-bottom: 10px">
-        Risk chart plots Bayesian predictive exceedance probabilities (%) for warning and action limits, with alert markers.
+    <el-dialog
+      v-model="commentDialogOpen"
+      :title="pointDialogTitle"
+      :width="pointDialogWidth"
+      destroy-on-close
+    >
+      <div v-if="selectedPoint" class="point-comment-context">
+        <div><span>Record</span><strong>#{{ selectedPoint.record_id }}</strong></div>
+        <div><span>Time</span><strong>{{ formatPointTime(selectedPoint.value[0]) }}</strong></div>
+        <div><span>Result</span><strong>{{ selectedPoint.value[1] ?? "outlier" }}</strong></div>
+        <div><span>Disposition</span><strong>{{ selectedPoint.disposition ?? "-" }}</strong></div>
+        <div><span>Signals</span><strong>{{ selectedPointSignalLabel }}</strong></div>
+        <div><span>Bayesian risk</span><strong>{{ selectedPointRiskLabel }}</strong></div>
       </div>
-      <div ref="riskChartRef" style="height: 260px"></div>
-    </el-card>
+      <QCCommentThread
+        v-if="selectedPoint"
+        target-type="qc_record"
+        :target-id="String(selectedPoint.record_id)"
+        title="Record Comments"
+      />
+      <template #footer>
+        <el-button @click="commentDialogOpen = false">Close</el-button>
+        <el-button
+          v-if="canApprove && selectedPoint?.include_in_stats === false"
+          type="primary"
+          @click="promptSelectedResolution(true)"
+        >
+          Reinstate
+        </el-button>
+        <el-button
+          v-if="canApprove && selectedPoint?.include_in_stats !== false"
+          type="warning"
+          @click="promptSelectedResolution(false)"
+        >
+          Exclude From Stats
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import * as echarts from "echarts";
 import type {
   ECElementEvent,
@@ -58,12 +109,24 @@ import type {
 } from "echarts";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { api } from "../api/client";
+import { canApprove } from "../api/session";
+import ChartRiskBadge from "./ChartRiskBadge.vue";
+import QCCommentThread from "../components/QCCommentThread.vue";
+import {
+  BAYESIAN_RISK_MEANING,
+  BAYESIAN_RISK_SCORE_MEANING,
+  bayesianRiskBasisText,
+  riskThresholds,
+  summarizeChartRisk,
+  type ChartRiskSummary,
+} from "./chartRisk";
 import type {
   AlertOutWithQc,
   BayesianRisk,
   Disposition,
   FrequentistSignal,
   LotSegmentOut,
+  QCEventOut,
   QCRecordChartOut,
   QCRecordResolutionIn,
   StreamChartOutEvaluated,
@@ -71,17 +134,55 @@ import type {
 } from "../api/contracts";
 
 type ChartMode = "results" | "risk" | "both";
-const chartMode = ref<ChartMode>("results");
+type KioskDensity = "full" | "tile";
+type ChartViewProps = {
+  kiosk?: boolean;
+  kioskDensity?: KioskDensity;
+  forcedStreamId?: string;
+  forcedStart?: string;
+  forcedEnd?: string;
+  forcedMode?: ChartMode;
+  refreshToken?: number;
+};
 
+const props = withDefaults(defineProps<ChartViewProps>(), {
+  kiosk: false,
+});
+const emit = defineEmits<{
+  "risk-summary": [summary: ChartRiskSummary | null];
+}>();
+
+const chartMode = ref<ChartMode>(props.forcedMode ?? "results");
+const isKiosk = computed(() => props.kiosk);
+const isTileKiosk = computed(() => isKiosk.value && props.kioskDensity === "tile");
+const resultsChartStyle = computed(() => ({
+  height: isKiosk.value
+    ? isTileKiosk.value
+      ? chartMode.value === "both"
+        ? "22vh"
+        : "30vh"
+      : "58vh"
+    : "clamp(260px, 32vh, 420px)",
+}));
+const riskChartStyle = computed(() => ({
+  height: isKiosk.value
+    ? isTileKiosk.value
+      ? chartMode.value === "risk"
+        ? "32vh"
+        : "9vh"
+      : chartMode.value === "risk"
+        ? "calc(100vh - 124px)"
+        : "20vh"
+    : chartMode.value === "risk"
+      ? "340px"
+      : "clamp(108px, 14vh, 132px)",
+}));
 const resultsChartRef = ref<HTMLDivElement | null>(null);
 const riskChartRef = ref<HTMLDivElement | null>(null);
 let resultsChart: echarts.ECharts | null = null;
 let riskChart: echarts.ECharts | null = null;
 
-let cachedChartData: StreamChartOutEvaluated | null = null;
-let cachedStream: StreamConfigOut | undefined;
-let cachedResultsOption: echarts.EChartsOption | null = null;
-let cachedRiskOption: echarts.EChartsOption | null = null;
+let resizeTimer: number | null = null;
 
 type ChartPoint = {
   value: [string, number | null];
@@ -124,6 +225,13 @@ function isChartPoint(value: unknown): value is ChartPoint {
 }
 
 type TooltipItem = { data?: unknown; value?: unknown; seriesName?: unknown };
+type TooltipDisplayOptions = {
+  appendTo?: "body";
+  className?: string;
+  confine?: boolean;
+  renderMode: "html";
+};
+type MarkLineData = NonNullable<MarkLineComponentOption["data"]>;
 
 function asFormatterItems(params: unknown): TooltipItem[] {
   if (Array.isArray(params)) {
@@ -135,12 +243,42 @@ function asFormatterItems(params: unknown): TooltipItem[] {
   return [];
 }
 
+function hasNumericChartValue(item: TooltipItem): boolean {
+  if (!isChartPoint(item.data)) {
+    return false;
+  }
+  const value = item.data.value[1];
+  return typeof value === "number" && Number.isFinite(value);
+}
+
 const streams = ref<StreamConfigOut[]>([]);
 const streamId = ref("");
 const startDate = ref<Date | null>(null);
 const endDate = ref<Date | null>(null);
 const useLogScale = ref(false);
 const suppressLogReload = ref(false);
+const latestRiskSummary = ref<ChartRiskSummary | null>(null);
+const commentDialogOpen = ref(false);
+const selectedPoint = ref<ChartPoint | null>(null);
+const currentStreamLabel = computed(() => streamId.value || "Select stream");
+const chartSubtitle = computed(() =>
+  chartMode.value === "risk"
+    ? "Bayesian predictive exceedance probabilities with alert markers."
+    : "Results with Bayesian risk aligned to the same time window."
+);
+const pointDialogTitle = computed(() => (isKiosk.value ? "QC Point Detail" : "QC Point Comments"));
+const pointDialogWidth = computed(() => (isKiosk.value ? "min(760px, calc(100vw - 32px))" : "560px"));
+const selectedPointSignalLabel = computed(() => {
+  const signals = selectedPoint.value?.signals;
+  return signals?.length ? signals.map((signal) => signal.rule).join(", ") : "none";
+});
+const selectedPointRiskLabel = computed(() => {
+  const risk = selectedPoint.value?.bayesian_risk;
+  if (!risk || !Number.isFinite(Number(risk.risk_score))) {
+    return "-";
+  }
+  return `${Number(risk.risk_score).toFixed(0)}/100`;
+});
 
 function deriveLotSegments(records: QCRecordChartOut[]): LotSegmentOut[] {
   if (!records.length) {
@@ -184,9 +322,64 @@ function padSegmentEnd(start: string, end: string): string {
   return new Date(startDate.getTime() + 1000).toISOString();
 }
 
+function formatEventLabel(event: QCEventOut): string {
+  return String(event.event_type).replaceAll("_", " ");
+}
+
+function startOfSelectedDay(date: Date): string {
+  const copy = new Date(date);
+  copy.setHours(0, 0, 0, 0);
+  return copy.toISOString();
+}
+
+function endOfSelectedDay(date: Date): string {
+  const copy = new Date(date);
+  copy.setHours(23, 59, 59, 999);
+  return copy.toISOString();
+}
+
+function parseSelectedDate(value: string | undefined): Date | null {
+  if (!value) {
+    return null;
+  }
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (dateOnly) {
+    const [, year, month, day] = dateOnly;
+    return new Date(Number(year), Number(month) - 1, Number(day));
+  }
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function syncForcedKioskState(): void {
+  if (!isKiosk.value) {
+    return;
+  }
+  if (props.forcedStreamId) {
+    streamId.value = props.forcedStreamId;
+  }
+  chartMode.value = props.forcedMode ?? "both";
+  startDate.value = parseSelectedDate(props.forcedStart);
+  endDate.value = parseSelectedDate(props.forcedEnd);
+  useLogScale.value = false;
+}
+
+function resizeCharts(): void {
+  if (resizeTimer !== null) {
+    window.clearTimeout(resizeTimer);
+  }
+  resizeTimer = window.setTimeout(() => {
+    resultsChart?.resize();
+    riskChart?.resize();
+    resizeTimer = null;
+  }, 120);
+}
+
 async function loadStreams() {
   streams.value = await api.get<StreamConfigOut[]>("/streams");
-  if (!streamId.value && streams.value.length) {
+  if (isKiosk.value && props.forcedStreamId) {
+    streamId.value = props.forcedStreamId;
+  } else if (!streamId.value && streams.value.length) {
     streamId.value = streams.value[0].stream_id;
   }
 }
@@ -226,37 +419,41 @@ async function handleChartClick(params: ECElementEvent): Promise<void> {
   if (!isChartPoint(params.data)) {
     return;
   }
-  const recordId = params.data.record_id;
-  const includeInStats = params.data.include_in_stats !== false;
-  if (includeInStats) {
-    const result = await ElMessageBox.prompt(
-      "Why should this point be excluded from stats?",
-      "Resolve QC Point",
-      {
-        confirmButtonText: "Resolve",
-        cancelButtonText: "Cancel",
-        inputPlaceholder: "e.g. reagent lot change or known variation",
-      }
-    ).catch(() => null);
-    if (!result) {
-      return;
-    }
-    await updateResolution(recordId, false, result.value);
+  selectedPoint.value = params.data;
+  commentDialogOpen.value = true;
+}
+
+function tooltipDisplayOptions(): TooltipDisplayOptions {
+  return isKiosk.value
+    ? { appendTo: "body", className: "qc-chart-tooltip", confine: false, renderMode: "html" }
+    : { confine: true, renderMode: "html" };
+}
+
+function formatPointTime(value: string): string {
+  return new Date(value).toLocaleString();
+}
+
+async function promptSelectedResolution(includeInStats: boolean): Promise<void> {
+  const point = selectedPoint.value;
+  if (!point || !canApprove.value) {
     return;
   }
-  const confirm = await ElMessageBox.confirm(
-    "Re-include this point in statistics and Bayesian updates?",
-    "Reinstate QC Point",
+  const promptResult = await ElMessageBox.prompt(
+    includeInStats ? "Reason" : "Why should this point be excluded from stats?",
+    includeInStats ? "Reinstate QC Point" : "Resolve QC Point",
     {
-      confirmButtonText: "Reinstate",
+      confirmButtonText: includeInStats ? "Reinstate" : "Resolve",
       cancelButtonText: "Cancel",
-      type: "warning",
+      inputPlaceholder: includeInStats
+        ? "Why should this point be included again?"
+        : "e.g. reagent lot change or known variation",
     }
   ).catch(() => null);
-  if (!confirm) {
+  if (!promptResult) {
     return;
   }
-  await updateResolution(recordId, true);
+  await updateResolution(point.record_id, includeInStats, promptResult.value);
+  commentDialogOpen.value = false;
 }
 
 function attachResultsChartHandlers() {
@@ -384,10 +581,10 @@ function buildOutlierAxis(values: number[], direction: "high" | "low") {
 function buildParams() {
   const params = new URLSearchParams();
   if (startDate.value) {
-    params.set("start", startDate.value.toISOString());
+    params.set("start", startOfSelectedDay(startDate.value));
   }
   if (endDate.value) {
-    params.set("end", endDate.value.toISOString());
+    params.set("end", endOfSelectedDay(endDate.value));
   }
   params.set("limit", "500");
   return params.toString();
@@ -395,7 +592,7 @@ function buildParams() {
 
 async function ensureCharts(): Promise<void> {
   await nextTick();
-  if ((chartMode.value === "results" || chartMode.value === "both") && resultsChartRef.value) {
+  if (chartMode.value !== "risk" && resultsChartRef.value) {
     if (!resultsChart) {
       resultsChart = echarts.init(resultsChartRef.value);
       attachResultsChartHandlers();
@@ -403,7 +600,7 @@ async function ensureCharts(): Promise<void> {
       resultsChart.resize();
     }
   }
-  if ((chartMode.value === "risk" || chartMode.value === "both") && riskChartRef.value) {
+  if (riskChartRef.value) {
     if (!riskChart) {
       riskChart = echarts.init(riskChartRef.value);
     } else {
@@ -425,13 +622,14 @@ async function loadChart() {
   const data = await api.get<StreamChartOutEvaluated>(
     `/streams/${streamId.value}/chart?${query}`
   );
-  cachedChartData = data;
-  cachedStream = stream;
   const records = data.records;
   const alerts = data.alerts as AlertOutWithQc[];
   const segments = data.lot_segments.length
     ? data.lot_segments
     : deriveLotSegments(records);
+  const riskSummary = summarizeChartRisk(records, stream);
+  latestRiskSummary.value = riskSummary;
+  emit("risk-summary", riskSummary);
 
   const controlConfig = buildControlSeries(stream);
   const limitMin = controlConfig?.minValue;
@@ -532,14 +730,21 @@ async function loadChart() {
   const segmentAreas: MarkAreaComponentOption["data"] = segments.map((segment) => [
     {
       xAxis: segment.start,
-      label: { formatter: `Lot ${segment.control_material_lot}` },
+      label: { show: !isKiosk.value, formatter: `Lot ${segment.control_material_lot}` },
     },
     { xAxis: padSegmentEnd(segment.start, segment.end) },
   ] as const);
 
-  const lotLines = segments.slice(1).map((segment) => ({
-    xAxis: segment.start,
-    label: { formatter: `Lot ${segment.control_material_lot}` },
+  const eventLines: MarkLineData = data.events.map((event) => ({
+    xAxis: event.timestamp,
+    label: { show: !isKiosk.value, formatter: formatEventLabel(event), color: "#0369a1", fontSize: 11 },
+    lineStyle: { color: "#0ea5e9", type: "dotted" as const, width: 1.5 },
+  }));
+
+  const alertLines: MarkLineData = alerts.map((alert) => ({
+    xAxis: alert.qc_record_timestamp ?? alert.created_at,
+    label: { show: !isKiosk.value, formatter: "Alert", color: "#991b1b", fontSize: 11 },
+    lineStyle: { color: "#dc2626", type: "solid" as const, width: 1.25 },
   }));
 
   const resultSeries: LineSeriesOption = {
@@ -548,6 +753,8 @@ async function loadChart() {
     data: seriesData,
     smooth: false,
     connectNulls: false,
+    showSymbol: isKiosk.value,
+    symbolSize: isKiosk.value ? (isTileKiosk.value ? 5 : 7) : 6,
     lineStyle: { color: "#2563eb" },
   };
 
@@ -555,20 +762,31 @@ async function loadChart() {
     resultSeries.markArea = {
       silent: true,
       itemStyle: { color: "rgba(148, 163, 184, 0.18)" },
-      label: { color: "#475569", fontSize: 11 },
+      label: { show: !isKiosk.value, color: "#475569", fontSize: 11 },
       data: segmentAreas,
     };
   }
 
-  if (lotLines.length) {
+  const resultMarkLines: MarkLineData = [
+    ...segments.slice(1).map((segment) => ({
+      xAxis: segment.start,
+      lineStyle: { color: "#94a3b8", type: "dashed" as const },
+      label: {
+        show: !isKiosk.value,
+        formatter: `Lot ${segment.control_material_lot}`,
+        color: "#475569",
+        fontSize: 11,
+      },
+    })),
+    ...eventLines,
+    ...alertLines,
+  ];
+
+  if (resultMarkLines.length) {
     resultSeries.markLine = {
       silent: true,
       symbol: "none",
-      data: lotLines.map((segment) => ({
-        ...segment,
-        lineStyle: { color: "#94a3b8", type: "dashed" },
-        label: { color: "#475569", fontSize: 11 },
-      })),
+      data: resultMarkLines,
     };
   }
 
@@ -852,10 +1070,14 @@ async function loadChart() {
     axisPointer,
     series,
     tooltip: {
-      trigger: "axis",
+      ...tooltipDisplayOptions(),
+      trigger: isKiosk.value ? "item" : "axis",
+      triggerOn: "mousemove|click",
       formatter: (params: unknown) => {
         const items = asFormatterItems(params);
-        const recordItem = items.find((item) => isChartPoint(item.data));
+        const recordItem =
+          items.find(hasNumericChartValue) ??
+          items.find((item) => isChartPoint(item.data));
         if (!recordItem || !isChartPoint(recordItem.data)) {
           return "";
         }
@@ -871,7 +1093,7 @@ async function loadChart() {
         if (timestamp) {
           parts.push(new Date(timestamp).toLocaleString());
         }
-        if (value !== undefined) {
+        if (typeof value === "number" && Number.isFinite(value)) {
           parts.push(`Result: ${value}`);
         }
         if (disposition) {
@@ -882,8 +1104,13 @@ async function loadChart() {
           parts.push(`Signals: ${summary}`);
         }
         if (risk) {
+          const riskScore = Number.isFinite(Number(risk.risk_score)) ? Number(risk.risk_score).toFixed(0) : "-";
           const pWarn = Math.max(0, Math.min(1, Number(risk.probability_outside_warning)));
           const pAction = Math.max(0, Math.min(1, Number(risk.probability_outside_limits)));
+          parts.push(`Bayesian risk: ${riskScore}/100`);
+          parts.push(BAYESIAN_RISK_MEANING);
+          parts.push(bayesianRiskBasisText("through this point"));
+          parts.push(BAYESIAN_RISK_SCORE_MEANING);
           parts.push(`P(outside warn): ${(pWarn * 100).toFixed(1)}%`);
           parts.push(`P(outside action): ${(pAction * 100).toFixed(1)}%`);
           if (risk.posterior_mean !== null && risk.posterior_mean !== undefined) {
@@ -924,34 +1151,23 @@ async function loadChart() {
       },
     },
   };
-  cachedResultsOption = resultsOption;
   if (resultsChart && (chartMode.value === "results" || chartMode.value === "both")) {
     resultsChart.setOption(resultsOption);
   }
 
-  const thresholdLines: MarkLineComponentOption["data"] = [];
-  if (stream) {
-    const warnLine =
-      stream.bayes_warn_prob_threshold !== null && stream.bayes_warn_prob_threshold !== undefined
-        ? Math.max(0, Math.min(100, Number(stream.bayes_warn_prob_threshold) * 100))
-        : Number(stream.risk_threshold_warn);
-    const holdLine =
-      stream.bayes_hold_prob_threshold !== null && stream.bayes_hold_prob_threshold !== undefined
-        ? Math.max(0, Math.min(100, Number(stream.bayes_hold_prob_threshold) * 100))
-        : Number(stream.risk_threshold_hold);
-    thresholdLines.push(
-      {
-        yAxis: warnLine,
-        lineStyle: { color: "#f59e0b", type: "dashed" },
-        label: { formatter: `Warn ${warnLine.toFixed(0)}%`, color: "#f59e0b" },
-      },
-      {
-        yAxis: holdLine,
-        lineStyle: { color: "#ef4444", type: "dashed" },
-        label: { formatter: `Hold ${holdLine.toFixed(0)}%`, color: "#ef4444" },
-      }
-    );
-  }
+  const thresholds = riskThresholds(stream);
+  const thresholdLines: MarkLineData = [
+    {
+      yAxis: thresholds.warnLine,
+      lineStyle: { color: "#f59e0b", type: "dashed" },
+      label: { formatter: `Warn ${thresholds.warnLine.toFixed(0)}%`, color: "#f59e0b" },
+    },
+    {
+      yAxis: thresholds.holdLine,
+      lineStyle: { color: "#ef4444", type: "dashed" },
+      label: { formatter: `Hold ${thresholds.holdLine.toFixed(0)}%`, color: "#ef4444" },
+    },
+  ];
 
   const actionSeries: LineSeriesOption = {
     name: "P(outside action)",
@@ -966,16 +1182,21 @@ async function loadChart() {
     actionSeries.markArea = {
       silent: true,
       itemStyle: { color: "rgba(148, 163, 184, 0.18)" },
-      label: { color: "#475569", fontSize: 11 },
+      label: { show: !isKiosk.value, color: "#475569", fontSize: 11 },
       data: segmentAreas,
     };
   }
 
-  if (thresholdLines.length) {
+  const riskMarkLines: MarkLineData = [
+    ...thresholdLines,
+    ...eventLines,
+  ];
+
+  if (riskMarkLines.length) {
     actionSeries.markLine = {
       silent: true,
       symbol: "none",
-      data: thresholdLines,
+      data: riskMarkLines,
     };
   }
 
@@ -992,7 +1213,7 @@ async function loadChart() {
     warnSeries.markArea = {
       silent: true,
       itemStyle: { color: "rgba(148, 163, 184, 0.18)" },
-      label: { color: "#475569", fontSize: 11 },
+      label: { show: !isKiosk.value, color: "#475569", fontSize: 11 },
       data: segmentAreas,
     };
   }
@@ -1006,12 +1227,30 @@ async function loadChart() {
   };
 
   const riskOption: echarts.EChartsOption = {
-    grid: { left: "6%", right: "4%", top: "8%", bottom: "18%", containLabel: true },
-    xAxis: { type: "time" },
-    yAxis: { type: "value", name: "Predictive exceedance (%)", min: 0, max: 100 },
+    grid: {
+      left: isKiosk.value ? "5%" : "6%",
+      right: isKiosk.value ? "5%" : "8%",
+      top: chartMode.value === "risk" ? "8%" : "4%",
+      bottom: chartMode.value === "risk" ? "18%" : "24%",
+      containLabel: true,
+    },
+    xAxis: {
+      type: "time",
+      axisLabel: { show: chartMode.value === "risk" || !isKiosk.value },
+    },
+    yAxis: {
+      type: "value",
+      name: chartMode.value === "risk" ? "Predictive exceedance (%)" : "Risk (%)",
+      min: 0,
+      max: 100,
+      splitNumber: chartMode.value === "risk" ? 5 : 3,
+      axisLabel: { formatter: "{value}%" },
+    },
     series: [warnSeries, actionSeries, alertSeries],
     tooltip: {
+      ...tooltipDisplayOptions(),
       trigger: "axis",
+      triggerOn: "mousemove|click",
       formatter: (params: unknown) => {
         const items = asFormatterItems(params);
         const primary = items.find((item) => Array.isArray(item.value) && item.value.length === 2);
@@ -1037,12 +1276,18 @@ async function loadChart() {
             return `${label}: ${rawVal.toFixed(1)}%`;
           })
           .filter((line): line is string => Boolean(line));
-        return [ts, ...lines].join("<br/>");
+        const helpLines = lines.length
+          ? [
+              BAYESIAN_RISK_MEANING,
+              bayesianRiskBasisText("through this timestamp"),
+              BAYESIAN_RISK_SCORE_MEANING,
+            ]
+          : [];
+        return [ts, ...lines, ...helpLines].join("<br/>");
       },
     },
   };
-  cachedRiskOption = riskOption;
-  if (riskChart && (chartMode.value === "risk" || chartMode.value === "both")) {
+  if (riskChart) {
     riskChart.setOption(riskOption);
   }
 }
@@ -1057,28 +1302,164 @@ watch(useLogScale, async () => {
 
 watch(chartMode, async () => {
   await ensureCharts();
-  if (!cachedChartData) {
-    await loadChart();
-    return;
-  }
-  if (resultsChart && cachedResultsOption && chartMode.value !== "risk") {
-    resultsChart.setOption(cachedResultsOption);
-  }
-  if (riskChart && cachedRiskOption && chartMode.value !== "results") {
-    riskChart.setOption(cachedRiskOption);
-  }
+  await loadChart();
 });
 
+watch(
+  () => [
+    props.forcedStreamId,
+    props.forcedStart,
+    props.forcedEnd,
+    props.forcedMode,
+    props.kioskDensity,
+    props.refreshToken,
+  ],
+  async () => {
+    if (!isKiosk.value) {
+      return;
+    }
+    syncForcedKioskState();
+    await ensureCharts();
+    await loadChart();
+  }
+);
+
 onMounted(async () => {
+  window.addEventListener("resize", resizeCharts);
+  syncForcedKioskState();
   await loadStreams();
+  syncForcedKioskState();
   await ensureCharts();
   await loadChart();
 });
 
 onBeforeUnmount(() => {
+  window.removeEventListener("resize", resizeCharts);
+  if (resizeTimer !== null) {
+    window.clearTimeout(resizeTimer);
+    resizeTimer = null;
+  }
   resultsChart?.dispose();
   resultsChart = null;
   riskChart?.dispose();
   riskChart = null;
 });
 </script>
+
+<style scoped>
+.chart-panel-header {
+  align-items: center;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin: -4px 0 12px;
+  min-width: 0;
+  padding-bottom: 12px;
+}
+
+.chart-panel-header h3 {
+  font-size: 18px;
+  line-height: 1.2;
+  margin: 0 0 4px;
+}
+
+.chart-card {
+  margin-bottom: 16px;
+}
+
+.chart-card:last-child {
+  margin-bottom: 0;
+}
+
+.chart-page--kiosk {
+  height: 100%;
+  padding: 0;
+  background: #111827;
+}
+
+.chart-card--kiosk {
+  border: none;
+  border-radius: 0;
+}
+
+.chart-card--kiosk :deep(.el-card__body) {
+  padding: 8px 12px;
+}
+
+.risk-rail {
+  border-top: 1px solid #e5e7eb;
+  margin-top: 8px;
+  padding-top: 8px;
+}
+
+.risk-rail-header {
+  align-items: center;
+  color: #475569;
+  display: flex;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.risk-rail-header span:last-child {
+  color: #64748b;
+  font-weight: 500;
+  text-align: right;
+}
+
+.risk-rail--standalone {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.risk-rail--kiosk {
+  border-color: #334155;
+}
+
+.point-comment-context {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 16px;
+}
+
+.point-comment-context div {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding: 8px;
+}
+
+.point-comment-context span {
+  color: #64748b;
+  display: block;
+  font-size: 12px;
+}
+
+.point-comment-context strong {
+  display: block;
+  margin-top: 2px;
+}
+
+@media (max-width: 760px) {
+  .chart-panel-header,
+  .risk-rail-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .risk-rail-header span:last-child {
+    text-align: left;
+  }
+
+  .point-comment-context {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

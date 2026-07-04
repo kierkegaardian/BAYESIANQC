@@ -301,6 +301,10 @@ def schema_checks(engine: Engine) -> dict[str, Any]:
     posterior_indexes = {index["name"]: bool(index.get("unique")) for index in inspector.get_indexes("posteriorstate")}
     receipt_indexes = {index["name"]: bool(index.get("unique")) for index in inspector.get_indexes("ingestionreceipt")}
     alert_indexes = {index["name"]: index.get("column_names") for index in inspector.get_indexes("alertrecord")}
+    comment_indexes = {index["name"]: index.get("column_names") for index in inspector.get_indexes("qccomment")}
+    kiosk_indexes = {index["name"]: index.get("column_names") for index in inspector.get_indexes("kioskpanel")}
+    instrument_columns = {column["name"] for column in inspector.get_columns("instrument")}
+    stream_columns = {column["name"] for column in inspector.get_columns("streamconfig")}
     with engine.connect() as connection:
         version = connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
     return {
@@ -309,6 +313,11 @@ def schema_checks(engine: Engine) -> dict[str, Any]:
         "posteriorstate_stream_unique": posterior_indexes.get("ix_posteriorstate_stream_id"),
         "ingestionreceipt_key_unique": receipt_indexes.get("ix_ingestionreceipt_idempotency_key"),
         "alertrecord_stream_created": alert_indexes.get("ix_alertrecord_stream_created"),
+        "qccomment_target_created": comment_indexes.get("ix_qccomment_target_created"),
+        "instrument_lab_bench": "lab_bench" in instrument_columns,
+        "streamconfig_lab_bench": "lab_bench" in stream_columns,
+        "streamconfig_control_material_id": "control_material_id" in stream_columns,
+        "kioskpanel_kiosk_order": kiosk_indexes.get("ix_kioskpanel_kiosk_order"),
     }
 
 

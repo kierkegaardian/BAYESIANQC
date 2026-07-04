@@ -1,0 +1,1027 @@
+[
+  {
+    "analyte": "API Potency",
+    "event_type": "calibration",
+    "instrument_id": "HPLC Assay-01",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "HPLC Assay",
+    "stream_id": "demo-pharma_qc-hplc-assay-01-api-potency",
+    "timestamp": "2026-02-16T07:35:00Z"
+  },
+  {
+    "analyte": "API Potency",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "HPLC Assay-01",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "from": "PHA-01-A",
+      "to": "PHA-01-B"
+    },
+    "method_id": "HPLC Assay",
+    "stream_id": "demo-pharma_qc-hplc-assay-01-api-potency",
+    "timestamp": "2026-02-17T14:05:00Z"
+  },
+  {
+    "analyte": "API Potency",
+    "event_type": "maintenance",
+    "instrument_id": "HPLC Assay-01",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "operator rerun after high action point",
+      "scenario": "high_action_outlier"
+    },
+    "method_id": "HPLC Assay",
+    "stream_id": "demo-pharma_qc-hplc-assay-01-api-potency",
+    "timestamp": "2026-02-18T02:05:00Z"
+  },
+  {
+    "analyte": "Preservative A",
+    "event_type": "calibration",
+    "instrument_id": "HPLC Assay-01",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "HPLC Assay",
+    "stream_id": "demo-pharma_qc-hplc-assay-01-preservative-a",
+    "timestamp": "2026-02-16T07:40:00Z"
+  },
+  {
+    "analyte": "Preservative A",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "HPLC Assay-01",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "from": "PHA-02-A",
+      "to": "PHA-02-B"
+    },
+    "method_id": "HPLC Assay",
+    "stream_id": "demo-pharma_qc-hplc-assay-01-preservative-a",
+    "timestamp": "2026-02-17T14:10:00Z"
+  },
+  {
+    "analyte": "Preservative A",
+    "event_type": "maintenance",
+    "instrument_id": "HPLC Assay-01",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "stable baseline review",
+      "scenario": "stable_baseline"
+    },
+    "method_id": "HPLC Assay",
+    "stream_id": "demo-pharma_qc-hplc-assay-01-preservative-a",
+    "timestamp": "2026-02-18T02:10:00Z"
+  },
+  {
+    "analyte": "Degradant Total",
+    "event_type": "calibration",
+    "instrument_id": "HPLC Assay-01",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "HPLC Assay",
+    "stream_id": "demo-pharma_qc-hplc-assay-01-degradant-total",
+    "timestamp": "2026-02-16T07:45:00Z"
+  },
+  {
+    "analyte": "Degradant Total",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "HPLC Assay-01",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "from": "PHA-03-A",
+      "to": "PHA-03-B"
+    },
+    "method_id": "HPLC Assay",
+    "stream_id": "demo-pharma_qc-hplc-assay-01-degradant-total",
+    "timestamp": "2026-02-17T14:15:00Z"
+  },
+  {
+    "analyte": "Degradant Total",
+    "event_type": "maintenance",
+    "instrument_id": "HPLC Assay-01",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "precision review for high scatter",
+      "scenario": "low_confidence"
+    },
+    "method_id": "HPLC Assay",
+    "stream_id": "demo-pharma_qc-hplc-assay-01-degradant-total",
+    "timestamp": "2026-02-18T02:15:00Z"
+  },
+  {
+    "analyte": "Related Substance A",
+    "event_type": "calibration",
+    "instrument_id": "HPLC Assay-01",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "HPLC Assay",
+    "stream_id": "demo-pharma_qc-hplc-assay-01-related-substance-a",
+    "timestamp": "2026-02-16T07:50:00Z"
+  },
+  {
+    "analyte": "Related Substance A",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "HPLC Assay-01",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "from": "PHA-04-A",
+      "to": "PHA-04-B"
+    },
+    "method_id": "HPLC Assay",
+    "stream_id": "demo-pharma_qc-hplc-assay-01-related-substance-a",
+    "timestamp": "2026-02-17T14:20:00Z"
+  },
+  {
+    "analyte": "Related Substance A",
+    "event_type": "maintenance",
+    "instrument_id": "HPLC Assay-01",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "lot-to-lot high bias review",
+      "scenario": "step_shift_lot_high"
+    },
+    "method_id": "HPLC Assay",
+    "stream_id": "demo-pharma_qc-hplc-assay-01-related-substance-a",
+    "timestamp": "2026-02-18T02:20:00Z"
+  },
+  {
+    "analyte": "Impurity B",
+    "event_type": "calibration",
+    "instrument_id": "UPLC Impurity-02",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "UPLC Impurity",
+    "stream_id": "demo-pharma_qc-uplc-impurity-02-impurity-b",
+    "timestamp": "2026-02-16T07:55:00Z"
+  },
+  {
+    "analyte": "Impurity B",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "UPLC Impurity-02",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "from": "PHA-05-A",
+      "to": "PHA-05-B"
+    },
+    "method_id": "UPLC Impurity",
+    "stream_id": "demo-pharma_qc-uplc-impurity-02-impurity-b",
+    "timestamp": "2026-02-17T14:25:00Z"
+  },
+  {
+    "analyte": "Impurity B",
+    "event_type": "maintenance",
+    "instrument_id": "UPLC Impurity-02",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "drift investigation opened",
+      "scenario": "slow_drift_high"
+    },
+    "method_id": "UPLC Impurity",
+    "stream_id": "demo-pharma_qc-uplc-impurity-02-impurity-b",
+    "timestamp": "2026-02-18T02:25:00Z"
+  },
+  {
+    "analyte": "Impurity C",
+    "event_type": "calibration",
+    "instrument_id": "UPLC Impurity-02",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "UPLC Impurity",
+    "stream_id": "demo-pharma_qc-uplc-impurity-02-impurity-c",
+    "timestamp": "2026-02-16T07:30:00Z"
+  },
+  {
+    "analyte": "Impurity C",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "UPLC Impurity-02",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "from": "PHA-06-A",
+      "to": "PHA-06-B"
+    },
+    "method_id": "UPLC Impurity",
+    "stream_id": "demo-pharma_qc-uplc-impurity-02-impurity-c",
+    "timestamp": "2026-02-17T14:00:00Z"
+  },
+  {
+    "analyte": "Impurity C",
+    "event_type": "maintenance",
+    "instrument_id": "UPLC Impurity-02",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "operator rerun after low action point",
+      "scenario": "low_action_outlier"
+    },
+    "method_id": "UPLC Impurity",
+    "stream_id": "demo-pharma_qc-uplc-impurity-02-impurity-c",
+    "timestamp": "2026-02-18T02:00:00Z"
+  },
+  {
+    "analyte": "Main Peak Purity",
+    "event_type": "calibration",
+    "instrument_id": "UPLC Impurity-02",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "UPLC Impurity",
+    "stream_id": "demo-pharma_qc-uplc-impurity-02-main-peak-purity",
+    "timestamp": "2026-02-16T07:35:00Z"
+  },
+  {
+    "analyte": "Main Peak Purity",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "UPLC Impurity-02",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "from": "PHA-07-A",
+      "to": "PHA-07-B"
+    },
+    "method_id": "UPLC Impurity",
+    "stream_id": "demo-pharma_qc-uplc-impurity-02-main-peak-purity",
+    "timestamp": "2026-02-17T14:05:00Z"
+  },
+  {
+    "analyte": "Main Peak Purity",
+    "event_type": "maintenance",
+    "instrument_id": "UPLC Impurity-02",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "maintenance restored baseline",
+      "scenario": "maintenance_recovery"
+    },
+    "method_id": "UPLC Impurity",
+    "stream_id": "demo-pharma_qc-uplc-impurity-02-main-peak-purity",
+    "timestamp": "2026-02-18T02:05:00Z"
+  },
+  {
+    "analyte": "Resolution R1",
+    "event_type": "calibration",
+    "instrument_id": "UPLC Impurity-02",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "UPLC Impurity",
+    "stream_id": "demo-pharma_qc-uplc-impurity-02-resolution-r1",
+    "timestamp": "2026-02-16T07:40:00Z"
+  },
+  {
+    "analyte": "Resolution R1",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "UPLC Impurity-02",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "from": "PHA-08-A",
+      "to": "PHA-08-B"
+    },
+    "method_id": "UPLC Impurity",
+    "stream_id": "demo-pharma_qc-uplc-impurity-02-resolution-r1",
+    "timestamp": "2026-02-17T14:10:00Z"
+  },
+  {
+    "analyte": "Resolution R1",
+    "event_type": "maintenance",
+    "instrument_id": "UPLC Impurity-02",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "lot-to-lot low bias review",
+      "scenario": "step_shift_lot_low"
+    },
+    "method_id": "UPLC Impurity",
+    "stream_id": "demo-pharma_qc-uplc-impurity-02-resolution-r1",
+    "timestamp": "2026-02-18T02:10:00Z"
+  },
+  {
+    "analyte": "Dissolution 15 min",
+    "event_type": "calibration",
+    "instrument_id": "Dissolution DT-03",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Dissolution",
+    "stream_id": "demo-pharma_qc-dissolution-dt-03-dissolution-15-min",
+    "timestamp": "2026-02-16T07:45:00Z"
+  },
+  {
+    "analyte": "Dissolution 15 min",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "Dissolution DT-03",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "from": "PHA-09-A",
+      "to": "PHA-09-B"
+    },
+    "method_id": "Dissolution",
+    "stream_id": "demo-pharma_qc-dissolution-dt-03-dissolution-15-min",
+    "timestamp": "2026-02-17T14:15:00Z"
+  },
+  {
+    "analyte": "Dissolution 15 min",
+    "event_type": "maintenance",
+    "instrument_id": "Dissolution DT-03",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "low drift investigation opened",
+      "scenario": "slow_drift_low"
+    },
+    "method_id": "Dissolution",
+    "stream_id": "demo-pharma_qc-dissolution-dt-03-dissolution-15-min",
+    "timestamp": "2026-02-18T02:15:00Z"
+  },
+  {
+    "analyte": "Dissolution 30 min",
+    "event_type": "calibration",
+    "instrument_id": "Dissolution DT-03",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Dissolution",
+    "stream_id": "demo-pharma_qc-dissolution-dt-03-dissolution-30-min",
+    "timestamp": "2026-02-16T07:50:00Z"
+  },
+  {
+    "analyte": "Dissolution 30 min",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "Dissolution DT-03",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "from": "PHA-10-A",
+      "to": "PHA-10-B"
+    },
+    "method_id": "Dissolution",
+    "stream_id": "demo-pharma_qc-dissolution-dt-03-dissolution-30-min",
+    "timestamp": "2026-02-17T14:20:00Z"
+  },
+  {
+    "analyte": "Dissolution 30 min",
+    "event_type": "maintenance",
+    "instrument_id": "Dissolution DT-03",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "precision failure review",
+      "scenario": "r4s_precision"
+    },
+    "method_id": "Dissolution",
+    "stream_id": "demo-pharma_qc-dissolution-dt-03-dissolution-30-min",
+    "timestamp": "2026-02-18T02:20:00Z"
+  },
+  {
+    "analyte": "Dissolution 45 min",
+    "event_type": "calibration",
+    "instrument_id": "Dissolution DT-03",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Dissolution",
+    "stream_id": "demo-pharma_qc-dissolution-dt-03-dissolution-45-min",
+    "timestamp": "2026-02-16T07:55:00Z"
+  },
+  {
+    "analyte": "Dissolution 45 min",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "Dissolution DT-03",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "from": "PHA-11-A",
+      "to": "PHA-11-B"
+    },
+    "method_id": "Dissolution",
+    "stream_id": "demo-pharma_qc-dissolution-dt-03-dissolution-45-min",
+    "timestamp": "2026-02-17T14:25:00Z"
+  },
+  {
+    "analyte": "Dissolution 45 min",
+    "event_type": "maintenance",
+    "instrument_id": "Dissolution DT-03",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "duplicate retry cluster reviewed",
+      "scenario": "duplicate_retry_cluster"
+    },
+    "method_id": "Dissolution",
+    "stream_id": "demo-pharma_qc-dissolution-dt-03-dissolution-45-min",
+    "timestamp": "2026-02-18T02:25:00Z"
+  },
+  {
+    "analyte": "Water Content",
+    "event_type": "calibration",
+    "instrument_id": "KF Aqua-04",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Karl Fischer",
+    "stream_id": "demo-pharma_qc-kf-aqua-04-water-content",
+    "timestamp": "2026-02-16T07:30:00Z"
+  },
+  {
+    "analyte": "Water Content",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "KF Aqua-04",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "from": "PHA-12-A",
+      "to": "PHA-12-B"
+    },
+    "method_id": "Karl Fischer",
+    "stream_id": "demo-pharma_qc-kf-aqua-04-water-content",
+    "timestamp": "2026-02-17T14:00:00Z"
+  },
+  {
+    "analyte": "Water Content",
+    "event_type": "maintenance",
+    "instrument_id": "KF Aqua-04",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "stable lot transition review",
+      "scenario": "stable_lot_b"
+    },
+    "method_id": "Karl Fischer",
+    "stream_id": "demo-pharma_qc-kf-aqua-04-water-content",
+    "timestamp": "2026-02-18T02:00:00Z"
+  },
+  {
+    "analyte": "LOD",
+    "event_type": "calibration",
+    "instrument_id": "KF Aqua-04",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Karl Fischer",
+    "stream_id": "demo-pharma_qc-kf-aqua-04-lod",
+    "timestamp": "2026-02-16T07:35:00Z"
+  },
+  {
+    "analyte": "LOD",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "KF Aqua-04",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "from": "PHA-13-A",
+      "to": "PHA-13-B"
+    },
+    "method_id": "Karl Fischer",
+    "stream_id": "demo-pharma_qc-kf-aqua-04-lod",
+    "timestamp": "2026-02-17T14:05:00Z"
+  },
+  {
+    "analyte": "LOD",
+    "event_type": "maintenance",
+    "instrument_id": "KF Aqua-04",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "operator rerun after high action point",
+      "scenario": "high_action_outlier"
+    },
+    "method_id": "Karl Fischer",
+    "stream_id": "demo-pharma_qc-kf-aqua-04-lod",
+    "timestamp": "2026-02-18T02:05:00Z"
+  },
+  {
+    "analyte": "Residual Moisture",
+    "event_type": "calibration",
+    "instrument_id": "KF Aqua-04",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Karl Fischer",
+    "stream_id": "demo-pharma_qc-kf-aqua-04-residual-moisture",
+    "timestamp": "2026-02-16T07:40:00Z"
+  },
+  {
+    "analyte": "Residual Moisture",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "KF Aqua-04",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "from": "PHA-14-A",
+      "to": "PHA-14-B"
+    },
+    "method_id": "Karl Fischer",
+    "stream_id": "demo-pharma_qc-kf-aqua-04-residual-moisture",
+    "timestamp": "2026-02-17T14:10:00Z"
+  },
+  {
+    "analyte": "Residual Moisture",
+    "event_type": "maintenance",
+    "instrument_id": "KF Aqua-04",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "stable baseline review",
+      "scenario": "stable_baseline"
+    },
+    "method_id": "Karl Fischer",
+    "stream_id": "demo-pharma_qc-kf-aqua-04-residual-moisture",
+    "timestamp": "2026-02-18T02:10:00Z"
+  },
+  {
+    "analyte": "pH",
+    "event_type": "calibration",
+    "instrument_id": "Formulation Bench-05",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Formulation",
+    "stream_id": "demo-pharma_qc-formulation-bench-05-ph",
+    "timestamp": "2026-02-16T07:45:00Z"
+  },
+  {
+    "analyte": "pH",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "Formulation Bench-05",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "from": "PHA-15-A",
+      "to": "PHA-15-B"
+    },
+    "method_id": "Formulation",
+    "stream_id": "demo-pharma_qc-formulation-bench-05-ph",
+    "timestamp": "2026-02-17T14:15:00Z"
+  },
+  {
+    "analyte": "pH",
+    "event_type": "maintenance",
+    "instrument_id": "Formulation Bench-05",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "precision review for high scatter",
+      "scenario": "low_confidence"
+    },
+    "method_id": "Formulation",
+    "stream_id": "demo-pharma_qc-formulation-bench-05-ph",
+    "timestamp": "2026-02-18T02:15:00Z"
+  },
+  {
+    "analyte": "Osmolality",
+    "event_type": "calibration",
+    "instrument_id": "Formulation Bench-05",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Formulation",
+    "stream_id": "demo-pharma_qc-formulation-bench-05-osmolality",
+    "timestamp": "2026-02-16T07:50:00Z"
+  },
+  {
+    "analyte": "Osmolality",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "Formulation Bench-05",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "from": "PHA-16-A",
+      "to": "PHA-16-B"
+    },
+    "method_id": "Formulation",
+    "stream_id": "demo-pharma_qc-formulation-bench-05-osmolality",
+    "timestamp": "2026-02-17T14:20:00Z"
+  },
+  {
+    "analyte": "Osmolality",
+    "event_type": "maintenance",
+    "instrument_id": "Formulation Bench-05",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "lot-to-lot high bias review",
+      "scenario": "step_shift_lot_high"
+    },
+    "method_id": "Formulation",
+    "stream_id": "demo-pharma_qc-formulation-bench-05-osmolality",
+    "timestamp": "2026-02-18T02:20:00Z"
+  },
+  {
+    "analyte": "Conductivity",
+    "event_type": "calibration",
+    "instrument_id": "Formulation Bench-05",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "Formulation",
+    "stream_id": "demo-pharma_qc-formulation-bench-05-conductivity",
+    "timestamp": "2026-02-16T07:55:00Z"
+  },
+  {
+    "analyte": "Conductivity",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "Formulation Bench-05",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "from": "PHA-17-A",
+      "to": "PHA-17-B"
+    },
+    "method_id": "Formulation",
+    "stream_id": "demo-pharma_qc-formulation-bench-05-conductivity",
+    "timestamp": "2026-02-17T14:25:00Z"
+  },
+  {
+    "analyte": "Conductivity",
+    "event_type": "maintenance",
+    "instrument_id": "Formulation Bench-05",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "drift investigation opened",
+      "scenario": "slow_drift_high"
+    },
+    "method_id": "Formulation",
+    "stream_id": "demo-pharma_qc-formulation-bench-05-conductivity",
+    "timestamp": "2026-02-18T02:25:00Z"
+  },
+  {
+    "analyte": "Drug A Control",
+    "event_type": "calibration",
+    "instrument_id": "LCMS Drug-06",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "LC-MS Drug Panel",
+    "stream_id": "demo-pharma_qc-lcms-drug-06-drug-a-control",
+    "timestamp": "2026-02-16T07:30:00Z"
+  },
+  {
+    "analyte": "Drug A Control",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "LCMS Drug-06",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "from": "PHA-18-A",
+      "to": "PHA-18-B"
+    },
+    "method_id": "LC-MS Drug Panel",
+    "stream_id": "demo-pharma_qc-lcms-drug-06-drug-a-control",
+    "timestamp": "2026-02-17T14:00:00Z"
+  },
+  {
+    "analyte": "Drug A Control",
+    "event_type": "maintenance",
+    "instrument_id": "LCMS Drug-06",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "operator rerun after low action point",
+      "scenario": "low_action_outlier"
+    },
+    "method_id": "LC-MS Drug Panel",
+    "stream_id": "demo-pharma_qc-lcms-drug-06-drug-a-control",
+    "timestamp": "2026-02-18T02:00:00Z"
+  },
+  {
+    "analyte": "Drug B Control",
+    "event_type": "calibration",
+    "instrument_id": "LCMS Drug-06",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "LC-MS Drug Panel",
+    "stream_id": "demo-pharma_qc-lcms-drug-06-drug-b-control",
+    "timestamp": "2026-02-16T07:35:00Z"
+  },
+  {
+    "analyte": "Drug B Control",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "LCMS Drug-06",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "from": "PHA-19-A",
+      "to": "PHA-19-B"
+    },
+    "method_id": "LC-MS Drug Panel",
+    "stream_id": "demo-pharma_qc-lcms-drug-06-drug-b-control",
+    "timestamp": "2026-02-17T14:05:00Z"
+  },
+  {
+    "analyte": "Drug B Control",
+    "event_type": "maintenance",
+    "instrument_id": "LCMS Drug-06",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "maintenance restored baseline",
+      "scenario": "maintenance_recovery"
+    },
+    "method_id": "LC-MS Drug Panel",
+    "stream_id": "demo-pharma_qc-lcms-drug-06-drug-b-control",
+    "timestamp": "2026-02-18T02:05:00Z"
+  },
+  {
+    "analyte": "Metabolite M1",
+    "event_type": "calibration",
+    "instrument_id": "LCMS Drug-06",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "LC-MS Drug Panel",
+    "stream_id": "demo-pharma_qc-lcms-drug-06-metabolite-m1",
+    "timestamp": "2026-02-16T07:40:00Z"
+  },
+  {
+    "analyte": "Metabolite M1",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "LCMS Drug-06",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "from": "PHA-20-A",
+      "to": "PHA-20-B"
+    },
+    "method_id": "LC-MS Drug Panel",
+    "stream_id": "demo-pharma_qc-lcms-drug-06-metabolite-m1",
+    "timestamp": "2026-02-17T14:10:00Z"
+  },
+  {
+    "analyte": "Metabolite M1",
+    "event_type": "maintenance",
+    "instrument_id": "LCMS Drug-06",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "lot-to-lot low bias review",
+      "scenario": "step_shift_lot_low"
+    },
+    "method_id": "LC-MS Drug Panel",
+    "stream_id": "demo-pharma_qc-lcms-drug-06-metabolite-m1",
+    "timestamp": "2026-02-18T02:10:00Z"
+  },
+  {
+    "analyte": "Internal Standard Area",
+    "event_type": "calibration",
+    "instrument_id": "LCMS Drug-06",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "LC-MS Drug Panel",
+    "stream_id": "demo-pharma_qc-lcms-drug-06-internal-standard-area",
+    "timestamp": "2026-02-16T07:45:00Z"
+  },
+  {
+    "analyte": "Internal Standard Area",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "LCMS Drug-06",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "from": "PHA-21-A",
+      "to": "PHA-21-B"
+    },
+    "method_id": "LC-MS Drug Panel",
+    "stream_id": "demo-pharma_qc-lcms-drug-06-internal-standard-area",
+    "timestamp": "2026-02-17T14:15:00Z"
+  },
+  {
+    "analyte": "Internal Standard Area",
+    "event_type": "maintenance",
+    "instrument_id": "LCMS Drug-06",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "low drift investigation opened",
+      "scenario": "slow_drift_low"
+    },
+    "method_id": "LC-MS Drug Panel",
+    "stream_id": "demo-pharma_qc-lcms-drug-06-internal-standard-area",
+    "timestamp": "2026-02-18T02:15:00Z"
+  },
+  {
+    "analyte": "TOC Rinse",
+    "event_type": "calibration",
+    "instrument_id": "TOC Clean-07",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "TOC",
+    "stream_id": "demo-pharma_qc-toc-clean-07-toc-rinse",
+    "timestamp": "2026-02-16T07:50:00Z"
+  },
+  {
+    "analyte": "TOC Rinse",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "TOC Clean-07",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "from": "PHA-22-A",
+      "to": "PHA-22-B"
+    },
+    "method_id": "TOC",
+    "stream_id": "demo-pharma_qc-toc-clean-07-toc-rinse",
+    "timestamp": "2026-02-17T14:20:00Z"
+  },
+  {
+    "analyte": "TOC Rinse",
+    "event_type": "maintenance",
+    "instrument_id": "TOC Clean-07",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "precision failure review",
+      "scenario": "r4s_precision"
+    },
+    "method_id": "TOC",
+    "stream_id": "demo-pharma_qc-toc-clean-07-toc-rinse",
+    "timestamp": "2026-02-18T02:20:00Z"
+  },
+  {
+    "analyte": "TOC WFI",
+    "event_type": "calibration",
+    "instrument_id": "TOC Clean-07",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "TOC",
+    "stream_id": "demo-pharma_qc-toc-clean-07-toc-wfi",
+    "timestamp": "2026-02-16T07:55:00Z"
+  },
+  {
+    "analyte": "TOC WFI",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "TOC Clean-07",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "from": "PHA-23-A",
+      "to": "PHA-23-B"
+    },
+    "method_id": "TOC",
+    "stream_id": "demo-pharma_qc-toc-clean-07-toc-wfi",
+    "timestamp": "2026-02-17T14:25:00Z"
+  },
+  {
+    "analyte": "TOC WFI",
+    "event_type": "maintenance",
+    "instrument_id": "TOC Clean-07",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "duplicate retry cluster reviewed",
+      "scenario": "duplicate_retry_cluster"
+    },
+    "method_id": "TOC",
+    "stream_id": "demo-pharma_qc-toc-clean-07-toc-wfi",
+    "timestamp": "2026-02-18T02:25:00Z"
+  },
+  {
+    "analyte": "Residual Ethanol",
+    "event_type": "calibration",
+    "instrument_id": "GC Solvent-08",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "GC Residual Solvent",
+    "stream_id": "demo-pharma_qc-gc-solvent-08-residual-ethanol",
+    "timestamp": "2026-02-16T07:30:00Z"
+  },
+  {
+    "analyte": "Residual Ethanol",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "GC Solvent-08",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "from": "PHA-24-A",
+      "to": "PHA-24-B"
+    },
+    "method_id": "GC Residual Solvent",
+    "stream_id": "demo-pharma_qc-gc-solvent-08-residual-ethanol",
+    "timestamp": "2026-02-17T14:00:00Z"
+  },
+  {
+    "analyte": "Residual Ethanol",
+    "event_type": "maintenance",
+    "instrument_id": "GC Solvent-08",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "stable lot transition review",
+      "scenario": "stable_lot_b"
+    },
+    "method_id": "GC Residual Solvent",
+    "stream_id": "demo-pharma_qc-gc-solvent-08-residual-ethanol",
+    "timestamp": "2026-02-18T02:00:00Z"
+  },
+  {
+    "analyte": "Residual Acetone",
+    "event_type": "calibration",
+    "instrument_id": "GC Solvent-08",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "GC Residual Solvent",
+    "stream_id": "demo-pharma_qc-gc-solvent-08-residual-acetone",
+    "timestamp": "2026-02-16T07:35:00Z"
+  },
+  {
+    "analyte": "Residual Acetone",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "GC Solvent-08",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "from": "PHA-25-A",
+      "to": "PHA-25-B"
+    },
+    "method_id": "GC Residual Solvent",
+    "stream_id": "demo-pharma_qc-gc-solvent-08-residual-acetone",
+    "timestamp": "2026-02-17T14:05:00Z"
+  },
+  {
+    "analyte": "Residual Acetone",
+    "event_type": "maintenance",
+    "instrument_id": "GC Solvent-08",
+    "metadata": {
+      "family": "pharma_qc",
+      "fixture": "demo-kiosk",
+      "note": "operator rerun after high action point",
+      "scenario": "high_action_outlier"
+    },
+    "method_id": "GC Residual Solvent",
+    "stream_id": "demo-pharma_qc-gc-solvent-08-residual-acetone",
+    "timestamp": "2026-02-18T02:05:00Z"
+  }
+]

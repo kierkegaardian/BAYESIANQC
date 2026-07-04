@@ -7,7 +7,7 @@ import pytest
 from sqlmodel import Session, col, select
 
 from app.db import get_engine
-from app.db_models import ApiKey, PosteriorState, PriorConfig, QCRecord, QCRecordQuarantine
+from app.db_models import ApiKey, PosteriorState, PriorConfig, QCComment, QCRecord, QCRecordQuarantine
 from app.main import app
 from app.models import Role
 from app.security import api_key_lookup_hash, hash_api_key, legacy_sha256_hash
@@ -249,6 +249,90 @@ async def test_action_signal_and_alert_created(client: httpx.AsyncClient):
 
 
 @pytest.mark.anyio
+async def test_comments_can_be_added_to_accepted_record_and_run(client: httpx.AsyncClient):
+    payload = _base_payload()
+    payload["timestamp"] = (datetime.now(timezone.utc) + timedelta(seconds=1)).isoformat()
+    payload["run_id"] = "comment-run-1"
+    response = await client.post("/qc/records", json=payload, headers=AUTH_HEADERS)
+    assert response.status_code == 200
+    record_id = response.json()["qc"]["id"]
+    assert record_id is not None
+
+    record_comment = await client.post(
+        "/qc/comments",
+        json={"target_type": "qc_record", "target_id": str(record_id), "body": "  Retest not needed after review.  "},
+        headers=AUTH_HEADERS,
+    )
+    assert record_comment.status_code == 200
+    record_body = record_comment.json()
+    assert record_body["body"] == "Retest not needed after review."
+    assert record_body["qc_record_id"] == record_id
+    assert record_body["stream_id"] == "hba1c-arch"
+    assert record_body["run_id"] == "comment-run-1"
+    assert record_body["actor_role"] == "admin"
+
+    run_comment = await client.post(
+        "/qc/comments",
+        json={"target_type": "qc_run", "target_id": "comment-run-1", "body": "Batch reviewed by lead tech."},
+        headers=AUTH_HEADERS,
+    )
+    assert run_comment.status_code == 200
+    assert run_comment.json()["run_id"] == "comment-run-1"
+
+    target_comments = await client.get(
+        f"/qc/comments?target_type=qc_record&target_id={record_id}",
+        headers=AUTH_HEADERS,
+    )
+    assert target_comments.status_code == 200
+    assert [comment["body"] for comment in target_comments.json()] == ["Retest not needed after review."]
+
+    run_comments = await client.get("/qc/comments?run_id=comment-run-1", headers=AUTH_HEADERS)
+    assert run_comments.status_code == 200
+    assert {comment["body"] for comment in run_comments.json()} == {
+        "Retest not needed after review.",
+        "Batch reviewed by lead tech.",
+    }
+
+    with Session(get_engine()) as session:
+        rows = session.exec(select(QCComment).where(QCComment.run_id == "comment-run-1")).all()
+        assert len(rows) == 2
+
+    audit_response = await client.get("/audit", headers=AUTH_HEADERS)
+    assert audit_response.status_code == 200
+    assert any(entry["action"] == "create_qc_comment" for entry in audit_response.json())
+
+
+@pytest.mark.anyio
+async def test_signal_alert_comments_link_to_alert_and_record(client: httpx.AsyncClient):
+    payload = _base_payload()
+    payload["timestamp"] = (datetime.now(timezone.utc) + timedelta(seconds=2)).isoformat()
+    payload["result_value"] = 6.0
+    response = await client.post("/qc/records", json=payload, headers=AUTH_HEADERS)
+    assert response.status_code == 200
+    body = response.json()
+    alert_id = body["alert_created"]["id"]
+    record_id = body["alert_created"]["qc_record_id"]
+
+    comment_response = await client.post(
+        "/qc/comments",
+        json={"target_type": "alert", "target_id": alert_id, "body": "Action signal reviewed on chart."},
+        headers=AUTH_HEADERS,
+    )
+    assert comment_response.status_code == 200
+    comment = comment_response.json()
+    assert comment["alert_id"] == alert_id
+    assert comment["qc_record_id"] == record_id
+    assert comment["stream_id"] == "hba1c-arch"
+
+    comments = await client.get(
+        f"/qc/comments?target_type=alert&target_id={alert_id}",
+        headers=AUTH_HEADERS,
+    )
+    assert comments.status_code == 200
+    assert comments.json()[0]["body"] == "Action signal reviewed on chart."
+
+
+@pytest.mark.anyio
 async def test_minimal_qc_payload_accepts_documented_optional_fields(client: httpx.AsyncClient):
     payload = _base_payload()
     payload["timestamp"] = (datetime.now(timezone.utc) + timedelta(seconds=1)).isoformat()
@@ -338,6 +422,7 @@ async def test_read_roles_can_read_without_mutating(client: httpx.AsyncClient):
         "/streams",
         "/alerts",
         "/audit",
+        "/qc/comments",
         "/qc/quarantine",
         "/reports/summary",
         "/streams/hba1c-arch/chart",

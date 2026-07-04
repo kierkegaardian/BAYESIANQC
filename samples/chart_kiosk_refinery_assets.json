@@ -1,0 +1,116 @@
+{
+  "instruments": [
+    {
+      "name": "OptiDist R-12",
+      "manufacturer": "PAC",
+      "model": "OptiDist",
+      "site": "Refinery Fuels Lab",
+      "active": true
+    },
+    {
+      "name": "Lovibond PFXi-195",
+      "manufacturer": "Tintometer",
+      "model": "PFXi-195",
+      "site": "Refinery Fuels Lab",
+      "active": true
+    },
+    {
+      "name": "ISL CPP 5Gs",
+      "manufacturer": "PAC",
+      "model": "CPP 5Gs",
+      "site": "Refinery Fuels Lab",
+      "active": true
+    },
+    {
+      "name": "Sindie XRF SX-100",
+      "manufacturer": "XOS",
+      "model": "Sindie",
+      "site": "Refinery Fuels Lab",
+      "active": true
+    }
+  ],
+  "methods": [
+    {
+      "instrument_name": "OptiDist R-12",
+      "name": "ASTM D86",
+      "technique": "Atmospheric distillation",
+      "active": true
+    },
+    {
+      "instrument_name": "Lovibond PFXi-195",
+      "name": "ASTM D1500",
+      "technique": "Petroleum color",
+      "active": true
+    },
+    {
+      "instrument_name": "ISL CPP 5Gs",
+      "name": "ASTM D97",
+      "technique": "Pour point",
+      "active": true
+    },
+    {
+      "instrument_name": "Sindie XRF SX-100",
+      "name": "ASTM D4294",
+      "technique": "XRF sulfur",
+      "active": true
+    }
+  ],
+  "analytes": [
+    {
+      "instrument_name": "OptiDist R-12",
+      "method_name": "ASTM D86",
+      "name": "D86 IBP",
+      "units": "deg C",
+      "active": true
+    },
+    {
+      "instrument_name": "OptiDist R-12",
+      "method_name": "ASTM D86",
+      "name": "D86 10% Recovered",
+      "units": "deg C",
+      "active": true
+    },
+    {
+      "instrument_name": "OptiDist R-12",
+      "method_name": "ASTM D86",
+      "name": "D86 50% Recovered",
+      "units": "deg C",
+      "active": true
+    },
+    {
+      "instrument_name": "OptiDist R-12",
+      "method_name": "ASTM D86",
+      "name": "D86 90% Recovered",
+      "units": "deg C",
+      "active": true
+    },
+    {
+      "instrument_name": "OptiDist R-12",
+      "method_name": "ASTM D86",
+      "name": "D86 FBP",
+      "units": "deg C",
+      "active": true
+    },
+    {
+      "instrument_name": "Lovibond PFXi-195",
+      "method_name": "ASTM D1500",
+      "name": "ASTM Color",
+      "units": "ASTM color",
+      "active": true
+    },
+    {
+      "instrument_name": "ISL CPP 5Gs",
+      "method_name": "ASTM D97",
+      "name": "Pour Point",
+      "units": "deg C",
+      "active": true
+    },
+    {
+      "instrument_name": "Sindie XRF SX-100",
+      "method_name": "ASTM D4294",
+      "name": "Total Sulfur",
+      "units": "mg/kg",
+      "active": true
+    }
+  ]
+}

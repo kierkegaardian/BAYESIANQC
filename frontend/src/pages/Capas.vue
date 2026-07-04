@@ -5,7 +5,7 @@
         <h2>CAPAs</h2>
         <div class="muted">Corrective and preventive action tracking.</div>
       </div>
-      <el-button type="primary" @click="openCreate">New CAPA</el-button>
+      <el-button v-if="canApprove" type="primary" @click="openCreate">New CAPA</el-button>
     </div>
 
     <el-table :data="capas" stripe class="full-width">
@@ -14,7 +14,7 @@
       <el-table-column prop="root_cause_category" label="Root Cause" />
       <el-table-column prop="alert_id" label="Alert ID" />
       <el-table-column prop="investigation_id" label="Investigation ID" />
-      <el-table-column label="Actions" width="140">
+      <el-table-column v-if="canApprove" label="Actions" width="140">
         <template #default="{ row }">
           <el-button size="small" @click="openEdit(row)">Edit</el-button>
         </template>
@@ -60,7 +60,7 @@
       </el-form>
       <template #footer>
         <el-button @click="dialogOpen = false">Cancel</el-button>
-        <el-button type="primary" @click="saveCapa">Save</el-button>
+        <el-button v-if="canApprove" type="primary" @click="saveCapa">Save</el-button>
       </template>
     </el-dialog>
   </div>
@@ -68,9 +68,10 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import { api } from "../api/client";
 import type { CapaIn, CapaOut, CapaStatus } from "../api/contracts";
+import { canApprove } from "../api/session";
 
 type CapaForm = {
   alert_id: string;
@@ -148,19 +149,27 @@ function parseJsonList(value: string): Record<string, unknown>[] {
 }
 
 async function saveCapa() {
-  const payload: CapaIn = {
-    alert_id: form.alert_id || null,
-    investigation_id: form.investigation_id ? Number(form.investigation_id) : null,
-    root_cause_category: form.root_cause_category || null,
-    corrective_actions: parseJsonList(form.corrective_actions),
-    preventive_actions: parseJsonList(form.preventive_actions),
-    owners: form.owners ? form.owners.split(",").map((item) => item.trim()) : [],
-    due_at: form.due_at ? form.due_at.toISOString() : null,
-    verification_plan: form.verification_plan || null,
-    status: form.status,
-  };
   try {
+    const payload: CapaIn = {
+      alert_id: form.alert_id || null,
+      investigation_id: form.investigation_id ? Number(form.investigation_id) : null,
+      root_cause_category: form.root_cause_category || null,
+      corrective_actions: parseJsonList(form.corrective_actions),
+      preventive_actions: parseJsonList(form.preventive_actions),
+      owners: form.owners ? form.owners.split(",").map((item) => item.trim()) : [],
+      due_at: form.due_at ? form.due_at.toISOString() : null,
+      verification_plan: form.verification_plan || null,
+      status: form.status,
+    };
     if (editingId.value !== null) {
+      const reason = await ElMessageBox.prompt("Reason", "Update CAPA", {
+        confirmButtonText: "Save",
+        cancelButtonText: "Cancel",
+      }).catch(() => null);
+      if (!reason) {
+        return;
+      }
+      payload.reason = reason.value;
       await api.patch(`/capas/${editingId.value}`, payload);
     } else {
       await api.post("/capas", payload);

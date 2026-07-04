@@ -5,7 +5,7 @@
         <h2>Methods</h2>
         <div class="muted">Create methods tied to instruments.</div>
       </div>
-      <el-button type="primary" @click="openCreate">Add Method</el-button>
+      <el-button v-if="canEditConfig" type="primary" @click="openCreate">Add Method</el-button>
     </div>
 
     <el-table :data="methods" stripe class="full-width">
@@ -13,7 +13,7 @@
       <el-table-column prop="instrument_id" label="Instrument ID" />
       <el-table-column prop="technique" label="Technique" />
       <el-table-column prop="active" label="Active" />
-      <el-table-column label="Actions" width="140">
+      <el-table-column v-if="canEditConfig" label="Actions" width="140">
         <template #default="{ row }">
           <el-button size="small" @click="openEdit(row)">Edit</el-button>
         </template>
@@ -44,7 +44,7 @@
       </el-form>
       <template #footer>
         <el-button @click="dialogOpen = false">Cancel</el-button>
-        <el-button type="primary" @click="saveMethod">Save</el-button>
+        <el-button v-if="canEditConfig" type="primary" @click="saveMethod">Save</el-button>
       </template>
     </el-dialog>
   </div>
@@ -55,6 +55,7 @@ import { onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { api } from "../api/client";
 import type { InstrumentOut, MethodIn, MethodOut } from "../api/contracts";
+import { canEditConfig } from "../api/session";
 
 type MethodForm = Omit<MethodIn, "instrument_id" | "technique"> & {
   instrument_id: number | null;

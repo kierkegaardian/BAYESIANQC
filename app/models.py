@@ -23,6 +23,7 @@ class Permission(str, Enum):
     READ = "read"
     INGEST_QC = "ingest_qc"
     EDIT_CONFIG = "edit_config"
+    MANAGE_IMPORTS = "manage_imports"
     APPROVE = "approve"
     OVERRIDE = "override"
 
@@ -93,6 +94,12 @@ class QCBacklogPriority(str, Enum):
     URGENT = "urgent"
 
 
+class QCCommentTargetType(str, Enum):
+    QC_RECORD = "qc_record"
+    ALERT = "alert"
+    QC_RUN = "qc_run"
+
+
 class QCRecordIn(BaseModel):
     stream_id: str
     result_value: float
@@ -140,6 +147,7 @@ class BayesianRisk(BaseModel):
 
 
 class QCRecordOut(BaseModel):
+    id: Optional[int] = None
     record: QCRecordIn
     signals: List[FrequentistSignal]
     bayesian_risk: BayesianRisk
@@ -283,6 +291,7 @@ class QCBacklogItemUpdate(BaseModel):
     status: Optional[QCBacklogStatus] = None
     priority: Optional[QCBacklogPriority] = None
     due_at: Optional[datetime] = None
+    started_at: Optional[datetime] = None
     lab_bench: Optional[str] = None
     assignment_group: Optional[str] = None
     assigned_to: Optional[str] = None
@@ -314,10 +323,42 @@ class QCBacklogItemOut(BaseModel):
     created_by: str
     created_at: datetime
     updated_at: datetime
+    started_at: Optional[datetime] = None
+    started_by: Optional[str] = None
     completed_at: Optional[datetime] = None
     completed_by: Optional[str] = None
     completed_qc_record_id: Optional[int] = None
     last_quarantine_id: Optional[int] = None
+
+
+class QCCommentIn(BaseModel):
+    target_type: QCCommentTargetType
+    target_id: str
+    body: str
+    stream_id: Optional[str] = None
+
+    @field_validator("target_id", "body")
+    @classmethod
+    def text_required(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("value is required")
+        return stripped
+
+
+class QCCommentOut(BaseModel):
+    id: int
+    target_type: QCCommentTargetType
+    target_id: str
+    stream_id: Optional[str] = None
+    qc_record_id: Optional[int] = None
+    alert_id: Optional[str] = None
+    run_id: Optional[str] = None
+    body: str
+    actor: str
+    actor_role: Optional[Role] = None
+    api_key_id: Optional[int] = None
+    created_at: datetime
 
 
 class StreamConfigBase(BaseModel):
@@ -326,9 +367,11 @@ class StreamConfigBase(BaseModel):
     method: str
     instrument: str
     site: Optional[str] = None
+    lab_bench: Optional[str] = None
     matrix: Optional[str] = None
     qc_level: str
     control_material_lot: str
+    control_material_id: Optional[int] = None
     units: str
     target_value: float
     sigma: float
@@ -401,6 +444,7 @@ class InstrumentIn(BaseModel):
     manufacturer: Optional[str] = None
     model: Optional[str] = None
     site: Optional[str] = None
+    lab_bench: Optional[str] = None
     active: bool = True
 
 
@@ -415,6 +459,7 @@ class InstrumentUpdate(BaseModel):
     manufacturer: Optional[str] = None
     model: Optional[str] = None
     site: Optional[str] = None
+    lab_bench: Optional[str] = None
     active: Optional[bool] = None
 
 

@@ -5,7 +5,7 @@
         <h2>Analytes</h2>
         <div class="muted">Define analytes under methods.</div>
       </div>
-      <el-button type="primary" @click="openCreate">Add Analyte</el-button>
+      <el-button v-if="canEditConfig" type="primary" @click="openCreate">Add Analyte</el-button>
     </div>
 
     <el-table :data="analytes" stripe class="full-width">
@@ -13,7 +13,7 @@
       <el-table-column prop="method_id" label="Method ID" />
       <el-table-column prop="units" label="Units" />
       <el-table-column prop="active" label="Active" />
-      <el-table-column label="Actions" width="140">
+      <el-table-column v-if="canEditConfig" label="Actions" width="140">
         <template #default="{ row }">
           <el-button size="small" @click="openEdit(row)">Edit</el-button>
         </template>
@@ -44,7 +44,7 @@
       </el-form>
       <template #footer>
         <el-button @click="dialogOpen = false">Cancel</el-button>
-        <el-button type="primary" @click="saveAnalyte">Save</el-button>
+        <el-button v-if="canEditConfig" type="primary" @click="saveAnalyte">Save</el-button>
       </template>
     </el-dialog>
   </div>
@@ -55,6 +55,7 @@ import { onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { api } from "../api/client";
 import type { AnalyteIn, AnalyteOut, MethodOut } from "../api/contracts";
+import { canEditConfig } from "../api/session";
 
 type AnalyteForm = Omit<AnalyteIn, "method_id" | "units"> & {
   method_id: number | null;

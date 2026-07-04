@@ -1,0 +1,288 @@
+{
+  "analytes": [
+    {
+      "active": true,
+      "instrument_name": "OptiDist Fuel-01",
+      "method_name": "ASTM D86",
+      "name": "D86 IBP",
+      "units": "deg C"
+    },
+    {
+      "active": true,
+      "instrument_name": "OptiDist Fuel-01",
+      "method_name": "ASTM D86",
+      "name": "D86 10% Recovered",
+      "units": "deg C"
+    },
+    {
+      "active": true,
+      "instrument_name": "OptiDist Fuel-01",
+      "method_name": "ASTM D86",
+      "name": "D86 50% Recovered",
+      "units": "deg C"
+    },
+    {
+      "active": true,
+      "instrument_name": "OptiDist Fuel-01",
+      "method_name": "ASTM D86",
+      "name": "D86 90% Recovered",
+      "units": "deg C"
+    },
+    {
+      "active": true,
+      "instrument_name": "FlashCheck Fuel-02",
+      "method_name": "ASTM D93",
+      "name": "Pensky Flash Point",
+      "units": "deg C"
+    },
+    {
+      "active": true,
+      "instrument_name": "FlashCheck Fuel-02",
+      "method_name": "ASTM D93",
+      "name": "Low Flash Solvent",
+      "units": "deg C"
+    },
+    {
+      "active": true,
+      "instrument_name": "FlashCheck Fuel-02",
+      "method_name": "ASTM D93",
+      "name": "Fire Point",
+      "units": "deg C"
+    },
+    {
+      "active": true,
+      "instrument_name": "Sindie Fuel-03",
+      "method_name": "ASTM D4294",
+      "name": "Total Sulfur",
+      "units": "mg/kg"
+    },
+    {
+      "active": true,
+      "instrument_name": "Sindie Fuel-03",
+      "method_name": "ASTM D4294",
+      "name": "ULSD Sulfur",
+      "units": "mg/kg"
+    },
+    {
+      "active": true,
+      "instrument_name": "Sindie Fuel-03",
+      "method_name": "ASTM D4294",
+      "name": "Crude Sulfur",
+      "units": "% mass"
+    },
+    {
+      "active": true,
+      "instrument_name": "DensityPro Fuel-04",
+      "method_name": "ASTM D4052",
+      "name": "Density 15C",
+      "units": "kg/m3"
+    },
+    {
+      "active": true,
+      "instrument_name": "DensityPro Fuel-04",
+      "method_name": "ASTM D4052",
+      "name": "API Gravity",
+      "units": "API"
+    },
+    {
+      "active": true,
+      "instrument_name": "DensityPro Fuel-04",
+      "method_name": "ASTM D4052",
+      "name": "Relative Density",
+      "units": "ratio"
+    },
+    {
+      "active": true,
+      "instrument_name": "ViscoBath Fuel-05",
+      "method_name": "ASTM D445",
+      "name": "Viscosity 40C",
+      "units": "cSt"
+    },
+    {
+      "active": true,
+      "instrument_name": "ViscoBath Fuel-05",
+      "method_name": "ASTM D445",
+      "name": "Viscosity 100C",
+      "units": "cSt"
+    },
+    {
+      "active": true,
+      "instrument_name": "ViscoBath Fuel-05",
+      "method_name": "ASTM D445",
+      "name": "Viscosity Index",
+      "units": "index"
+    },
+    {
+      "active": true,
+      "instrument_name": "PourCloud Fuel-06",
+      "method_name": "ASTM D97",
+      "name": "Pour Point",
+      "units": "deg C"
+    },
+    {
+      "active": true,
+      "instrument_name": "PourCloud Fuel-06",
+      "method_name": "ASTM D97",
+      "name": "Cloud Point",
+      "units": "deg C"
+    },
+    {
+      "active": true,
+      "instrument_name": "PourCloud Fuel-06",
+      "method_name": "ASTM D97",
+      "name": "Cold Filter Plugging",
+      "units": "deg C"
+    },
+    {
+      "active": true,
+      "instrument_name": "ColorScope Fuel-07",
+      "method_name": "ASTM D1500",
+      "name": "ASTM Color",
+      "units": "ASTM color"
+    },
+    {
+      "active": true,
+      "instrument_name": "ColorScope Fuel-07",
+      "method_name": "ASTM D1500",
+      "name": "Saybolt Color",
+      "units": "Saybolt"
+    },
+    {
+      "active": true,
+      "instrument_name": "ColorScope Fuel-07",
+      "method_name": "ASTM D1500",
+      "name": "Haze Index",
+      "units": "index"
+    },
+    {
+      "active": true,
+      "instrument_name": "VaporCheck Fuel-08",
+      "method_name": "ASTM D5191",
+      "name": "DVPE",
+      "units": "kPa"
+    },
+    {
+      "active": true,
+      "instrument_name": "VaporCheck Fuel-08",
+      "method_name": "ASTM D5191",
+      "name": "RVP",
+      "units": "psi"
+    },
+    {
+      "active": true,
+      "instrument_name": "VaporCheck Fuel-08",
+      "method_name": "ASTM D5191",
+      "name": "Vapor Liquid Ratio",
+      "units": "ratio"
+    }
+  ],
+  "instruments": [
+    {
+      "active": true,
+      "manufacturer": "PAC",
+      "model": "OptiDist",
+      "name": "OptiDist Fuel-01",
+      "site": "Synthetic Fuels Lab"
+    },
+    {
+      "active": true,
+      "manufacturer": "Eralytics",
+      "model": "ERAFLASH",
+      "name": "FlashCheck Fuel-02",
+      "site": "Synthetic Fuels Lab"
+    },
+    {
+      "active": true,
+      "manufacturer": "XOS",
+      "model": "Sindie",
+      "name": "Sindie Fuel-03",
+      "site": "Synthetic Fuels Lab"
+    },
+    {
+      "active": true,
+      "manufacturer": "Anton Paar",
+      "model": "DMA 4500",
+      "name": "DensityPro Fuel-04",
+      "site": "Synthetic Fuels Lab"
+    },
+    {
+      "active": true,
+      "manufacturer": "Cannon",
+      "model": "CT-600",
+      "name": "ViscoBath Fuel-05",
+      "site": "Synthetic Fuels Lab"
+    },
+    {
+      "active": true,
+      "manufacturer": "PAC",
+      "model": "CPP 5Gs",
+      "name": "PourCloud Fuel-06",
+      "site": "Synthetic Fuels Lab"
+    },
+    {
+      "active": true,
+      "manufacturer": "Tintometer",
+      "model": "PFXi",
+      "name": "ColorScope Fuel-07",
+      "site": "Synthetic Fuels Lab"
+    },
+    {
+      "active": true,
+      "manufacturer": "Grabner",
+      "model": "Minivap",
+      "name": "VaporCheck Fuel-08",
+      "site": "Synthetic Fuels Lab"
+    }
+  ],
+  "methods": [
+    {
+      "active": true,
+      "instrument_name": "OptiDist Fuel-01",
+      "name": "ASTM D86",
+      "technique": "Atmospheric distillation"
+    },
+    {
+      "active": true,
+      "instrument_name": "FlashCheck Fuel-02",
+      "name": "ASTM D93",
+      "technique": "Flash point"
+    },
+    {
+      "active": true,
+      "instrument_name": "Sindie Fuel-03",
+      "name": "ASTM D4294",
+      "technique": "XRF sulfur"
+    },
+    {
+      "active": true,
+      "instrument_name": "DensityPro Fuel-04",
+      "name": "ASTM D4052",
+      "technique": "Digital density"
+    },
+    {
+      "active": true,
+      "instrument_name": "ViscoBath Fuel-05",
+      "name": "ASTM D445",
+      "technique": "Kinematic viscosity"
+    },
+    {
+      "active": true,
+      "instrument_name": "PourCloud Fuel-06",
+      "name": "ASTM D97",
+      "technique": "Low-temperature properties"
+    },
+    {
+      "active": true,
+      "instrument_name": "ColorScope Fuel-07",
+      "name": "ASTM D1500",
+      "technique": "Petroleum color"
+    },
+    {
+      "active": true,
+      "instrument_name": "VaporCheck Fuel-08",
+      "name": "ASTM D5191",
+      "technique": "Vapor pressure"
+    }
+  ],
+  "synthetic_data_notice": "Synthetic demo data only; not validated ASTM, manufacturer, clinical, pharmacological, or regulatory reference data."
+}

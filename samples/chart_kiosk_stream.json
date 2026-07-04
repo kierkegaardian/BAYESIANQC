@@ -1,0 +1,22 @@
+{
+  "stream_id": "hba1c-kiosk",
+  "analyte": "HbA1c",
+  "method": "HPLC",
+  "instrument": "Architect",
+  "site": "Main Lab",
+  "matrix": null,
+  "qc_level": "Level 1",
+  "control_material_lot": "LOT-001",
+  "units": "%",
+  "target_value": 5.2,
+  "sigma": 0.25,
+  "action_limit_sd": 3.0,
+  "warning_limit_sd": 2.0,
+  "risk_threshold_warn": 50,
+  "risk_threshold_hold": 80,
+  "bayes_warn_prob_threshold": 0.25,
+  "bayes_warn_consecutive": 1,
+  "bayes_hold_prob_threshold": 0.8,
+  "bayes_hold_consecutive": 2,
+  "effective_from": "2026-01-01T00:00:00Z"
+}

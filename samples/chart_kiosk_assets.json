@@ -1,0 +1,76 @@
+{
+  "instruments": [
+    {
+      "name": "OptiDist OD-1",
+      "manufacturer": "PAC",
+      "model": "OptiDist",
+      "site": "Fuels Lab",
+      "active": true
+    },
+    {
+      "name": "OptiDist OD-2",
+      "manufacturer": "PAC",
+      "model": "OptiDist",
+      "site": "Fuels Lab",
+      "active": true
+    }
+  ],
+  "methods": [
+    {
+      "instrument_name": "OptiDist OD-1",
+      "name": "ASTM D86",
+      "technique": "Atmospheric distillation",
+      "active": true
+    },
+    {
+      "instrument_name": "OptiDist OD-2",
+      "name": "ASTM D86",
+      "technique": "Atmospheric distillation",
+      "active": true
+    }
+  ],
+  "analytes": [
+    {
+      "instrument_name": "OptiDist OD-1",
+      "method_name": "ASTM D86",
+      "name": "D86 IBP",
+      "units": "deg C",
+      "active": true
+    },
+    {
+      "instrument_name": "OptiDist OD-1",
+      "method_name": "ASTM D86",
+      "name": "D86 50% Recovered",
+      "units": "deg C",
+      "active": true
+    },
+    {
+      "instrument_name": "OptiDist OD-1",
+      "method_name": "ASTM D86",
+      "name": "D86 FBP",
+      "units": "deg C",
+      "active": true
+    },
+    {
+      "instrument_name": "OptiDist OD-2",
+      "method_name": "ASTM D86",
+      "name": "D86 IBP",
+      "units": "deg C",
+      "active": true
+    },
+    {
+      "instrument_name": "OptiDist OD-2",
+      "method_name": "ASTM D86",
+      "name": "D86 50% Recovered",
+      "units": "deg C",
+      "active": true
+    },
+    {
+      "instrument_name": "OptiDist OD-2",
+      "method_name": "ASTM D86",
+      "name": "D86 FBP",
+      "units": "deg C",
+      "active": true
+    }
+  ]
+}

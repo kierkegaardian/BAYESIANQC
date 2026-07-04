@@ -92,6 +92,7 @@ from app.db_models import (
     AuditEntry,
     Capa,
     CapaLink,
+    ControlMaterial,
     IngestionReceipt,
     Instrument,
     Investigation,
@@ -99,11 +100,23 @@ from app.db_models import (
     Method,
     PosteriorState,
     QCBacklogItem,
+    QCComment,
+    KioskLayout,
+    KioskPanel,
     PriorConfig,
     QCEvent,
     QCRecord,
     QCRecordQuarantine,
     StreamConfig,
+)
+from app.import_db_models import (
+    CollectorTransferEvent,
+    ImportArtifact,
+    ImportBatch,
+    ImportRow,
+    InstrumentPeak,
+    InstrumentRun,
+    ParserProfile,
 )
 from app.storage import seed_defaults
 
@@ -115,6 +128,16 @@ def reset_db():
     with Session(get_engine()) as session:
         for table in [
             IngestionReceipt,
+            CollectorTransferEvent,
+            InstrumentPeak,
+            ImportArtifact,
+            ImportRow,
+            InstrumentRun,
+            ImportBatch,
+            ParserProfile,
+            QCComment,
+            KioskPanel,
+            KioskLayout,
             AlertRecord,
             QCRecord,
             QCRecordQuarantine,
@@ -128,6 +151,7 @@ def reset_db():
             PosteriorState,
             PriorConfig,
             StreamConfig,
+            ControlMaterial,
             Analyte,
             Method,
             Instrument,

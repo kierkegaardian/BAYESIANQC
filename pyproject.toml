@@ -11,6 +11,7 @@ dependencies = [
   "sqlmodel==0.0.21",
   "uvicorn==0.30.3",
   "alembic==1.13.2",
+  "openpyxl==3.1.5",
 ]
 
 [dependency-groups]

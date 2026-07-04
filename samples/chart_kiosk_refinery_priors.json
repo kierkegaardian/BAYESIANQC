@@ -1,0 +1,82 @@
+[
+  {
+    "stream_id": "refinery-optidist-naphtha-ibp",
+    "mu0": 77.0,
+    "kappa0": 1.0,
+    "alpha0": 2.0,
+    "beta0": 1.0,
+    "effective_from": "2026-01-01T00:00:00Z"
+  },
+  {
+    "stream_id": "refinery-optidist-naphtha-10pct",
+    "mu0": 92.0,
+    "kappa0": 1.0,
+    "alpha0": 2.0,
+    "beta0": 1.21,
+    "effective_from": "2026-01-01T00:00:00Z"
+  },
+  {
+    "stream_id": "refinery-optidist-naphtha-50pct",
+    "mu0": 121.0,
+    "kappa0": 1.0,
+    "alpha0": 2.0,
+    "beta0": 3.24,
+    "effective_from": "2026-01-01T00:00:00Z"
+  },
+  {
+    "stream_id": "refinery-optidist-naphtha-90pct",
+    "mu0": 168.0,
+    "kappa0": 1.0,
+    "alpha0": 2.0,
+    "beta0": 4.84,
+    "effective_from": "2026-01-01T00:00:00Z"
+  },
+  {
+    "stream_id": "refinery-optidist-naphtha-fbp",
+    "mu0": 198.0,
+    "kappa0": 1.0,
+    "alpha0": 2.0,
+    "beta0": 9.0,
+    "effective_from": "2026-01-01T00:00:00Z"
+  },
+  {
+    "stream_id": "refinery-color-gasoline",
+    "mu0": 0.5,
+    "kappa0": 1.0,
+    "alpha0": 2.0,
+    "beta0": 0.01,
+    "effective_from": "2026-01-01T00:00:00Z"
+  },
+  {
+    "stream_id": "refinery-color-diesel",
+    "mu0": 1.5,
+    "kappa0": 1.0,
+    "alpha0": 2.0,
+    "beta0": 0.04,
+    "effective_from": "2026-01-01T00:00:00Z"
+  },
+  {
+    "stream_id": "refinery-pour-crude",
+    "mu0": -18.0,
+    "kappa0": 1.0,
+    "alpha0": 2.0,
+    "beta0": 2.25,
+    "effective_from": "2026-01-01T00:00:00Z"
+  },
+  {
+    "stream_id": "refinery-sulfur-gasoline",
+    "mu0": 8.0,
+    "kappa0": 1.0,
+    "alpha0": 2.0,
+    "beta0": 0.64,
+    "effective_from": "2026-01-01T00:00:00Z"
+  },
+  {
+    "stream_id": "refinery-sulfur-ulsd",
+    "mu0": 4.5,
+    "kappa0": 1.0,
+    "alpha0": 2.0,
+    "beta0": 0.09,
+    "effective_from": "2026-01-01T00:00:00Z"
+  }
+]

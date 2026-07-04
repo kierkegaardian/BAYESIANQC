@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BAYESIANQC Chart Workflow</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #667085;
+      --line: #d8deea;
+      --paper: #f7f9fc;
+      --panel: #ffffff;
+      --blue: #2563eb;
+      --teal: #0f766e;
+      --amber: #b45309;
+      --red: #be123c;
+      --green: #15803d;
+      --shadow: 0 18px 46px rgba(15, 23, 42, 0.10);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+    main { max-width: 1180px; margin: 0 auto; padding: 40px 24px 56px; }
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 24px;
+      align-items: end;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--line);
+    }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: clamp(32px, 5vw, 56px); line-height: 1.03; letter-spacing: 0; }
+    h2 { font-size: 23px; margin-bottom: 16px; }
+    h3 { font-size: 15px; margin-bottom: 6px; }
+    .subtitle { max-width: 760px; margin-top: 14px; color: var(--muted); font-size: 17px; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--muted);
+      font-weight: 800;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--green); }
+    section { margin-top: 28px; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(140px, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+    .step {
+      position: relative;
+      min-height: 168px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-top: 5px solid var(--blue);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .step.teal { border-top-color: var(--teal); }
+    .step.amber { border-top-color: var(--amber); }
+    .step.red { border-top-color: var(--red); }
+    .step.green { border-top-color: var(--green); }
+    .step p, .card p, .node span { color: var(--muted); font-size: 14px; }
+    .arrow {
+      position: absolute;
+      top: 50%;
+      right: -16px;
+      width: 18px;
+      height: 2px;
+      background: var(--line);
+      transform: translateY(-50%);
+      z-index: 2;
+    }
+    .arrow::after {
+      content: "";
+      position: absolute;
+      right: -1px;
+      top: -4px;
+      border-left: 7px solid var(--line);
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+    }
+    .step:last-child .arrow { display: none; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 16px;
+    }
+    .card b { display: block; margin-bottom: 6px; }
+    .formula {
+      margin-top: 10px;
+      padding: 11px 12px;
+      border-radius: 8px;
+      background: #eef6ff;
+      color: #0f3a5f;
+      font-weight: 800;
+      font-size: 14px;
+    }
+    .band {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: 12px;
+      align-items: center;
+      margin-top: 10px;
+    }
+    .scale {
+      height: 14px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--red), var(--amber), var(--green), var(--amber), var(--red));
+      border: 1px solid var(--line);
+    }
+    .label { color: var(--muted); font-size: 13px; font-weight: 750; }
+    .swim {
+      display: grid;
+      grid-template-columns: 170px minmax(0, 1fr);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .lane-label {
+      display: grid;
+      align-items: center;
+      padding: 16px;
+      background: var(--ink);
+      color: #fff;
+      font-weight: 850;
+    }
+    .lane {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(150px, 1fr));
+      gap: 12px;
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    .swim .lane:last-child { border-bottom: 0; }
+    .node {
+      min-height: 116px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fdfefe;
+      padding: 14px;
+    }
+    .node b { display: block; margin-bottom: 6px; }
+    .node.blue { box-shadow: inset 0 4px 0 var(--blue); }
+    .node.teal { box-shadow: inset 0 4px 0 var(--teal); }
+    .node.amber { box-shadow: inset 0 4px 0 var(--amber); }
+    .node.red { box-shadow: inset 0 4px 0 var(--red); }
+    .callout {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-left: 5px solid var(--teal);
+      background: #f0fdfa;
+      border-radius: 8px;
+      color: #134e4a;
+      font-weight: 700;
+    }
+    code { color: #0f3a5f; background: #eef6ff; padding: 2px 5px; border-radius: 4px; }
+    @media (max-width: 960px) {
+      header, .flow, .grid-3, .grid-2, .lane { grid-template-columns: 1fr; }
+      .swim { grid-template-columns: 1fr; }
+      .lane-label { padding: 12px 16px; }
+      .arrow { display: none; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>Chart workflow and QC interpretation</h1>
+      <p class="subtitle">This page follows the operator path from creating a control chart, to manual multi-level QC entry, to reading sigma bands and Bayesian next-value risk without guessing what the numbers mean.</p>
+    </div>
+    <div class="badge"><span class="dot"></span>Operator plus technical view</div>
+  </header>
+
+  <section class="panel">
+    <h2>End-user workflow</h2>
+    <div class="flow">
+      <div class="step"><h3>1. Create chart stream</h3><p>Pick analyte, method, instrument, site, QC level, units, target value, sigma, warning SD, action SD, and control lot.</p><span class="arrow"></span></div>
+      <div class="step teal"><h3>2. Add prior</h3><p>Set the Bayesian prior for the stream so the app has a starting belief about expected mean and spread.</p><span class="arrow"></span></div>
+      <div class="step amber"><h3>3. Enter manual QC</h3><p>The ingestion page preloads recent context, shows target/sigma/warning/action limits, and posts each level through <code>/qc/records</code>.</p><span class="arrow"></span></div>
+      <div class="step red"><h3>4. Read result</h3><p>The response shows duplicate state, rule signals, Bayesian risk, disposition, and any alert created for the record.</p><span class="arrow"></span></div>
+      <div class="step green"><h3>5. Use the chart</h3><p>Review result points, sigma bands, risk chart, alerts, events, exclusions, lot changes, and audit evidence.</p></div>
+    </div>
+  </section>
+
+  <section class="grid-3">
+    <div class="panel">
+      <h2>What sigma means</h2>
+      <div class="card">
+        <b>Sigma is normal process spread.</b>
+        <p>If target is 5.2 and sigma is 0.25, then one sigma is 0.25 result units away from target.</p>
+        <div class="formula">limit = target +/- SD x sigma</div>
+      </div>
+      <div class="band"><div class="label">-3 to +3 SD</div><div class="scale"></div></div>
+      <div class="callout">On the result chart, green is close to target, amber is warning territory, and red is action territory.</div>
+    </div>
+    <div class="panel">
+      <h2>How to read bands</h2>
+      <div class="card"><b>+/- 1 SD</b><p>Ordinary variation around target. One point here is usually not interesting by itself.</p></div>
+      <div class="card"><b>+/- warning SD</b><p>Usually 2 SD. This is early warning territory and may combine with Westgard-style pattern rules.</p></div>
+      <div class="card"><b>+/- action SD</b><p>Usually 3 SD. This is action territory because the result is far from the expected in-control spread.</p></div>
+    </div>
+    <div class="panel">
+      <h2>Bayesian next value</h2>
+      <div class="card">
+        <b>It is not a single predicted result.</b>
+        <p>The app updates its posterior from prior plus accepted QC history, then estimates the probability that the next result will land outside warning or action limits.</p>
+        <div class="formula">risk score = P(next value outside action limits) x 100</div>
+      </div>
+      <div class="callout">High Bayesian risk means the process may be drifting even before the newest point crosses a hard sigma line.</div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Technical data path</h2>
+    <div class="swim">
+      <div class="lane-label">Chart setup</div>
+      <div class="lane">
+        <div class="node blue"><b>StreamConfig</b><span>Stores target, sigma, warning/action SD, units, lot, method, instrument, and QC level.</span></div>
+        <div class="node blue"><b>PriorConfig</b><span>Stores Bayesian starting parameters for mean and variance.</span></div>
+        <div class="node blue"><b>Chart endpoint</b><span><code>/streams/{id}/chart?include_evaluations=true</code> returns records, evaluations, alerts, events, and lot segments.</span></div>
+        <div class="node blue"><b>Vue chart</b><span>Renders result bands, predictive intervals, credible intervals, risk probabilities, and markers.</span></div>
+      </div>
+      <div class="lane-label">Manual entry</div>
+      <div class="lane">
+        <div class="node teal"><b>Recent context</b><span>The UI remembers run, operator, reagent, calibration, and last stream.</span></div>
+        <div class="node teal"><b>Inline checks</b><span>Rows check finite result, timestamp age, min/max, warning bands, and action bands.</span></div>
+        <div class="node teal"><b>Batch rows</b><span>Each selected QC level becomes one <code>QCRecordIn</code> payload with a shared run context.</span></div>
+        <div class="node teal"><b>Ingestion service</b><span>Locks the stream, detects duplicates, persists record, evaluates, stores receipt, and audits.</span></div>
+      </div>
+      <div class="lane-label">Decision math</div>
+      <div class="lane">
+        <div class="node amber"><b>Frequentist rules</b><span>Evaluates 1-3s, 2-2s, R-4s, 4-1s, 10x, and related pattern signals.</span></div>
+        <div class="node amber"><b>Posterior update</b><span>Normal-Inverse-Gamma state updates mean, spread, observation count, and streaks.</span></div>
+        <div class="node amber"><b>Predictive risk</b><span>Computes probability that the next QC value falls outside warning/action limits.</span></div>
+        <div class="node amber"><b>Disposition</b><span>Combines rule severity and Bayesian streak thresholds into accept, monitor, hold, or reject.</span></div>
+      </div>
+      <div class="lane-label">Evidence</div>
+      <div class="lane">
+        <div class="node red"><b>Result chart</b><span>Explains where each point landed relative to target and sigma bands.</span></div>
+        <div class="node red"><b>Risk chart</b><span>Tracks P(outside warning) and P(outside action) over time.</span></div>
+        <div class="node red"><b>Audit rows</b><span>Capture actor, role, key, action, before/after snapshots, and required reasons.</span></div>
+        <div class="node red"><b>Workflow records</b><span>Alerts, investigations, CAPAs, exclusions, and reinclusions provide review trail.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid-2">
+    <div class="panel">
+      <h2>Operator reading sequence</h2>
+      <div class="card"><b>Start with position.</b><p>Is the newest result near target, in warning territory, or past action limits?</p></div>
+      <div class="card"><b>Then check pattern.</b><p>A point inside limits can still matter if it contributes to repeated-side or spread rules.</p></div>
+      <div class="card"><b>Then check Bayesian risk.</b><p>If P(next outside action) is climbing, the process may need review before the next hard failure.</p></div>
+    </div>
+    <div class="panel">
+      <h2>What not to overread</h2>
+      <div class="card"><b>Sigma bands are configured expectations.</b><p>Bad target or sigma setup makes chart interpretation weak, even if the math runs.</p></div>
+      <div class="card"><b>Bayesian risk is conditional.</b><p>It depends on prior, included records, effective stream config, and control-lot history.</p></div>
+      <div class="card"><b>Risk is not a final verdict by itself.</b><p>Use it with rule signals, instrument context, audit events, and supervisor review.</p></div>
+    </div>
+  </section>
+</main>
+</body>
+</html>

@@ -5,7 +5,7 @@
         <h2>QC Streams</h2>
         <div class="muted">Configure analyte + method + instrument streams.</div>
       </div>
-      <el-button type="primary" @click="openCreate">Add Stream</el-button>
+      <el-button v-if="canEditConfig" type="primary" @click="openCreate">Add Stream</el-button>
     </div>
 
     <el-table :data="streams" stripe class="full-width">
@@ -119,7 +119,7 @@
       </el-form>
       <template #footer>
         <el-button @click="dialogOpen = false">Cancel</el-button>
-        <el-button type="primary" @click="saveStream">Save</el-button>
+        <el-button v-if="canEditConfig" type="primary" @click="saveStream">Save</el-button>
       </template>
     </el-dialog>
 
@@ -140,6 +140,7 @@
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
 import { api } from "../api/client";
+import { canEditConfig } from "../api/session";
 import type {
   AnalyteOut,
   InstrumentOut,

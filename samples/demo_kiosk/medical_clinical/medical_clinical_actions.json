@@ -1,0 +1,208 @@
+{
+  "backlog": [
+    {
+      "action_id": "medical_clinical:demo-medical_clinical-chemmax-c8000-creatinine:open",
+      "assigned_to": null,
+      "assignment_group": "medical_clinical demo group",
+      "due_offset_hours": -6,
+      "lab_bench": "medical_clinical demo bench",
+      "notes": "synthetic demo_action_id=medical_clinical:demo-medical_clinical-chemmax-c8000-creatinine:open",
+      "priority": "soon",
+      "reference_material_label": "Chem L1",
+      "requested_by": "demo-fixture-generator",
+      "status": "open",
+      "stream_id": "demo-medical_clinical-chemmax-c8000-creatinine"
+    },
+    {
+      "action_id": "medical_clinical:demo-medical_clinical-chemmax-c8000-creatinine:completed",
+      "assigned_to": null,
+      "assignment_group": "medical_clinical demo group",
+      "completion_record": {
+        "analyte": "Creatinine",
+        "calibration_status": "ok",
+        "comments": "completed synthetic scheduled QC for medical_clinical",
+        "control_material_lot": "MED-02-A",
+        "entry_source": "manual",
+        "flags": [],
+        "instrument_id": "ChemMax C8000",
+        "method_id": "Clinical Chemistry",
+        "operator_id": "demo-backlog",
+        "qc_level": "Chem L1",
+        "reagent_lot": "MED-BACKLOG",
+        "result_value": 1.2,
+        "run_id": "demo-backlog-demo-medical-clinical-chemmax-c8000-creatinine",
+        "stream_id": "demo-medical_clinical-chemmax-c8000-creatinine",
+        "units": "mg/dL"
+      },
+      "due_offset_hours": -3,
+      "lab_bench": "medical_clinical demo bench",
+      "notes": "synthetic demo_action_id=medical_clinical:demo-medical_clinical-chemmax-c8000-creatinine:completed",
+      "priority": "soon",
+      "reference_material_label": "Chem L1",
+      "requested_by": "demo-fixture-generator",
+      "status": "completed",
+      "stream_id": "demo-medical_clinical-chemmax-c8000-creatinine"
+    },
+    {
+      "action_id": "medical_clinical:demo-medical_clinical-hemeflow-xn-20-wbc:open",
+      "assigned_to": null,
+      "assignment_group": "medical_clinical demo group",
+      "due_offset_hours": -6,
+      "lab_bench": "medical_clinical demo bench",
+      "notes": "synthetic demo_action_id=medical_clinical:demo-medical_clinical-hemeflow-xn-20-wbc:open",
+      "priority": "soon",
+      "reference_material_label": "CBC L1",
+      "requested_by": "demo-fixture-generator",
+      "status": "open",
+      "stream_id": "demo-medical_clinical-hemeflow-xn-20-wbc"
+    },
+    {
+      "action_id": "medical_clinical:demo-medical_clinical-hemeflow-xn-20-wbc:completed",
+      "assigned_to": null,
+      "assignment_group": "medical_clinical demo group",
+      "completion_record": {
+        "analyte": "WBC",
+        "calibration_status": "ok",
+        "comments": "completed synthetic scheduled QC for medical_clinical",
+        "control_material_lot": "MED-08-A",
+        "entry_source": "manual",
+        "flags": [],
+        "instrument_id": "HemeFlow XN-20",
+        "method_id": "CBC",
+        "operator_id": "demo-backlog",
+        "qc_level": "CBC L1",
+        "reagent_lot": "MED-BACKLOG",
+        "result_value": 6.3,
+        "run_id": "demo-backlog-demo-medical-clinical-hemeflow-xn-20-wbc",
+        "stream_id": "demo-medical_clinical-hemeflow-xn-20-wbc",
+        "units": "10^3/uL"
+      },
+      "due_offset_hours": -3,
+      "lab_bench": "medical_clinical demo bench",
+      "notes": "synthetic demo_action_id=medical_clinical:demo-medical_clinical-hemeflow-xn-20-wbc:completed",
+      "priority": "soon",
+      "reference_material_label": "CBC L1",
+      "requested_by": "demo-fixture-generator",
+      "status": "completed",
+      "stream_id": "demo-medical_clinical-hemeflow-xn-20-wbc"
+    }
+  ],
+  "exclusions": [
+    {
+      "reason": "medical_clinical demo excludes a known bad point",
+      "result_value": 102.8,
+      "run_id": "medical_clinical-001-009",
+      "stream_id": "demo-medical_clinical-chemmax-c8000-glucose",
+      "timestamp": "2026-02-10T00:05:00Z"
+    },
+    {
+      "reason": "medical_clinical demo excludes a known bad point",
+      "result_value": 307.4,
+      "run_id": "medical_clinical-007-011",
+      "stream_id": "demo-medical_clinical-a1ctrack-h900-fructosamine",
+      "timestamp": "2026-02-10T04:05:00Z"
+    },
+    {
+      "reason": "medical_clinical demo excludes a known bad point",
+      "result_value": 1.102,
+      "run_id": "medical_clinical-013-009",
+      "stream_id": "demo-medical_clinical-coagstar-cs-1-inr",
+      "timestamp": "2026-02-10T00:05:00Z"
+    },
+    {
+      "reason": "medical_clinical demo excludes a known bad point",
+      "result_value": 7.432,
+      "run_id": "medical_clinical-019-011",
+      "stream_id": "demo-medical_clinical-gaslab-abl-90-ph",
+      "timestamp": "2026-02-10T04:05:00Z"
+    }
+  ],
+  "family_id": "medical_clinical",
+  "quarantine_examples": [
+    {
+      "action_id": "medical_clinical:demo-medical_clinical-chemmax-c8000-sodium:unit",
+      "kind": "unit_mismatch",
+      "payload": {
+        "analyte": "Sodium",
+        "calibration_status": "ok",
+        "comments": "synthetic unit mismatch quarantine",
+        "control_material_lot": "MED-03-A",
+        "entry_source": "manual",
+        "flags": [],
+        "instrument_id": "ChemMax C8000",
+        "method_id": "Clinical Chemistry",
+        "operator_id": "demo-quarantine",
+        "qc_level": "Chem L2",
+        "reagent_lot": "MED-QUAR",
+        "result_value": 140,
+        "run_id": "demo-quarantine-unit-demo-medical-clinical-chemmax-c8000-sodium",
+        "stream_id": "demo-medical_clinical-chemmax-c8000-sodium",
+        "units": "wrong-mmol/L"
+      }
+    },
+    {
+      "action_id": "medical_clinical:demo-medical_clinical-chemmax-c8000-sodium:future",
+      "kind": "future_timestamp",
+      "payload": {
+        "analyte": "Sodium",
+        "calibration_status": "ok",
+        "comments": "synthetic future timestamp quarantine",
+        "control_material_lot": "MED-03-A",
+        "entry_source": "manual",
+        "flags": [],
+        "instrument_id": "ChemMax C8000",
+        "method_id": "Clinical Chemistry",
+        "operator_id": "demo-quarantine",
+        "qc_level": "Chem L2",
+        "reagent_lot": "MED-QUAR",
+        "result_value": 140,
+        "run_id": "demo-quarantine-future-demo-medical-clinical-chemmax-c8000-sodium",
+        "stream_id": "demo-medical_clinical-chemmax-c8000-sodium",
+        "units": "mmol/L"
+      }
+    },
+    {
+      "action_id": "medical_clinical:demo-medical_clinical-hemeflow-xn-20-rbc:unit",
+      "kind": "unit_mismatch",
+      "payload": {
+        "analyte": "RBC",
+        "calibration_status": "ok",
+        "comments": "synthetic unit mismatch quarantine",
+        "control_material_lot": "MED-09-A",
+        "entry_source": "manual",
+        "flags": [],
+        "instrument_id": "HemeFlow XN-20",
+        "method_id": "CBC",
+        "operator_id": "demo-quarantine",
+        "qc_level": "CBC L1",
+        "reagent_lot": "MED-QUAR",
+        "result_value": 4.6,
+        "run_id": "demo-quarantine-unit-demo-medical-clinical-hemeflow-xn-20-rbc",
+        "stream_id": "demo-medical_clinical-hemeflow-xn-20-rbc",
+        "units": "wrong-10^6/uL"
+      }
+    },
+    {
+      "action_id": "medical_clinical:demo-medical_clinical-hemeflow-xn-20-rbc:future",
+      "kind": "future_timestamp",
+      "payload": {
+        "analyte": "RBC",
+        "calibration_status": "ok",
+        "comments": "synthetic future timestamp quarantine",
+        "control_material_lot": "MED-09-A",
+        "entry_source": "manual",
+        "flags": [],
+        "instrument_id": "HemeFlow XN-20",
+        "method_id": "CBC",
+        "operator_id": "demo-quarantine",
+        "qc_level": "CBC L1",
+        "reagent_lot": "MED-QUAR",
+        "result_value": 4.6,
+        "run_id": "demo-quarantine-future-demo-medical-clinical-hemeflow-xn-20-rbc",
+        "stream_id": "demo-medical_clinical-hemeflow-xn-20-rbc",
+        "units": "10^6/uL"
+      }
+    }
+  ],
+  "synthetic_data_notice": "Synthetic demo data only; not validated ASTM, manufacturer, clinical, pharmacological, or regulatory reference data."
+}

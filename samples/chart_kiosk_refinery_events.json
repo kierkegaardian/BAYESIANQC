@@ -1,0 +1,182 @@
+[
+  {
+    "event_type": "calibration",
+    "timestamp": "2026-01-09T07:15:00Z",
+    "stream_id": "refinery-optidist-naphtha-ibp",
+    "instrument_id": "OptiDist R-12",
+    "analyte": "D86 IBP",
+    "method_id": "ASTM D86",
+    "metadata": { "fixture": "refinery-kiosk-suite", "note": "OptiDist R-12 pre-shift check" }
+  },
+  {
+    "event_type": "control_material_lot_change",
+    "timestamp": "2026-01-10T12:00:00Z",
+    "stream_id": "refinery-optidist-naphtha-ibp",
+    "instrument_id": "OptiDist R-12",
+    "analyte": "D86 IBP",
+    "method_id": "ASTM D86",
+    "metadata": { "fixture": "refinery-kiosk-suite", "from": "REF-D86-A", "to": "REF-D86-B" }
+  },
+  {
+    "event_type": "calibration",
+    "timestamp": "2026-01-09T07:15:00Z",
+    "stream_id": "refinery-optidist-naphtha-10pct",
+    "instrument_id": "OptiDist R-12",
+    "analyte": "D86 10% Recovered",
+    "method_id": "ASTM D86",
+    "metadata": { "fixture": "refinery-kiosk-suite", "note": "OptiDist R-12 pre-shift check" }
+  },
+  {
+    "event_type": "control_material_lot_change",
+    "timestamp": "2026-01-10T12:00:00Z",
+    "stream_id": "refinery-optidist-naphtha-10pct",
+    "instrument_id": "OptiDist R-12",
+    "analyte": "D86 10% Recovered",
+    "method_id": "ASTM D86",
+    "metadata": { "fixture": "refinery-kiosk-suite", "from": "REF-D86-A", "to": "REF-D86-B" }
+  },
+  {
+    "event_type": "calibration",
+    "timestamp": "2026-01-09T07:15:00Z",
+    "stream_id": "refinery-optidist-naphtha-50pct",
+    "instrument_id": "OptiDist R-12",
+    "analyte": "D86 50% Recovered",
+    "method_id": "ASTM D86",
+    "metadata": { "fixture": "refinery-kiosk-suite", "note": "OptiDist R-12 pre-shift check" }
+  },
+  {
+    "event_type": "control_material_lot_change",
+    "timestamp": "2026-01-10T12:00:00Z",
+    "stream_id": "refinery-optidist-naphtha-50pct",
+    "instrument_id": "OptiDist R-12",
+    "analyte": "D86 50% Recovered",
+    "method_id": "ASTM D86",
+    "metadata": { "fixture": "refinery-kiosk-suite", "from": "REF-D86-A", "to": "REF-D86-B" }
+  },
+  {
+    "event_type": "calibration",
+    "timestamp": "2026-01-09T07:15:00Z",
+    "stream_id": "refinery-optidist-naphtha-90pct",
+    "instrument_id": "OptiDist R-12",
+    "analyte": "D86 90% Recovered",
+    "method_id": "ASTM D86",
+    "metadata": { "fixture": "refinery-kiosk-suite", "note": "OptiDist R-12 pre-shift check" }
+  },
+  {
+    "event_type": "control_material_lot_change",
+    "timestamp": "2026-01-10T12:00:00Z",
+    "stream_id": "refinery-optidist-naphtha-90pct",
+    "instrument_id": "OptiDist R-12",
+    "analyte": "D86 90% Recovered",
+    "method_id": "ASTM D86",
+    "metadata": { "fixture": "refinery-kiosk-suite", "from": "REF-D86-A", "to": "REF-D86-B" }
+  },
+  {
+    "event_type": "calibration",
+    "timestamp": "2026-01-09T07:15:00Z",
+    "stream_id": "refinery-optidist-naphtha-fbp",
+    "instrument_id": "OptiDist R-12",
+    "analyte": "D86 FBP",
+    "method_id": "ASTM D86",
+    "metadata": { "fixture": "refinery-kiosk-suite", "note": "OptiDist R-12 pre-shift check" }
+  },
+  {
+    "event_type": "control_material_lot_change",
+    "timestamp": "2026-01-10T12:00:00Z",
+    "stream_id": "refinery-optidist-naphtha-fbp",
+    "instrument_id": "OptiDist R-12",
+    "analyte": "D86 FBP",
+    "method_id": "ASTM D86",
+    "metadata": { "fixture": "refinery-kiosk-suite", "from": "REF-D86-A", "to": "REF-D86-B" }
+  },
+  {
+    "event_type": "calibration",
+    "timestamp": "2026-01-09T07:25:00Z",
+    "stream_id": "refinery-color-gasoline",
+    "instrument_id": "Lovibond PFXi-195",
+    "analyte": "ASTM Color",
+    "method_id": "ASTM D1500",
+    "metadata": { "fixture": "refinery-kiosk-suite", "note": "D1500 color standard check" }
+  },
+  {
+    "event_type": "control_material_lot_change",
+    "timestamp": "2026-01-10T12:25:00Z",
+    "stream_id": "refinery-color-gasoline",
+    "instrument_id": "Lovibond PFXi-195",
+    "analyte": "ASTM Color",
+    "method_id": "ASTM D1500",
+    "metadata": { "fixture": "refinery-kiosk-suite", "from": "REF-COLOR-A", "to": "REF-COLOR-B" }
+  },
+  {
+    "event_type": "calibration",
+    "timestamp": "2026-01-09T07:25:00Z",
+    "stream_id": "refinery-color-diesel",
+    "instrument_id": "Lovibond PFXi-195",
+    "analyte": "ASTM Color",
+    "method_id": "ASTM D1500",
+    "metadata": { "fixture": "refinery-kiosk-suite", "note": "D1500 color standard check" }
+  },
+  {
+    "event_type": "control_material_lot_change",
+    "timestamp": "2026-01-10T12:25:00Z",
+    "stream_id": "refinery-color-diesel",
+    "instrument_id": "Lovibond PFXi-195",
+    "analyte": "ASTM Color",
+    "method_id": "ASTM D1500",
+    "metadata": { "fixture": "refinery-kiosk-suite", "from": "REF-COLOR-A", "to": "REF-COLOR-B" }
+  },
+  {
+    "event_type": "calibration",
+    "timestamp": "2026-01-09T07:35:00Z",
+    "stream_id": "refinery-pour-crude",
+    "instrument_id": "ISL CPP 5Gs",
+    "analyte": "Pour Point",
+    "method_id": "ASTM D97",
+    "metadata": { "fixture": "refinery-kiosk-suite", "note": "Pour point reference cup check" }
+  },
+  {
+    "event_type": "control_material_lot_change",
+    "timestamp": "2026-01-10T12:35:00Z",
+    "stream_id": "refinery-pour-crude",
+    "instrument_id": "ISL CPP 5Gs",
+    "analyte": "Pour Point",
+    "method_id": "ASTM D97",
+    "metadata": { "fixture": "refinery-kiosk-suite", "from": "REF-POUR-A", "to": "REF-POUR-B" }
+  },
+  {
+    "event_type": "calibration",
+    "timestamp": "2026-01-09T07:45:00Z",
+    "stream_id": "refinery-sulfur-gasoline",
+    "instrument_id": "Sindie XRF SX-100",
+    "analyte": "Total Sulfur",
+    "method_id": "ASTM D4294",
+    "metadata": { "fixture": "refinery-kiosk-suite", "note": "XRF sulfur foil standard check" }
+  },
+  {
+    "event_type": "control_material_lot_change",
+    "timestamp": "2026-01-10T12:40:00Z",
+    "stream_id": "refinery-sulfur-gasoline",
+    "instrument_id": "Sindie XRF SX-100",
+    "analyte": "Total Sulfur",
+    "method_id": "ASTM D4294",
+    "metadata": { "fixture": "refinery-kiosk-suite", "from": "REF-SUL-A", "to": "REF-SUL-B" }
+  },
+  {
+    "event_type": "calibration",
+    "timestamp": "2026-01-09T07:45:00Z",
+    "stream_id": "refinery-sulfur-ulsd",
+    "instrument_id": "Sindie XRF SX-100",
+    "analyte": "Total Sulfur",
+    "method_id": "ASTM D4294",
+    "metadata": { "fixture": "refinery-kiosk-suite", "note": "XRF sulfur foil standard check" }
+  },
+  {
+    "event_type": "control_material_lot_change",
+    "timestamp": "2026-01-10T12:40:00Z",
+    "stream_id": "refinery-sulfur-ulsd",
+    "instrument_id": "Sindie XRF SX-100",
+    "analyte": "Total Sulfur",
+    "method_id": "ASTM D4294",
+    "metadata": { "fixture": "refinery-kiosk-suite", "from": "REF-SUL-A", "to": "REF-SUL-B" }
+  }
+]

@@ -5,7 +5,7 @@
         <h2>Instruments</h2>
         <div class="muted">Manage instrument inventory used by QC streams.</div>
       </div>
-      <el-button type="primary" @click="openCreate">Add Instrument</el-button>
+      <el-button v-if="canEditConfig" type="primary" @click="openCreate">Add Instrument</el-button>
     </div>
 
     <el-table :data="instruments" stripe class="full-width">
@@ -14,7 +14,7 @@
       <el-table-column prop="model" label="Model" />
       <el-table-column prop="site" label="Site" />
       <el-table-column prop="active" label="Active" />
-      <el-table-column label="Actions" width="140">
+      <el-table-column v-if="canEditConfig" label="Actions" width="140">
         <template #default="{ row }">
           <el-button size="small" @click="openEdit(row)">Edit</el-button>
         </template>
@@ -41,7 +41,7 @@
       </el-form>
       <template #footer>
         <el-button @click="dialogOpen = false">Cancel</el-button>
-        <el-button type="primary" @click="saveInstrument">Save</el-button>
+        <el-button v-if="canEditConfig" type="primary" @click="saveInstrument">Save</el-button>
       </template>
     </el-dialog>
   </div>
@@ -52,6 +52,7 @@ import { onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { api } from "../api/client";
 import type { InstrumentIn, InstrumentOut } from "../api/contracts";
+import { canEditConfig } from "../api/session";
 
 type InstrumentForm = InstrumentIn & {
   manufacturer: string;

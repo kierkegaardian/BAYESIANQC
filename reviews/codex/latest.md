@@ -2,6 +2,8 @@
 
 Date: 2026-02-13
 
+Supersession note (2026-06-28): this historical Codex review is preserved for traceability. The current full-agent review is in the dated AGY and Grok artifacts under `reviews/agy/` and `reviews/grok/`.
+
 Scope
 - QC math (Bayesian + Westgard)
 - Usability and featureset (Vue UI)
@@ -228,3 +230,38 @@ Gemini finding I would treat as a tradeoff, not a defect
 
 Gemini finding I would reframe
 - “Missing indexes”: there are per-column indexes (`index=True`) on `QCRecord.stream_id`, `QCRecord.timestamp`, and `PosteriorState.stream_id`, but there is no composite index tailored to the common `(stream_id, timestamp)` access pattern. If chart/ingestion queries become slow, consider adding composite indexes once you move off SQLite or once you formalize migrations.
+## Preserved Alternate Historical Review
+
+# BayesianQC Code Review
+
+## Scope
+Reviewed the FastAPI backend (Bayesian risk engine, ingestion pipeline, storage/db migrations, RBAC) and the Vue UI charting surfaces relevant to Bayesian QC workflow.
+
+## Highlights (What’s Working Well)
+- **Bayesian risk engine is consistent with conjugate Normal–Inverse-Gamma updates.** The posterior update and Student‑t predictive intervals are computed in one place with dedicated helper functions, making the math explicit and testable.【F:app/bayesian.py†L78-L268】
+- **Policy streak handling is centralized and supports backward compatibility.** `_update_policy_streaks` cleanly encapsulates the warn/hold streak logic and falls back to legacy risk thresholds when Bayesian probability thresholds aren’t set.【F:app/bayesian.py†L128-L189】
+- **Disposition logic aligns with human QC workflow.** `determine_disposition` keeps Westgard action signals as hard stops while integrating Bayesian persistence for hold/monitor decisions.【F:app/main.py†L298-L312】
+- **Stream config validation is strict and explicit.** Pydantic validators enforce ranges and ordering constraints for the risk thresholds and Bayesian policy settings, which prevents silent misconfiguration.【F:app/models.py†L143-L221】
+- **UI charts expose Bayesian context without replacing familiar LJ layout.** The chart overlays posterior mean + credible/predictive intervals and shows Bayesian warning/action probabilities in the risk panel, which matches the intended “hybrid” workflow for techs.【F:frontend/src/pages/ChartView.vue†L1-L204】
+
+## Issues / Risks
+### 1) **SQLite migration defaults may hide configuration errors**
+`_ensure_sqlite_columns` forcibly backfills Bayesian threshold defaults for every row on startup. That’s a convenience for demos, but in a production or validation context it can mask unintentional `NULL`/unset values or mask a failed UI/API update. Consider scoping the backfill to only new seed data or moving defaults into controlled migrations instead of runtime startup logic.【F:app/db.py†L64-L133】
+
+### 2) **Bayesian interval confidence level is hard-coded**
+The interval level (`_DEFAULT_INTERVAL_LEVEL = 0.95`) is fixed for credible/predictive intervals, and there’s no path to configure alternative confidence levels per stream or endpoint. If you need laboratory-specific CI/PI settings (e.g., 90%, 95%, 99%), this will require code changes rather than configuration. Consider exposing this in `StreamConfig` or a UI toggle if a compliance team requests it.【F:app/bayesian.py†L14-L126】
+
+### 3) **Posterior rebuild is O(N) per request for certain paths**
+`infer_risk_as_of` and `rebuild_posterior_state` reprocess entire QC histories when recalculating risk for out‑of‑order ingestion or chart views. This is correct but may be expensive for long-running streams. If QC data grows large, consider windowing or storing periodic checkpoints to reduce worst‑case latency during rebuilds.【F:app/bayesian.py†L232-L591】
+
+### 4) **API key hashing lacks a per‑key salt**
+API keys are SHA‑256 hashed without a unique salt. While the keys are opaque, adding per‑key salts (or using a KDF like bcrypt/argon2) would provide better protection if hashes are leaked. This is particularly relevant if you later expose self‑service key management or persist keys in a shared DB.【F:app/rbac.py†L27-L55】
+
+## Recommendations
+- **Introduce typed config for Bayesian interval confidence.** Extend `StreamConfig` with `bayes_interval_level` (0.90/0.95/0.99) and thread it into `_interval_quantile` so charts are aligned with a lab’s validation requirements.【F:app/bayesian.py†L14-L126】【F:app/models.py†L119-L221】
+- **Replace runtime SQLite backfills with explicit migrations.** A migration step (even if minimal) would avoid unexpected default overwrites and improve auditability. Consider an Alembic-based or script-based migration that runs once and logs schema changes.【F:app/db.py†L64-L133】
+- **Consider caching or checkpointing posterior state.** For large streams, store periodic posterior checkpoints (e.g., every N records) so rebuilds only walk the delta. This would reduce O(N) recalculations in chart endpoints or out‑of‑order ingestion scenarios.【F:app/bayesian.py†L232-L591】
+- **Strengthen API key storage.** Use a salt + slow hash (bcrypt/argon2) or at minimum store per‑key salt to avoid straightforward offline attacks on static keys.【F:app/rbac.py†L27-L55】
+
+## Testing Notes
+- Existing tests cover ingestion, state rebuilds, and alert creation; keep those and add tests for interval quantiles if you expose configurable CI levels.【F:tests/test_ingestion.py†L1-L250】

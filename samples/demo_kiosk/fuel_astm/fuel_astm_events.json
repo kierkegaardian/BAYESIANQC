@@ -1,0 +1,1027 @@
+[
+  {
+    "analyte": "D86 IBP",
+    "event_type": "calibration",
+    "instrument_id": "OptiDist Fuel-01",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "ASTM D86",
+    "stream_id": "demo-fuel_astm-optidist-fuel-01-d86-ibp",
+    "timestamp": "2026-02-02T07:35:00Z"
+  },
+  {
+    "analyte": "D86 IBP",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "OptiDist Fuel-01",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "from": "FUE-01-A",
+      "to": "FUE-01-B"
+    },
+    "method_id": "ASTM D86",
+    "stream_id": "demo-fuel_astm-optidist-fuel-01-d86-ibp",
+    "timestamp": "2026-02-03T14:05:00Z"
+  },
+  {
+    "analyte": "D86 IBP",
+    "event_type": "maintenance",
+    "instrument_id": "OptiDist Fuel-01",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "operator rerun after high action point",
+      "scenario": "high_action_outlier"
+    },
+    "method_id": "ASTM D86",
+    "stream_id": "demo-fuel_astm-optidist-fuel-01-d86-ibp",
+    "timestamp": "2026-02-04T02:05:00Z"
+  },
+  {
+    "analyte": "D86 10% Recovered",
+    "event_type": "calibration",
+    "instrument_id": "OptiDist Fuel-01",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "ASTM D86",
+    "stream_id": "demo-fuel_astm-optidist-fuel-01-d86-10-recovered",
+    "timestamp": "2026-02-02T07:40:00Z"
+  },
+  {
+    "analyte": "D86 10% Recovered",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "OptiDist Fuel-01",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "from": "FUE-02-A",
+      "to": "FUE-02-B"
+    },
+    "method_id": "ASTM D86",
+    "stream_id": "demo-fuel_astm-optidist-fuel-01-d86-10-recovered",
+    "timestamp": "2026-02-03T14:10:00Z"
+  },
+  {
+    "analyte": "D86 10% Recovered",
+    "event_type": "maintenance",
+    "instrument_id": "OptiDist Fuel-01",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "stable baseline review",
+      "scenario": "stable_baseline"
+    },
+    "method_id": "ASTM D86",
+    "stream_id": "demo-fuel_astm-optidist-fuel-01-d86-10-recovered",
+    "timestamp": "2026-02-04T02:10:00Z"
+  },
+  {
+    "analyte": "D86 50% Recovered",
+    "event_type": "calibration",
+    "instrument_id": "OptiDist Fuel-01",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "ASTM D86",
+    "stream_id": "demo-fuel_astm-optidist-fuel-01-d86-50-recovered",
+    "timestamp": "2026-02-02T07:45:00Z"
+  },
+  {
+    "analyte": "D86 50% Recovered",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "OptiDist Fuel-01",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "from": "FUE-03-A",
+      "to": "FUE-03-B"
+    },
+    "method_id": "ASTM D86",
+    "stream_id": "demo-fuel_astm-optidist-fuel-01-d86-50-recovered",
+    "timestamp": "2026-02-03T14:15:00Z"
+  },
+  {
+    "analyte": "D86 50% Recovered",
+    "event_type": "maintenance",
+    "instrument_id": "OptiDist Fuel-01",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "precision review for high scatter",
+      "scenario": "low_confidence"
+    },
+    "method_id": "ASTM D86",
+    "stream_id": "demo-fuel_astm-optidist-fuel-01-d86-50-recovered",
+    "timestamp": "2026-02-04T02:15:00Z"
+  },
+  {
+    "analyte": "D86 90% Recovered",
+    "event_type": "calibration",
+    "instrument_id": "OptiDist Fuel-01",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "ASTM D86",
+    "stream_id": "demo-fuel_astm-optidist-fuel-01-d86-90-recovered",
+    "timestamp": "2026-02-02T07:50:00Z"
+  },
+  {
+    "analyte": "D86 90% Recovered",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "OptiDist Fuel-01",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "from": "FUE-04-A",
+      "to": "FUE-04-B"
+    },
+    "method_id": "ASTM D86",
+    "stream_id": "demo-fuel_astm-optidist-fuel-01-d86-90-recovered",
+    "timestamp": "2026-02-03T14:20:00Z"
+  },
+  {
+    "analyte": "D86 90% Recovered",
+    "event_type": "maintenance",
+    "instrument_id": "OptiDist Fuel-01",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "lot-to-lot high bias review",
+      "scenario": "step_shift_lot_high"
+    },
+    "method_id": "ASTM D86",
+    "stream_id": "demo-fuel_astm-optidist-fuel-01-d86-90-recovered",
+    "timestamp": "2026-02-04T02:20:00Z"
+  },
+  {
+    "analyte": "Pensky Flash Point",
+    "event_type": "calibration",
+    "instrument_id": "FlashCheck Fuel-02",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "ASTM D93",
+    "stream_id": "demo-fuel_astm-flashcheck-fuel-02-pensky-flash-point",
+    "timestamp": "2026-02-02T07:55:00Z"
+  },
+  {
+    "analyte": "Pensky Flash Point",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "FlashCheck Fuel-02",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "from": "FUE-05-A",
+      "to": "FUE-05-B"
+    },
+    "method_id": "ASTM D93",
+    "stream_id": "demo-fuel_astm-flashcheck-fuel-02-pensky-flash-point",
+    "timestamp": "2026-02-03T14:25:00Z"
+  },
+  {
+    "analyte": "Pensky Flash Point",
+    "event_type": "maintenance",
+    "instrument_id": "FlashCheck Fuel-02",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "drift investigation opened",
+      "scenario": "slow_drift_high"
+    },
+    "method_id": "ASTM D93",
+    "stream_id": "demo-fuel_astm-flashcheck-fuel-02-pensky-flash-point",
+    "timestamp": "2026-02-04T02:25:00Z"
+  },
+  {
+    "analyte": "Low Flash Solvent",
+    "event_type": "calibration",
+    "instrument_id": "FlashCheck Fuel-02",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "ASTM D93",
+    "stream_id": "demo-fuel_astm-flashcheck-fuel-02-low-flash-solvent",
+    "timestamp": "2026-02-02T07:30:00Z"
+  },
+  {
+    "analyte": "Low Flash Solvent",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "FlashCheck Fuel-02",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "from": "FUE-06-A",
+      "to": "FUE-06-B"
+    },
+    "method_id": "ASTM D93",
+    "stream_id": "demo-fuel_astm-flashcheck-fuel-02-low-flash-solvent",
+    "timestamp": "2026-02-03T14:00:00Z"
+  },
+  {
+    "analyte": "Low Flash Solvent",
+    "event_type": "maintenance",
+    "instrument_id": "FlashCheck Fuel-02",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "operator rerun after low action point",
+      "scenario": "low_action_outlier"
+    },
+    "method_id": "ASTM D93",
+    "stream_id": "demo-fuel_astm-flashcheck-fuel-02-low-flash-solvent",
+    "timestamp": "2026-02-04T02:00:00Z"
+  },
+  {
+    "analyte": "Fire Point",
+    "event_type": "calibration",
+    "instrument_id": "FlashCheck Fuel-02",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "ASTM D93",
+    "stream_id": "demo-fuel_astm-flashcheck-fuel-02-fire-point",
+    "timestamp": "2026-02-02T07:35:00Z"
+  },
+  {
+    "analyte": "Fire Point",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "FlashCheck Fuel-02",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "from": "FUE-07-A",
+      "to": "FUE-07-B"
+    },
+    "method_id": "ASTM D93",
+    "stream_id": "demo-fuel_astm-flashcheck-fuel-02-fire-point",
+    "timestamp": "2026-02-03T14:05:00Z"
+  },
+  {
+    "analyte": "Fire Point",
+    "event_type": "maintenance",
+    "instrument_id": "FlashCheck Fuel-02",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "maintenance restored baseline",
+      "scenario": "maintenance_recovery"
+    },
+    "method_id": "ASTM D93",
+    "stream_id": "demo-fuel_astm-flashcheck-fuel-02-fire-point",
+    "timestamp": "2026-02-04T02:05:00Z"
+  },
+  {
+    "analyte": "Total Sulfur",
+    "event_type": "calibration",
+    "instrument_id": "Sindie Fuel-03",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "ASTM D4294",
+    "stream_id": "demo-fuel_astm-sindie-fuel-03-total-sulfur",
+    "timestamp": "2026-02-02T07:40:00Z"
+  },
+  {
+    "analyte": "Total Sulfur",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "Sindie Fuel-03",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "from": "FUE-08-A",
+      "to": "FUE-08-B"
+    },
+    "method_id": "ASTM D4294",
+    "stream_id": "demo-fuel_astm-sindie-fuel-03-total-sulfur",
+    "timestamp": "2026-02-03T14:10:00Z"
+  },
+  {
+    "analyte": "Total Sulfur",
+    "event_type": "maintenance",
+    "instrument_id": "Sindie Fuel-03",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "lot-to-lot low bias review",
+      "scenario": "step_shift_lot_low"
+    },
+    "method_id": "ASTM D4294",
+    "stream_id": "demo-fuel_astm-sindie-fuel-03-total-sulfur",
+    "timestamp": "2026-02-04T02:10:00Z"
+  },
+  {
+    "analyte": "ULSD Sulfur",
+    "event_type": "calibration",
+    "instrument_id": "Sindie Fuel-03",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "ASTM D4294",
+    "stream_id": "demo-fuel_astm-sindie-fuel-03-ulsd-sulfur",
+    "timestamp": "2026-02-02T07:45:00Z"
+  },
+  {
+    "analyte": "ULSD Sulfur",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "Sindie Fuel-03",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "from": "FUE-09-A",
+      "to": "FUE-09-B"
+    },
+    "method_id": "ASTM D4294",
+    "stream_id": "demo-fuel_astm-sindie-fuel-03-ulsd-sulfur",
+    "timestamp": "2026-02-03T14:15:00Z"
+  },
+  {
+    "analyte": "ULSD Sulfur",
+    "event_type": "maintenance",
+    "instrument_id": "Sindie Fuel-03",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "low drift investigation opened",
+      "scenario": "slow_drift_low"
+    },
+    "method_id": "ASTM D4294",
+    "stream_id": "demo-fuel_astm-sindie-fuel-03-ulsd-sulfur",
+    "timestamp": "2026-02-04T02:15:00Z"
+  },
+  {
+    "analyte": "Crude Sulfur",
+    "event_type": "calibration",
+    "instrument_id": "Sindie Fuel-03",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "ASTM D4294",
+    "stream_id": "demo-fuel_astm-sindie-fuel-03-crude-sulfur",
+    "timestamp": "2026-02-02T07:50:00Z"
+  },
+  {
+    "analyte": "Crude Sulfur",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "Sindie Fuel-03",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "from": "FUE-10-A",
+      "to": "FUE-10-B"
+    },
+    "method_id": "ASTM D4294",
+    "stream_id": "demo-fuel_astm-sindie-fuel-03-crude-sulfur",
+    "timestamp": "2026-02-03T14:20:00Z"
+  },
+  {
+    "analyte": "Crude Sulfur",
+    "event_type": "maintenance",
+    "instrument_id": "Sindie Fuel-03",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "precision failure review",
+      "scenario": "r4s_precision"
+    },
+    "method_id": "ASTM D4294",
+    "stream_id": "demo-fuel_astm-sindie-fuel-03-crude-sulfur",
+    "timestamp": "2026-02-04T02:20:00Z"
+  },
+  {
+    "analyte": "Density 15C",
+    "event_type": "calibration",
+    "instrument_id": "DensityPro Fuel-04",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "ASTM D4052",
+    "stream_id": "demo-fuel_astm-densitypro-fuel-04-density-15c",
+    "timestamp": "2026-02-02T07:55:00Z"
+  },
+  {
+    "analyte": "Density 15C",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "DensityPro Fuel-04",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "from": "FUE-11-A",
+      "to": "FUE-11-B"
+    },
+    "method_id": "ASTM D4052",
+    "stream_id": "demo-fuel_astm-densitypro-fuel-04-density-15c",
+    "timestamp": "2026-02-03T14:25:00Z"
+  },
+  {
+    "analyte": "Density 15C",
+    "event_type": "maintenance",
+    "instrument_id": "DensityPro Fuel-04",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "duplicate retry cluster reviewed",
+      "scenario": "duplicate_retry_cluster"
+    },
+    "method_id": "ASTM D4052",
+    "stream_id": "demo-fuel_astm-densitypro-fuel-04-density-15c",
+    "timestamp": "2026-02-04T02:25:00Z"
+  },
+  {
+    "analyte": "API Gravity",
+    "event_type": "calibration",
+    "instrument_id": "DensityPro Fuel-04",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "ASTM D4052",
+    "stream_id": "demo-fuel_astm-densitypro-fuel-04-api-gravity",
+    "timestamp": "2026-02-02T07:30:00Z"
+  },
+  {
+    "analyte": "API Gravity",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "DensityPro Fuel-04",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "from": "FUE-12-A",
+      "to": "FUE-12-B"
+    },
+    "method_id": "ASTM D4052",
+    "stream_id": "demo-fuel_astm-densitypro-fuel-04-api-gravity",
+    "timestamp": "2026-02-03T14:00:00Z"
+  },
+  {
+    "analyte": "API Gravity",
+    "event_type": "maintenance",
+    "instrument_id": "DensityPro Fuel-04",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "stable lot transition review",
+      "scenario": "stable_lot_b"
+    },
+    "method_id": "ASTM D4052",
+    "stream_id": "demo-fuel_astm-densitypro-fuel-04-api-gravity",
+    "timestamp": "2026-02-04T02:00:00Z"
+  },
+  {
+    "analyte": "Relative Density",
+    "event_type": "calibration",
+    "instrument_id": "DensityPro Fuel-04",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "ASTM D4052",
+    "stream_id": "demo-fuel_astm-densitypro-fuel-04-relative-density",
+    "timestamp": "2026-02-02T07:35:00Z"
+  },
+  {
+    "analyte": "Relative Density",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "DensityPro Fuel-04",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "from": "FUE-13-A",
+      "to": "FUE-13-B"
+    },
+    "method_id": "ASTM D4052",
+    "stream_id": "demo-fuel_astm-densitypro-fuel-04-relative-density",
+    "timestamp": "2026-02-03T14:05:00Z"
+  },
+  {
+    "analyte": "Relative Density",
+    "event_type": "maintenance",
+    "instrument_id": "DensityPro Fuel-04",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "operator rerun after high action point",
+      "scenario": "high_action_outlier"
+    },
+    "method_id": "ASTM D4052",
+    "stream_id": "demo-fuel_astm-densitypro-fuel-04-relative-density",
+    "timestamp": "2026-02-04T02:05:00Z"
+  },
+  {
+    "analyte": "Viscosity 40C",
+    "event_type": "calibration",
+    "instrument_id": "ViscoBath Fuel-05",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "ASTM D445",
+    "stream_id": "demo-fuel_astm-viscobath-fuel-05-viscosity-40c",
+    "timestamp": "2026-02-02T07:40:00Z"
+  },
+  {
+    "analyte": "Viscosity 40C",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "ViscoBath Fuel-05",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "from": "FUE-14-A",
+      "to": "FUE-14-B"
+    },
+    "method_id": "ASTM D445",
+    "stream_id": "demo-fuel_astm-viscobath-fuel-05-viscosity-40c",
+    "timestamp": "2026-02-03T14:10:00Z"
+  },
+  {
+    "analyte": "Viscosity 40C",
+    "event_type": "maintenance",
+    "instrument_id": "ViscoBath Fuel-05",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "stable baseline review",
+      "scenario": "stable_baseline"
+    },
+    "method_id": "ASTM D445",
+    "stream_id": "demo-fuel_astm-viscobath-fuel-05-viscosity-40c",
+    "timestamp": "2026-02-04T02:10:00Z"
+  },
+  {
+    "analyte": "Viscosity 100C",
+    "event_type": "calibration",
+    "instrument_id": "ViscoBath Fuel-05",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "ASTM D445",
+    "stream_id": "demo-fuel_astm-viscobath-fuel-05-viscosity-100c",
+    "timestamp": "2026-02-02T07:45:00Z"
+  },
+  {
+    "analyte": "Viscosity 100C",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "ViscoBath Fuel-05",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "from": "FUE-15-A",
+      "to": "FUE-15-B"
+    },
+    "method_id": "ASTM D445",
+    "stream_id": "demo-fuel_astm-viscobath-fuel-05-viscosity-100c",
+    "timestamp": "2026-02-03T14:15:00Z"
+  },
+  {
+    "analyte": "Viscosity 100C",
+    "event_type": "maintenance",
+    "instrument_id": "ViscoBath Fuel-05",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "precision review for high scatter",
+      "scenario": "low_confidence"
+    },
+    "method_id": "ASTM D445",
+    "stream_id": "demo-fuel_astm-viscobath-fuel-05-viscosity-100c",
+    "timestamp": "2026-02-04T02:15:00Z"
+  },
+  {
+    "analyte": "Viscosity Index",
+    "event_type": "calibration",
+    "instrument_id": "ViscoBath Fuel-05",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "ASTM D445",
+    "stream_id": "demo-fuel_astm-viscobath-fuel-05-viscosity-index",
+    "timestamp": "2026-02-02T07:50:00Z"
+  },
+  {
+    "analyte": "Viscosity Index",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "ViscoBath Fuel-05",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "from": "FUE-16-A",
+      "to": "FUE-16-B"
+    },
+    "method_id": "ASTM D445",
+    "stream_id": "demo-fuel_astm-viscobath-fuel-05-viscosity-index",
+    "timestamp": "2026-02-03T14:20:00Z"
+  },
+  {
+    "analyte": "Viscosity Index",
+    "event_type": "maintenance",
+    "instrument_id": "ViscoBath Fuel-05",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "lot-to-lot high bias review",
+      "scenario": "step_shift_lot_high"
+    },
+    "method_id": "ASTM D445",
+    "stream_id": "demo-fuel_astm-viscobath-fuel-05-viscosity-index",
+    "timestamp": "2026-02-04T02:20:00Z"
+  },
+  {
+    "analyte": "Pour Point",
+    "event_type": "calibration",
+    "instrument_id": "PourCloud Fuel-06",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "ASTM D97",
+    "stream_id": "demo-fuel_astm-pourcloud-fuel-06-pour-point",
+    "timestamp": "2026-02-02T07:55:00Z"
+  },
+  {
+    "analyte": "Pour Point",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "PourCloud Fuel-06",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "from": "FUE-17-A",
+      "to": "FUE-17-B"
+    },
+    "method_id": "ASTM D97",
+    "stream_id": "demo-fuel_astm-pourcloud-fuel-06-pour-point",
+    "timestamp": "2026-02-03T14:25:00Z"
+  },
+  {
+    "analyte": "Pour Point",
+    "event_type": "maintenance",
+    "instrument_id": "PourCloud Fuel-06",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "drift investigation opened",
+      "scenario": "slow_drift_high"
+    },
+    "method_id": "ASTM D97",
+    "stream_id": "demo-fuel_astm-pourcloud-fuel-06-pour-point",
+    "timestamp": "2026-02-04T02:25:00Z"
+  },
+  {
+    "analyte": "Cloud Point",
+    "event_type": "calibration",
+    "instrument_id": "PourCloud Fuel-06",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "ASTM D97",
+    "stream_id": "demo-fuel_astm-pourcloud-fuel-06-cloud-point",
+    "timestamp": "2026-02-02T07:30:00Z"
+  },
+  {
+    "analyte": "Cloud Point",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "PourCloud Fuel-06",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "from": "FUE-18-A",
+      "to": "FUE-18-B"
+    },
+    "method_id": "ASTM D97",
+    "stream_id": "demo-fuel_astm-pourcloud-fuel-06-cloud-point",
+    "timestamp": "2026-02-03T14:00:00Z"
+  },
+  {
+    "analyte": "Cloud Point",
+    "event_type": "maintenance",
+    "instrument_id": "PourCloud Fuel-06",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "operator rerun after low action point",
+      "scenario": "low_action_outlier"
+    },
+    "method_id": "ASTM D97",
+    "stream_id": "demo-fuel_astm-pourcloud-fuel-06-cloud-point",
+    "timestamp": "2026-02-04T02:00:00Z"
+  },
+  {
+    "analyte": "Cold Filter Plugging",
+    "event_type": "calibration",
+    "instrument_id": "PourCloud Fuel-06",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "ASTM D97",
+    "stream_id": "demo-fuel_astm-pourcloud-fuel-06-cold-filter-plugging",
+    "timestamp": "2026-02-02T07:35:00Z"
+  },
+  {
+    "analyte": "Cold Filter Plugging",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "PourCloud Fuel-06",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "from": "FUE-19-A",
+      "to": "FUE-19-B"
+    },
+    "method_id": "ASTM D97",
+    "stream_id": "demo-fuel_astm-pourcloud-fuel-06-cold-filter-plugging",
+    "timestamp": "2026-02-03T14:05:00Z"
+  },
+  {
+    "analyte": "Cold Filter Plugging",
+    "event_type": "maintenance",
+    "instrument_id": "PourCloud Fuel-06",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "maintenance restored baseline",
+      "scenario": "maintenance_recovery"
+    },
+    "method_id": "ASTM D97",
+    "stream_id": "demo-fuel_astm-pourcloud-fuel-06-cold-filter-plugging",
+    "timestamp": "2026-02-04T02:05:00Z"
+  },
+  {
+    "analyte": "ASTM Color",
+    "event_type": "calibration",
+    "instrument_id": "ColorScope Fuel-07",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "ASTM D1500",
+    "stream_id": "demo-fuel_astm-colorscope-fuel-07-astm-color",
+    "timestamp": "2026-02-02T07:40:00Z"
+  },
+  {
+    "analyte": "ASTM Color",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "ColorScope Fuel-07",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "from": "FUE-20-A",
+      "to": "FUE-20-B"
+    },
+    "method_id": "ASTM D1500",
+    "stream_id": "demo-fuel_astm-colorscope-fuel-07-astm-color",
+    "timestamp": "2026-02-03T14:10:00Z"
+  },
+  {
+    "analyte": "ASTM Color",
+    "event_type": "maintenance",
+    "instrument_id": "ColorScope Fuel-07",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "lot-to-lot low bias review",
+      "scenario": "step_shift_lot_low"
+    },
+    "method_id": "ASTM D1500",
+    "stream_id": "demo-fuel_astm-colorscope-fuel-07-astm-color",
+    "timestamp": "2026-02-04T02:10:00Z"
+  },
+  {
+    "analyte": "Saybolt Color",
+    "event_type": "calibration",
+    "instrument_id": "ColorScope Fuel-07",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "ASTM D1500",
+    "stream_id": "demo-fuel_astm-colorscope-fuel-07-saybolt-color",
+    "timestamp": "2026-02-02T07:45:00Z"
+  },
+  {
+    "analyte": "Saybolt Color",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "ColorScope Fuel-07",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "from": "FUE-21-A",
+      "to": "FUE-21-B"
+    },
+    "method_id": "ASTM D1500",
+    "stream_id": "demo-fuel_astm-colorscope-fuel-07-saybolt-color",
+    "timestamp": "2026-02-03T14:15:00Z"
+  },
+  {
+    "analyte": "Saybolt Color",
+    "event_type": "maintenance",
+    "instrument_id": "ColorScope Fuel-07",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "low drift investigation opened",
+      "scenario": "slow_drift_low"
+    },
+    "method_id": "ASTM D1500",
+    "stream_id": "demo-fuel_astm-colorscope-fuel-07-saybolt-color",
+    "timestamp": "2026-02-04T02:15:00Z"
+  },
+  {
+    "analyte": "Haze Index",
+    "event_type": "calibration",
+    "instrument_id": "ColorScope Fuel-07",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "ASTM D1500",
+    "stream_id": "demo-fuel_astm-colorscope-fuel-07-haze-index",
+    "timestamp": "2026-02-02T07:50:00Z"
+  },
+  {
+    "analyte": "Haze Index",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "ColorScope Fuel-07",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "from": "FUE-22-A",
+      "to": "FUE-22-B"
+    },
+    "method_id": "ASTM D1500",
+    "stream_id": "demo-fuel_astm-colorscope-fuel-07-haze-index",
+    "timestamp": "2026-02-03T14:20:00Z"
+  },
+  {
+    "analyte": "Haze Index",
+    "event_type": "maintenance",
+    "instrument_id": "ColorScope Fuel-07",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "precision failure review",
+      "scenario": "r4s_precision"
+    },
+    "method_id": "ASTM D1500",
+    "stream_id": "demo-fuel_astm-colorscope-fuel-07-haze-index",
+    "timestamp": "2026-02-04T02:20:00Z"
+  },
+  {
+    "analyte": "DVPE",
+    "event_type": "calibration",
+    "instrument_id": "VaporCheck Fuel-08",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "ASTM D5191",
+    "stream_id": "demo-fuel_astm-vaporcheck-fuel-08-dvpe",
+    "timestamp": "2026-02-02T07:55:00Z"
+  },
+  {
+    "analyte": "DVPE",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "VaporCheck Fuel-08",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "from": "FUE-23-A",
+      "to": "FUE-23-B"
+    },
+    "method_id": "ASTM D5191",
+    "stream_id": "demo-fuel_astm-vaporcheck-fuel-08-dvpe",
+    "timestamp": "2026-02-03T14:25:00Z"
+  },
+  {
+    "analyte": "DVPE",
+    "event_type": "maintenance",
+    "instrument_id": "VaporCheck Fuel-08",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "duplicate retry cluster reviewed",
+      "scenario": "duplicate_retry_cluster"
+    },
+    "method_id": "ASTM D5191",
+    "stream_id": "demo-fuel_astm-vaporcheck-fuel-08-dvpe",
+    "timestamp": "2026-02-04T02:25:00Z"
+  },
+  {
+    "analyte": "RVP",
+    "event_type": "calibration",
+    "instrument_id": "VaporCheck Fuel-08",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "ASTM D5191",
+    "stream_id": "demo-fuel_astm-vaporcheck-fuel-08-rvp",
+    "timestamp": "2026-02-02T07:30:00Z"
+  },
+  {
+    "analyte": "RVP",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "VaporCheck Fuel-08",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "from": "FUE-24-A",
+      "to": "FUE-24-B"
+    },
+    "method_id": "ASTM D5191",
+    "stream_id": "demo-fuel_astm-vaporcheck-fuel-08-rvp",
+    "timestamp": "2026-02-03T14:00:00Z"
+  },
+  {
+    "analyte": "RVP",
+    "event_type": "maintenance",
+    "instrument_id": "VaporCheck Fuel-08",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "stable lot transition review",
+      "scenario": "stable_lot_b"
+    },
+    "method_id": "ASTM D5191",
+    "stream_id": "demo-fuel_astm-vaporcheck-fuel-08-rvp",
+    "timestamp": "2026-02-04T02:00:00Z"
+  },
+  {
+    "analyte": "Vapor Liquid Ratio",
+    "event_type": "calibration",
+    "instrument_id": "VaporCheck Fuel-08",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "pre-run synthetic calibration"
+    },
+    "method_id": "ASTM D5191",
+    "stream_id": "demo-fuel_astm-vaporcheck-fuel-08-vapor-liquid-ratio",
+    "timestamp": "2026-02-02T07:35:00Z"
+  },
+  {
+    "analyte": "Vapor Liquid Ratio",
+    "event_type": "control_material_lot_change",
+    "instrument_id": "VaporCheck Fuel-08",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "from": "FUE-25-A",
+      "to": "FUE-25-B"
+    },
+    "method_id": "ASTM D5191",
+    "stream_id": "demo-fuel_astm-vaporcheck-fuel-08-vapor-liquid-ratio",
+    "timestamp": "2026-02-03T14:05:00Z"
+  },
+  {
+    "analyte": "Vapor Liquid Ratio",
+    "event_type": "maintenance",
+    "instrument_id": "VaporCheck Fuel-08",
+    "metadata": {
+      "family": "fuel_astm",
+      "fixture": "demo-kiosk",
+      "note": "operator rerun after high action point",
+      "scenario": "high_action_outlier"
+    },
+    "method_id": "ASTM D5191",
+    "stream_id": "demo-fuel_astm-vaporcheck-fuel-08-vapor-liquid-ratio",
+    "timestamp": "2026-02-04T02:05:00Z"
+  }
+]
