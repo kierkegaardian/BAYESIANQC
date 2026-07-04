@@ -117,6 +117,11 @@ import {
   summarizeChartRisk,
   type ChartRiskSummary,
 } from "./chartRisk";
+import {
+  buildBrokenMainYAxis,
+  buildBrokenOutlierYAxis,
+  buildOutlierAxis,
+} from "./chartAxisOptions";
 import type {
   AlertOutWithQc,
   BayesianRisk,
@@ -576,25 +581,6 @@ function buildControlSeries(stream: StreamConfigOut | undefined) {
   return { controlSeries, yAxis, minValue: mean - actionDelta, maxValue: mean + actionDelta };
 }
 
-function buildOutlierAxis(values: number[], direction: "high" | "low") {
-  if (!values.length) {
-    return null;
-  }
-  const minValue = Math.min(...values);
-  const maxValue = Math.max(...values);
-  const span = Math.max(
-    Math.abs(maxValue - minValue),
-    Math.abs(maxValue),
-    Math.abs(minValue),
-    1
-  );
-  const pad = span * 0.1;
-  if (direction === "high") {
-    return { min: minValue, max: maxValue + pad };
-  }
-  return { min: minValue - pad, max: maxValue };
-}
-
 function buildParams() {
   const params = new URLSearchParams();
   if (startDate.value) {
@@ -644,6 +630,8 @@ async function loadChart() {
   const segments = data.lot_segments.length
     ? data.lot_segments
     : deriveLotSegments(records);
+  const timelineMarkerCount = segments.length + data.events.length + alerts.length;
+  const showTimelineMarkerLabels = !isKiosk.value && timelineMarkerCount <= 6;
   const riskSummary = summarizeChartRisk(records, stream);
   latestRiskSummary.value = riskSummary;
   emit("risk-summary", riskSummary);
@@ -747,20 +735,20 @@ async function loadChart() {
   const segmentAreas: MarkAreaComponentOption["data"] = segments.map((segment) => [
     {
       xAxis: segment.start,
-      label: { show: !isKiosk.value, formatter: `Lot ${segment.control_material_lot}` },
+      label: { show: showTimelineMarkerLabels, formatter: `Lot ${segment.control_material_lot}` },
     },
     { xAxis: padSegmentEnd(segment.start, segment.end) },
   ] as const);
 
   const eventLines: MarkLineData = data.events.map((event) => ({
     xAxis: event.timestamp,
-    label: { show: !isKiosk.value, formatter: formatEventLabel(event), color: "#0369a1", fontSize: 11 },
+    label: { show: showTimelineMarkerLabels, formatter: formatEventLabel(event), color: "#0369a1", fontSize: 11 },
     lineStyle: { color: "#0ea5e9", type: "dotted" as const, width: 1.5 },
   }));
 
   const alertLines: MarkLineData = alerts.map((alert) => ({
     xAxis: alert.qc_record_timestamp ?? alert.created_at,
-    label: { show: !isKiosk.value, formatter: "Alert", color: "#991b1b", fontSize: 11 },
+    label: { show: showTimelineMarkerLabels, formatter: "Alert", color: "#991b1b", fontSize: 11 },
     lineStyle: { color: "#dc2626", type: "solid" as const, width: 1.25 },
   }));
 
@@ -779,7 +767,7 @@ async function loadChart() {
     resultSeries.markArea = {
       silent: true,
       itemStyle: { color: "rgba(148, 163, 184, 0.18)" },
-      label: { show: !isKiosk.value, color: "#475569", fontSize: 11 },
+      label: { show: showTimelineMarkerLabels, color: "#475569", fontSize: 11 },
       data: segmentAreas,
     };
   }
@@ -789,7 +777,7 @@ async function loadChart() {
       xAxis: segment.start,
       lineStyle: { color: "#94a3b8", type: "dashed" as const },
       label: {
-        show: !isKiosk.value,
+        show: showTimelineMarkerLabels,
         formatter: `Lot ${segment.control_material_lot}`,
         color: "#475569",
         fontSize: 11,
@@ -901,14 +889,8 @@ async function loadChart() {
     }
   }
 
-  const highAxisRange = buildOutlierAxis(
-    highOutliers.map((point) => point.value[1]),
-    "high"
-  );
-  const lowAxisRange = buildOutlierAxis(
-    lowOutliers.map((point) => point.value[1]),
-    "low"
-  );
+  const highAxisRange = buildOutlierAxis(highOutliers.map((point) => point.value[1]));
+  const lowAxisRange = buildOutlierAxis(lowOutliers.map((point) => point.value[1]));
 
   const hasHighOutliers = Boolean(highAxisRange);
   const hasLowOutliers = Boolean(lowAxisRange);
@@ -922,6 +904,7 @@ async function loadChart() {
 
   const baseXAxis = (showLabels: boolean): echarts.XAXisComponentOption => ({
     type: "time",
+    boundaryGap: ["4%", "4%"],
     axisLabel: { show: showLabels },
     axisTick: { show: showLabels },
     axisLine: { show: showLabels },
@@ -953,59 +936,39 @@ async function loadChart() {
       highAxisIndex = pushAxis(
         { left, right, top: "4%", height: "18%", containLabel: true },
         baseXAxis(false),
-        {
-          type: "value",
-          name: "High",
-          min: highAxisRange?.min,
-          max: highAxisRange?.max,
-        } satisfies echarts.YAXisComponentOption
+        buildBrokenOutlierYAxis(highAxisRange, isKiosk.value)
       );
       mainAxisIndex = pushAxis(
         { left, right, top: "26%", height: "48%", containLabel: true },
         baseXAxis(false),
-        controlConfig.yAxis
+        buildBrokenMainYAxis(controlConfig.yAxis, isKiosk.value)
       );
       lowAxisIndex = pushAxis(
         { left, right, top: "78%", height: "18%", containLabel: true },
         baseXAxis(true),
-        {
-          type: "value",
-          name: "Low",
-          min: lowAxisRange?.min,
-          max: lowAxisRange?.max,
-        } satisfies echarts.YAXisComponentOption
+        buildBrokenOutlierYAxis(lowAxisRange, isKiosk.value)
       );
     } else if (hasHighOutliers) {
       highAxisIndex = pushAxis(
         { left, right, top: "4%", height: "22%", containLabel: true },
         baseXAxis(false),
-        {
-          type: "value",
-          name: "High",
-          min: highAxisRange?.min,
-          max: highAxisRange?.max,
-        } satisfies echarts.YAXisComponentOption
+        buildBrokenOutlierYAxis(highAxisRange, isKiosk.value)
       );
       mainAxisIndex = pushAxis(
         { left, right, top: "30%", height: "62%", containLabel: true },
         baseXAxis(true),
-        controlConfig.yAxis
+        buildBrokenMainYAxis(controlConfig.yAxis, isKiosk.value)
       );
     } else if (hasLowOutliers) {
       mainAxisIndex = pushAxis(
         { left, right, top: "4%", height: "62%", containLabel: true },
         baseXAxis(false),
-        controlConfig.yAxis
+        buildBrokenMainYAxis(controlConfig.yAxis, isKiosk.value)
       );
       lowAxisIndex = pushAxis(
         { left, right, top: "70%", height: "22%", containLabel: true },
         baseXAxis(true),
-        {
-          type: "value",
-          name: "Low",
-          min: lowAxisRange?.min,
-          max: lowAxisRange?.max,
-        } satisfies echarts.YAXisComponentOption
+        buildBrokenOutlierYAxis(lowAxisRange, isKiosk.value)
       );
     }
   } else {
@@ -1185,7 +1148,7 @@ async function loadChart() {
     actionSeries.markArea = {
       silent: true,
       itemStyle: { color: "rgba(148, 163, 184, 0.18)" },
-      label: { show: !isKiosk.value, color: "#475569", fontSize: 11 },
+      label: { show: showTimelineMarkerLabels, color: "#475569", fontSize: 11 },
       data: segmentAreas,
     };
   }
@@ -1216,7 +1179,7 @@ async function loadChart() {
     warnSeries.markArea = {
       silent: true,
       itemStyle: { color: "rgba(148, 163, 184, 0.18)" },
-      label: { show: !isKiosk.value, color: "#475569", fontSize: 11 },
+      label: { show: showTimelineMarkerLabels, color: "#475569", fontSize: 11 },
       data: segmentAreas,
     };
   }
@@ -1232,7 +1195,7 @@ async function loadChart() {
   const riskOption: echarts.EChartsOption = {
     grid: {
       left: isKiosk.value ? "5%" : "6%",
-      right: isKiosk.value ? "5%" : "8%",
+      right: isKiosk.value ? "5%" : "12%",
       top: chartMode.value === "risk" ? "8%" : "4%",
       bottom: chartMode.value === "risk" ? "18%" : "24%",
       containLabel: true,

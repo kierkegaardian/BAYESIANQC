@@ -124,6 +124,7 @@ def test_demo_kiosk_routes_and_layouts_are_registered() -> None:
     kiosk_text = (ROOT / "frontend" / "src" / "pages" / "ChartKiosk.vue").read_text(encoding="utf-8")
     chart_text = (ROOT / "frontend" / "src" / "pages" / "ChartView.vue").read_text(encoding="utf-8")
     comments_text = (ROOT / "frontend" / "src" / "components" / "QCCommentThread.vue").read_text(encoding="utf-8")
+    axis_text = (ROOT / "frontend" / "src" / "pages" / "chartAxisOptions.ts").read_text(encoding="utf-8")
     tile_text = (ROOT / "frontend" / "src" / "pages" / "KioskChartTile.vue").read_text(encoding="utf-8")
     runtime_text = (ROOT / "frontend" / "src" / "pages" / "kioskRuntime.ts").read_text(encoding="utf-8")
     layouts = json.loads(LAYOUT_FILE.read_text(encoding="utf-8"))
@@ -148,6 +149,11 @@ def test_demo_kiosk_routes_and_layouts_are_registered() -> None:
     assert "max-width: min(360px" in chart_text
     assert "BAYESIAN_RISK_MEANING" not in chart_text
     assert "P warn/action" in chart_text
+    assert "formatBrokenAxisTick" in axis_text
+    assert "buildBrokenOutlierYAxis" in chart_text
+    assert "showTimelineMarkerLabels" in chart_text
+    assert 'boundaryGap: ["4%", "4%"]' in chart_text
+    assert 'right: isKiosk.value ? "5%" : "12%"' in chart_text
     assert "Comments are unavailable from the current API." in comments_text
     assert "showSymbol: isKiosk.value" in chart_text
     assert 'queryValue(value) === "single"' in runtime_text
