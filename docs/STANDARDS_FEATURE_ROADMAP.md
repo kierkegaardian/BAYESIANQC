@@ -34,7 +34,7 @@ The next product direction should not be more algorithmic novelty first. It shou
 7. Bayesian model diagnostics and fallback behavior are not yet visible to users.
 8. Audit `before` snapshots are not consistently complete for all configuration and lifecycle changes.
 9. Postgres is the default local/dev runtime with Alembic migrations, but stronger foreign keys and production-like rollback/restore proof are still required before shared lab deployment.
-10. Lab administration features remain incomplete: QA Manager role, segregation of duty, electronic signatures, retention, legal hold, notification routing, OIDC/MFA, and LIMS/middleware mapping.
+10. Lab administration features remain incomplete: QA Manager role, segregation of duty, electronic signatures, retention, legal hold, notification/distribution routing, local-plus-SSO auth, user/group administration, and LIMS/middleware mapping.
 
 ## Phase 0: MVP-Next
 
@@ -194,13 +194,15 @@ Feature scope:
 - Investigation creator cannot be sole closer.
 - Audit logs include policy decisions.
 
-### F1.10 Notifications and Webhooks
+### F1.10 Notifications, Distribution Groups, and Webhooks
 
-Add outbound notifications with delivery audit.
+Add outbound notifications, recipient groups, report routing, customer-managed delivery configuration, and delivery audit.
 
 Feature scope:
 - Webhooks with HMAC signing and retries.
 - Events: alert created/escalated, investigation created/closed, CAPA opened/closed, model degraded.
+- Distribution groups for QC signals, escalation, and generated reports, with recipients drawn from users, user groups, roles, sites, benches, instruments, and assignment groups.
+- Customer-managed delivery adapters for SMTP, webhooks, Apprise-compatible routes, ntfy/Gotify push, and SMS gateways; customers provide credentials, servers, carrier/API contracts, and IT operation so BAYESIANQC does not require vendor-funded messaging accounts.
 - Delivery log with status, retry count, and last error.
 - Throttling to prevent alert storms.
 
@@ -268,6 +270,8 @@ Research needed:
 - Multivariate SPC: identify real use cases before adding Hotelling T2-style charts, covariance modeling, or ellipse views.
 - Pareto and cause-effect tools: decide whether these belong in investigation/CAPA analytics rather than the core QC chart module.
 - Overdispersion checks: determine whether binomial/Poisson diagnostics are needed for attribute/count QC streams.
+- Overlay and comparison strategy: decide when overlaying charts is valid, when normalized overlays are required, and when aligned small multiples are safer.
+- Context stratification analytics: determine which operator, actor, group, shift, site, bench, instrument, method, lot, and entry-source comparisons support process improvement without becoming naive blame metrics.
 - Extension model: decide whether BAYESIANQC should expose custom chart/rule plugins or keep methods as reviewed, versioned first-party modules.
 
 ### W1 SQC Configuration Foundation
@@ -325,19 +329,41 @@ Plan must cover:
 - Reproducible export packets for chart state, rule firings, Bayesian risk, PT/ILCP evidence, investigations, and CAPA links.
 - A release-note gap statement that says which methods are supported, partially supported, or not supported.
 
+### W7 Chart Comparison and Context Analytics
+
+TODO: Add comparison tools that help labs find process causes without overclaiming from raw counts.
+
+Plan must cover:
+- Overlay rules for same-stream, same-units, normalized z-score, QC-level, cross-instrument, and cross-method views.
+- Operator/user/group analytics for signal, reject, quarantine, exclusion, retest, comment, investigation, and CAPA rates.
+- Denominator, minimum-sample, and stratification controls by site, bench, instrument, method, analyte, QC level, lot, shift, and entry source.
+- UI language that frames findings as training/process-review signals, not individual blame.
+
+### W8 Enterprise Scope and Access Control
+
+TODO: Add enterprise access scoping so users and service accounts only see or enter data for authorized sites, benches, instruments, and streams.
+
+Plan must cover:
+- Grant model for user, user group, role, and API key scopes across site, lab bench, instrument, analyte/method, stream, and assignment group.
+- Backend-enforced query filters for charts, streams, backlog, ingestion, imports, alerts, investigations, CAPA, comments, audit, and reports.
+- Local password auth and SSO/OIDC/SAML side by side, with tested SSO-outage fallback for authorized local users.
+- OIDC/SAML group-claim mapping plus local overrides, effective dates, disabled grants, audited break-glass admin/vendor-service accounts, and rotation/disable policy.
+- User/group admin UI with guided add/edit, membership management, scope preview, effective-permission preview, validation, and safe defaults.
+- Data-entry and chart filters that default to the user's authorized scope and make cross-site access explicit and auditable.
+
 ## Phase 3: Operational and Enterprise Readiness
 
 Goal: make the system maintainable in a real lab environment.
 
 Features:
-- OIDC/OAuth2 with MFA support for human users; API keys remain for service accounts.
+- Local password auth plus SSO/OIDC/SAML with MFA, tested SSO-outage fallback, audited break-glass/vendor-service accounts, and API keys for service accounts.
 - Electronic signatures with meaning-of-signature text and reauthentication.
 - Retention policies and legal holds.
 - Observability: structured logs, correlation IDs, metrics, health checks, alert-delivery status.
 - LIMS/middleware external ID mapping with reconciliation UI.
 - ISO 8000-style data quality scores for completeness, timeliness, conformance, consistency, and lineage.
-- Scheduled PDF/CSV/JSON report generation with reproducible parameters.
-- Multi-site/site-scoped RBAC and cross-site analytics.
+- Scheduled PDF/CSV/JSON report generation with reproducible parameters and customer-managed delivery through routed distribution groups.
+- Multi-site/site-scoped RBAC, bench/instrument-scoped data entry, group-scoped backlog visibility, and cross-site analytics with explicit authorization.
 - API versioning and deprecation policy.
 - Backup, restore, disaster-recovery, and deployment runbooks.
 
