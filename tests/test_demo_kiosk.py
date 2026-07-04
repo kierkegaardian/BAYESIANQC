@@ -123,6 +123,7 @@ def test_demo_kiosk_routes_and_layouts_are_registered() -> None:
     panels_text = (ROOT / "frontend" / "src" / "pages" / "kioskPanels.ts").read_text(encoding="utf-8")
     kiosk_text = (ROOT / "frontend" / "src" / "pages" / "ChartKiosk.vue").read_text(encoding="utf-8")
     chart_text = (ROOT / "frontend" / "src" / "pages" / "ChartView.vue").read_text(encoding="utf-8")
+    comments_text = (ROOT / "frontend" / "src" / "components" / "QCCommentThread.vue").read_text(encoding="utf-8")
     tile_text = (ROOT / "frontend" / "src" / "pages" / "KioskChartTile.vue").read_text(encoding="utf-8")
     runtime_text = (ROOT / "frontend" / "src" / "pages" / "kioskRuntime.ts").read_text(encoding="utf-8")
     layouts = json.loads(LAYOUT_FILE.read_text(encoding="utf-8"))
@@ -144,6 +145,10 @@ def test_demo_kiosk_routes_and_layouts_are_registered() -> None:
     assert '"open-single": [streamId: string]' in tile_text
     assert "QC Point Detail" in chart_text
     assert 'appendTo: "body"' in chart_text
+    assert "max-width: min(360px" in chart_text
+    assert "BAYESIAN_RISK_MEANING" not in chart_text
+    assert "P warn/action" in chart_text
+    assert "Comments are unavailable from the current API." in comments_text
     assert "showSymbol: isKiosk.value" in chart_text
     assert 'queryValue(value) === "single"' in runtime_text
     assert "return 6" in runtime_text

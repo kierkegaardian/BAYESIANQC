@@ -8,7 +8,11 @@
       <el-button size="small" @click="loadComments">Refresh</el-button>
     </div>
 
-    <div v-if="comments.length" class="comment-thread__list">
+    <div v-if="loadError" class="comment-thread__notice">
+      {{ loadError }}
+    </div>
+
+    <div v-if="!loadError && comments.length" class="comment-thread__list">
       <article v-for="comment in comments" :key="comment.id" class="comment-thread__item">
         <div class="comment-thread__meta">
           <span>{{ formatDateTime(comment.created_at) }}</span>
@@ -18,9 +22,9 @@
         <p>{{ comment.body }}</p>
       </article>
     </div>
-    <el-empty v-else-if="!loading" description="No comments" :image-size="56" />
+    <el-empty v-else-if="!loading && !loadError" description="No comments" :image-size="56" />
 
-    <div v-if="canIngestQc && !readOnly" class="comment-thread__form">
+    <div v-if="canIngestQc && !readOnly && !loadError" class="comment-thread__form">
       <el-input v-model="draft" type="textarea" :rows="3" placeholder="Add comment" />
       <div class="comment-thread__actions">
         <el-button type="primary" :loading="saving" :disabled="!canSave" @click="saveComment">
@@ -28,7 +32,7 @@
         </el-button>
       </div>
     </div>
-    <div v-else class="muted small-text">Current role can read comments only.</div>
+    <div v-else-if="!loadError" class="muted small-text">Current role can read comments only.</div>
   </section>
 </template>
 
@@ -57,6 +61,7 @@ const props = withDefaults(
 const comments = ref<QCCommentOut[]>([]);
 const draft = ref("");
 const loading = ref(false);
+const loadError = ref("");
 const saving = ref(false);
 
 const targetLabel = computed(() => `${props.targetType.replaceAll("_", " ")} ${props.targetId}`);
@@ -77,14 +82,19 @@ function commentsPath(): string {
 async function loadComments(): Promise<void> {
   if (!props.targetId.trim()) {
     comments.value = [];
+    loadError.value = "";
     return;
   }
   loading.value = true;
   try {
     comments.value = await api.get<QCCommentOut[]>(commentsPath());
+    loadError.value = "";
   } catch (error) {
-    const message = error instanceof Error && error.message ? error.message : "Failed to load comments";
-    ElMessage.error(message);
+    comments.value = [];
+    const message = error instanceof Error && error.message ? error.message : "";
+    loadError.value = message === "Not Found"
+      ? "Comments are unavailable from the current API."
+      : "Comments could not be loaded.";
   } finally {
     loading.value = false;
   }
@@ -176,5 +186,14 @@ onMounted(loadComments);
 .comment-thread__form {
   display: grid;
   gap: 8px;
+}
+
+.comment-thread__notice {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 6px;
+  color: #9a3412;
+  font-size: 13px;
+  padding: 10px;
 }
 </style>

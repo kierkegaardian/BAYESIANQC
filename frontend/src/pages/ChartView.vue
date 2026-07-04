@@ -113,9 +113,6 @@ import { canApprove } from "../api/session";
 import ChartRiskBadge from "./ChartRiskBadge.vue";
 import QCCommentThread from "../components/QCCommentThread.vue";
 import {
-  BAYESIAN_RISK_MEANING,
-  BAYESIAN_RISK_SCORE_MEANING,
-  bayesianRiskBasisText,
   riskThresholds,
   summarizeChartRisk,
   type ChartRiskSummary,
@@ -229,6 +226,7 @@ type TooltipDisplayOptions = {
   appendTo?: "body";
   className?: string;
   confine?: boolean;
+  extraCssText: string;
   renderMode: "html";
 };
 type MarkLineData = NonNullable<MarkLineComponentOption["data"]>;
@@ -424,9 +422,28 @@ async function handleChartClick(params: ECElementEvent): Promise<void> {
 }
 
 function tooltipDisplayOptions(): TooltipDisplayOptions {
+  const extraCssText = [
+    "max-width: min(360px, calc(100vw - 32px))",
+    "white-space: normal",
+    "overflow-wrap: anywhere",
+    "line-height: 1.35",
+  ].join(";");
   return isKiosk.value
-    ? { appendTo: "body", className: "qc-chart-tooltip", confine: false, renderMode: "html" }
-    : { confine: true, renderMode: "html" };
+    ? { appendTo: "body", className: "qc-chart-tooltip", confine: true, extraCssText, renderMode: "html" }
+    : { className: "qc-chart-tooltip", confine: true, extraCssText, renderMode: "html" };
+}
+
+function escapeTooltipValue(value: string | number): string {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function tooltipLine(label: string, value: string | number): string {
+  return `<div><strong>${escapeTooltipValue(label)}:</strong> ${escapeTooltipValue(value)}</div>`;
 }
 
 function formatPointTime(value: string): string {
@@ -1091,40 +1108,26 @@ async function loadChart() {
         const risk = recordItem.data.bayesian_risk;
         const parts: string[] = [];
         if (timestamp) {
-          parts.push(new Date(timestamp).toLocaleString());
+          parts.push(`<div class="qc-chart-tooltip__time">${new Date(timestamp).toLocaleString()}</div>`);
         }
         if (typeof value === "number" && Number.isFinite(value)) {
-          parts.push(`Result: ${value}`);
+          parts.push(tooltipLine("Result", value));
         }
         if (disposition) {
-          parts.push(`Disposition: ${disposition}`);
+          parts.push(tooltipLine("Disposition", disposition));
         }
         if (signals && signals.length) {
           const summary = signals.map((signal) => signal.rule).join(", ");
-          parts.push(`Signals: ${summary}`);
+          parts.push(tooltipLine("Signals", summary));
         }
         if (risk) {
           const riskScore = Number.isFinite(Number(risk.risk_score)) ? Number(risk.risk_score).toFixed(0) : "-";
           const pWarn = Math.max(0, Math.min(1, Number(risk.probability_outside_warning)));
           const pAction = Math.max(0, Math.min(1, Number(risk.probability_outside_limits)));
-          parts.push(`Bayesian risk: ${riskScore}/100`);
-          parts.push(BAYESIAN_RISK_MEANING);
-          parts.push(bayesianRiskBasisText("through this point"));
-          parts.push(BAYESIAN_RISK_SCORE_MEANING);
-          parts.push(`P(outside warn): ${(pWarn * 100).toFixed(1)}%`);
-          parts.push(`P(outside action): ${(pAction * 100).toFixed(1)}%`);
+          parts.push(tooltipLine("Risk", `${riskScore}/100`));
+          parts.push(tooltipLine("P warn/action", `${(pWarn * 100).toFixed(1)}% / ${(pAction * 100).toFixed(1)}%`));
           if (risk.posterior_mean !== null && risk.posterior_mean !== undefined) {
-            parts.push(`Posterior mean: ${Number(risk.posterior_mean).toFixed(4)}`);
-          }
-          if (risk.credible_interval) {
-            const lo = Number(risk.credible_interval[0]);
-            const hi = Number(risk.credible_interval[1]);
-            parts.push(`Mean CI95: [${lo.toFixed(4)}, ${hi.toFixed(4)}]`);
-          }
-          if (risk.predictive_interval) {
-            const lo = Number(risk.predictive_interval[0]);
-            const hi = Number(risk.predictive_interval[1]);
-            parts.push(`Pred PI95: [${lo.toFixed(4)}, ${hi.toFixed(4)}]`);
+            parts.push(tooltipLine("Posterior mean", Number(risk.posterior_mean).toFixed(4)));
           }
           const warnReq =
             stream?.bayes_warn_consecutive !== null && stream?.bayes_warn_consecutive !== undefined
@@ -1136,18 +1139,18 @@ async function loadChart() {
               : 1;
           const warnStreak = Number.isFinite(Number(risk.warn_streak)) ? Number(risk.warn_streak) : 0;
           const holdStreak = Number.isFinite(Number(risk.hold_streak)) ? Number(risk.hold_streak) : 0;
-          parts.push(`Streaks: warn ${warnStreak}/${warnReq}, hold ${holdStreak}/${holdReq}`);
+          parts.push(tooltipLine("Streaks", `warn ${warnStreak}/${warnReq}, hold ${holdStreak}/${holdReq}`));
         }
         if (lot) {
-          parts.push(`Lot: ${lot}`);
+          parts.push(tooltipLine("Lot", lot));
         }
         if (!includeInStats) {
-          parts.push("Resolved: excluded from stats");
+          parts.push(tooltipLine("Resolved", "excluded from stats"));
           if (resolvedReason) {
-            parts.push(`Reason: ${resolvedReason}`);
+            parts.push(tooltipLine("Reason", resolvedReason));
           }
         }
-        return parts.join("<br/>");
+        return parts.join("");
       },
     },
   };
@@ -1277,13 +1280,9 @@ async function loadChart() {
           })
           .filter((line): line is string => Boolean(line));
         const helpLines = lines.length
-          ? [
-              BAYESIAN_RISK_MEANING,
-              bayesianRiskBasisText("through this timestamp"),
-              BAYESIAN_RISK_SCORE_MEANING,
-            ]
+          ? [tooltipLine("Basis", "current chart timestamp")]
           : [];
-        return [ts, ...lines, ...helpLines].join("<br/>");
+        return [`<div class="qc-chart-tooltip__time">${ts}</div>`, ...lines.map((line) => `<div>${line}</div>`), ...helpLines].join("");
       },
     },
   };
