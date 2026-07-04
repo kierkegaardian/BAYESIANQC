@@ -8,9 +8,9 @@ Goals
 - Isolate statistical logic so you can **refactor queries / swap databases** without rewriting QC math.
 - Make charts **read-mostly** at scale by persisting per-record evaluations.
 
-Non-Goals (for now)
+Historical Non-Goals
 - Full DDD rewrite.
-- Introducing a large migration framework (e.g., Alembic) before Postgres is actually in use.
+- Alembic is part of the active Postgres persistence boundary.
 
 ## Current Shape (Problems)
 - Query logic and writes are spread across endpoints (`app/main.py`), “storage” helpers (`app/storage.py`),
@@ -131,48 +131,43 @@ Operational policy
 - Reprocess proactively on mutations (resolution/config/prior) and on out-of-order ingestion.
 - Optional: expose an explicit maintenance endpoint later (`POST /streams/{id}/reprocess`) for operators.
 
-## SQLite -> Postgres Migration Plan (Safe)
+## Postgres Persistence And Legacy Import
 
-### Phase 0: Make the App DB-Agnostic (Now)
-- Ensure every DB call is behind repos/services.
-- Avoid SQLite-specific SQL in business logic.
-
-### Phase 1: Add Postgres as a Dev/CI Target
-- Add a `docker-compose.yml` for Postgres (dev only).
-- Teach the app to run against `BAYESIANQC_DB_URL=postgresql+psycopg://...`.
+### Current Runtime
+- `docker-compose.yml` provides Postgres and `BAYESIANQC_DB_URL=postgresql+psycopg://...` is the documented default runtime path.
+- SQLite is not a supported app runtime. Legacy SQLite files are only supported as one-way import sources.
+- The test harness creates disposable Postgres databases from `BAYESIANQC_POSTGRES_TEST_URL` or the local Compose URL.
 - Add indexes you will need immediately:
   - `qcrecord (stream_id, timestamp)`
   - `posteriorstate (stream_id)` unique
   - `alertrecord (stream_id, created_at)` (and maybe `qc_record_id`)
 
-### Phase 2: Introduce Real Migrations
-- When Postgres is introduced, switch from `PRAGMA user_version` scripts to Alembic (or similar).
+### Migrations
+- Alembic is the only app migration path.
 - Use explicit, versioned migrations for:
   - JSON -> JSONB
   - constraints (unique indexes, NOT NULL where appropriate)
   - foreign keys and cascade policies
 
-### Phase 3: Data Migration (SQLite -> Postgres)
+### Legacy Import
 Safety principles
 - Freeze writes during the cutover (short maintenance window).
 - Migrate schema first, then data, then verify.
 
 Steps
-1. Deploy code that can talk to Postgres (but still uses SQLite in prod).
-2. Create Postgres schema via migrations.
-3. Export SQLite tables:
+1. Create Postgres schema via migrations.
+2. Export legacy SQLite tables:
    - simplest: `sqlite3 bayesianqc.db .dump` is not ideal for types
    - better: export per-table CSV with headers, then import with `COPY`
    - alternative: `pgloader` if you want speed and can validate the mapping
-4. Import into Postgres.
-5. Verification checks:
+3. Import into Postgres.
+4. Verification checks:
    - row counts per table
    - spot-check streams: recompute `PosteriorState` from `QCRecord` history and compare
    - verify `idempotency_key` uniqueness and alert linkage integrity
-6. Switch `BAYESIANQC_DB_URL` to Postgres and restart.
-7. Post-cutover: run a full `reprocess_stream_evaluations` per stream once to ensure cached evaluations align.
+5. Post-import: run a full `reprocess_stream_evaluations` per stream once to ensure cached evaluations align.
 
-### Phase 4: Concurrency Correctness (Postgres Benefits)
+### Concurrency Correctness
 - Fix the `PosteriorState` lost-update race by locking:
   - `SELECT posteriorstate ... FOR UPDATE` inside the ingestion transaction.
 - Optionally add optimistic concurrency:

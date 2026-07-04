@@ -6,7 +6,7 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 from app.domain import Disposition
-from app.models import AlertOut, BayesianRisk, FrequentistSignal, IngestionResult, QCEventOut
+from app.models import AlertOut, BayesianRisk, FrequentistSignal, IngestionResult, QCEventOut, QuarantineResult
 
 
 class CsvRowError(BaseModel):
@@ -16,8 +16,9 @@ class CsvRowError(BaseModel):
 
 class CsvIngestResult(BaseModel):
     accepted: int = Field(ge=0)
+    quarantined: int = Field(default=0, ge=0)
     errors: list[CsvRowError]
-    results: list[IngestionResult]
+    results: list[IngestionResult | QuarantineResult]
 
 
 class AlertSummary(BaseModel):

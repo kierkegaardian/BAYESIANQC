@@ -11,7 +11,7 @@ stop_pid() {
     local pid
     pid="$(cat "${pid_file}")"
     if kill -0 "${pid}" 2>/dev/null; then
-      kill "${pid}"
+      kill -- "-${pid}" 2>/dev/null || kill "${pid}"
       echo "Stopped process ${pid}."
     fi
     rm -f "${pid_file}"
@@ -20,3 +20,7 @@ stop_pid() {
 
 stop_pid "${FRONTEND_PID}"
 stop_pid "${BACKEND_PID}"
+
+if [[ "${BAYESIANQC_STOP_POSTGRES:-0}" == "1" ]]; then
+  docker compose -f "${ROOT_DIR}/docker-compose.yml" stop postgres
+fi

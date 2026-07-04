@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: bayesianqc
+          POSTGRES_USER: bayesianqc
+          POSTGRES_PASSWORD: bayesianqc
+        ports:
+          - 54329:5432
+        options: >-
+          --health-cmd "pg_isready -U bayesianqc -d bayesianqc"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: uv sync --group dev
+      - run: npm --prefix frontend ci --include=dev
+      - run: make check NPM=npm
+      - run: make postgres-upgrade test-postgres migration-rehearse-postgres

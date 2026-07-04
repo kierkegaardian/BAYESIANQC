@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from sqlalchemy import Column, Enum as SAEnum, JSON
+from sqlalchemy import Column, Enum as SAEnum, Index, JSON, UniqueConstraint
 from sqlmodel import Field, SQLModel
 
 from app.models import (
@@ -13,6 +13,11 @@ from app.models import (
     EntrySource,
     EventType,
     InvestigationStatus,
+    QCBacklogPriority,
+    QCBacklogSource,
+    QCBacklogStatus,
+    QuarantineReason,
+    QuarantineStatus,
     Role,
 )
 
@@ -27,6 +32,7 @@ DEFAULT_RULE_SET = {"rules": ["1-3s", "2-2s", "R-4s", "4-1s", "10x"]}
 class ApiKey(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     key_hash: str = Field(index=True, unique=True)
+    key_lookup_hash: Optional[str] = Field(default=None, index=True, unique=True)
     role: Role = Field(sa_column=Column(SAEnum(Role)))
     description: Optional[str] = None
     created_at: datetime = Field(default_factory=utcnow)
@@ -65,6 +71,8 @@ class Analyte(SQLModel, table=True):
 
 
 class StreamConfig(SQLModel, table=True):
+    __table_args__ = (UniqueConstraint("stream_id", "version", name="uq_streamconfig_stream_version"),)
+
     id: Optional[int] = Field(default=None, primary_key=True)
     stream_id: str = Field(index=True)
     version: int = Field(default=1, index=True)
@@ -99,6 +107,8 @@ class StreamConfig(SQLModel, table=True):
 
 
 class PriorConfig(SQLModel, table=True):
+    __table_args__ = (UniqueConstraint("stream_id", "version", name="uq_priorconfig_stream_version"),)
+
     id: Optional[int] = Field(default=None, primary_key=True)
     stream_id: str = Field(index=True)
     version: int = Field(default=1, index=True)
@@ -113,7 +123,7 @@ class PriorConfig(SQLModel, table=True):
 
 class PosteriorState(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    stream_id: str = Field(index=True)
+    stream_id: str = Field(index=True, unique=True)
     updated_at: datetime = Field(default_factory=utcnow)
     prior_id: Optional[int] = Field(default=None, index=True, foreign_key="priorconfig.id")
     config_id: Optional[int] = Field(default=None, index=True, foreign_key="streamconfig.id")
@@ -127,6 +137,8 @@ class PosteriorState(SQLModel, table=True):
 
 
 class QCRecord(SQLModel, table=True):
+    __table_args__ = (Index("ix_qcrecord_stream_timestamp", "stream_id", "timestamp"),)
+
     id: Optional[int] = Field(default=None, primary_key=True)
     stream_id: str = Field(index=True)
     timestamp: datetime = Field(index=True)
@@ -156,6 +168,70 @@ class QCRecord(SQLModel, table=True):
     duplicate_status: DuplicateStatus = Field(sa_column=Column(SAEnum(DuplicateStatus)))
     created_at: datetime = Field(default_factory=utcnow)
     idempotency_key: Optional[str] = Field(default=None, index=True)
+    qc_backlog_item_id: Optional[int] = Field(default=None, index=True)
+
+
+class QCRecordQuarantine(SQLModel, table=True):
+    __table_args__ = (Index("ix_qcrecordquarantine_status_created", "status", "created_at"),)
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    status: QuarantineStatus = Field(default=QuarantineStatus.OPEN, sa_column=Column(SAEnum(QuarantineStatus)))
+    reason: QuarantineReason = Field(sa_column=Column(SAEnum(QuarantineReason)))
+    reason_detail: str
+    stream_id: Optional[str] = Field(default=None, index=True)
+    payload: dict[str, Any] = Field(sa_column=Column(JSON))
+    context: dict[str, Any] = Field(sa_column=Column(JSON))
+    failures: list[dict[str, Any]] = Field(sa_column=Column(JSON))
+    actor: str
+    actor_role: Optional[Role] = Field(default=None, sa_column=Column(SAEnum(Role), nullable=True))
+    api_key_id: Optional[int] = Field(default=None, index=True)
+    created_at: datetime = Field(default_factory=utcnow, index=True)
+    reviewed_at: Optional[datetime] = None
+    reviewed_by: Optional[str] = None
+    review_reason: Optional[str] = None
+    qc_record_id: Optional[int] = Field(default=None, index=True)
+    idempotency_key: Optional[str] = Field(default=None, index=True)
+
+
+class QCBacklogItem(SQLModel, table=True):
+    __table_args__ = (
+        Index("ix_qcbacklogitem_status_due", "status", "due_at"),
+        Index("ix_qcbacklogitem_instrument_due", "instrument", "due_at"),
+        Index("ix_qcbacklogitem_bench_due", "lab_bench", "due_at"),
+        Index("ix_qcbacklogitem_group_due", "assignment_group", "due_at"),
+        Index("ix_qcbacklogitem_assignee_due", "assigned_to", "due_at"),
+        Index("ix_qcbacklogitem_stream_due", "stream_id", "due_at"),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    source: QCBacklogSource = Field(sa_column=Column(SAEnum(QCBacklogSource)))
+    status: QCBacklogStatus = Field(default=QCBacklogStatus.OPEN, sa_column=Column(SAEnum(QCBacklogStatus)))
+    priority: QCBacklogPriority = Field(
+        default=QCBacklogPriority.ROUTINE,
+        sa_column=Column(SAEnum(QCBacklogPriority)),
+    )
+    stream_id: str = Field(index=True)
+    analyte: str
+    method: str
+    instrument: str = Field(index=True)
+    site: Optional[str] = None
+    qc_level: str
+    units: str
+    reference_material_lot: str
+    reference_material_label: Optional[str] = None
+    due_at: datetime = Field(index=True)
+    lab_bench: Optional[str] = Field(default=None, index=True)
+    assignment_group: Optional[str] = Field(default=None, index=True)
+    assigned_to: Optional[str] = Field(default=None, index=True)
+    notes: Optional[str] = None
+    requested_by: Optional[str] = None
+    created_by: str = Field(default="system")
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
+    completed_at: Optional[datetime] = None
+    completed_by: Optional[str] = None
+    completed_qc_record_id: Optional[int] = Field(default=None, index=True)
+    last_quarantine_id: Optional[int] = Field(default=None, index=True)
 
 
 class QCEvent(SQLModel, table=True):
@@ -172,6 +248,8 @@ class QCEvent(SQLModel, table=True):
 
 
 class AlertRecord(SQLModel, table=True):
+    __table_args__ = (Index("ix_alertrecord_stream_created", "stream_id", "created_at"),)
+
     id: Optional[int] = Field(default=None, primary_key=True)
     alert_id: str = Field(index=True, unique=True)
     stream_id: str = Field(index=True)
@@ -236,6 +314,8 @@ class AuditEntry(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     timestamp: datetime = Field(default_factory=utcnow, index=True)
     actor: str
+    actor_role: Optional[Role] = Field(default=None, sa_column=Column(SAEnum(Role), nullable=True))
+    api_key_id: Optional[int] = Field(default=None, index=True)
     action: str
     entity_type: str
     entity_id: Optional[str] = None

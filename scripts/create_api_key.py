@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-import hashlib
 import secrets
 
 from sqlmodel import Session
@@ -8,6 +7,7 @@ from sqlmodel import Session
 from app.db import get_engine, init_db
 from app.db_models import ApiKey
 from app.models import Role
+from app.security import api_key_lookup_hash, hash_api_key
 
 
 def main() -> None:
@@ -23,11 +23,12 @@ def main() -> None:
         raise SystemExit(f"Invalid role: {args.role}") from exc
 
     raw_key = args.key or secrets.token_urlsafe(24)
-    key_hash = hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
+    key_hash = hash_api_key(raw_key)
+    lookup_hash = api_key_lookup_hash(raw_key)
 
     init_db()
     with Session(get_engine()) as session:
-        session.add(ApiKey(key_hash=key_hash, role=role, description=args.description))
+        session.add(ApiKey(key_hash=key_hash, key_lookup_hash=lookup_hash, role=role, description=args.description))
         session.commit()
 
     print("API key created.")

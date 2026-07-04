@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-import hashlib
+import os
 from datetime import datetime, timezone
 from typing import Optional, Tuple
 
+from sqlalchemy import or_
 from sqlmodel import Session, col, select
 
 from app.db_models import (
@@ -30,11 +31,19 @@ from app.models import (
     Role,
     StreamConfigIn,
 )
+from app.security import api_key_hash_needs_migration, api_key_lookup_hash, hash_api_key, legacy_sha256_hash, verify_api_key
 from app.stats import sample_mean_sd
 
 
 def utcnow() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _seed_local_dev_key_enabled() -> bool:
+    value = os.getenv("BAYESIANQC_SEED_LOCAL_DEV_KEY")
+    if value is None:
+        return False
+    return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
 def seed_defaults(session: Session) -> None:
@@ -127,20 +136,49 @@ def seed_defaults(session: Session) -> None:
         session.add(prior)
         session.commit()
 
-    default_key = "local-dev-key"
-    key_hash = hashlib.sha256(default_key.encode("utf-8")).hexdigest()
-    api_key = session.exec(select(ApiKey).where(ApiKey.key_hash == key_hash)).first()
-    if api_key:
-        if api_key.role != Role.ADMIN:
+    if _seed_local_dev_key_enabled():
+        default_key = "local-dev-key"
+        lookup_hash = api_key_lookup_hash(default_key)
+        legacy_hash = legacy_sha256_hash(default_key)
+        api_key = session.exec(
+            select(ApiKey).where(
+                col(ApiKey.active) == True,
+                or_(col(ApiKey.key_lookup_hash) == lookup_hash, col(ApiKey.key_hash) == legacy_hash),
+            )
+        ).first()
+        if api_key is None:
+            api_key = session.exec(
+                select(ApiKey).where(col(ApiKey.active) == True, ApiKey.description == "local dev key")
+            ).first()
+            if api_key is not None and not verify_api_key(default_key, api_key.key_hash):
+                api_key = None
+        if api_key:
+            if api_key_hash_needs_migration(api_key.key_hash):
+                api_key.key_hash = hash_api_key(default_key)
+            api_key.key_lookup_hash = lookup_hash
             api_key.role = Role.ADMIN
+            api_key.description = api_key.description or "local dev key"
             session.add(api_key)
             session.commit()
-    else:
-        session.add(ApiKey(key_hash=key_hash, role=Role.ADMIN, description="local dev key"))
-        session.commit()
+        else:
+            session.add(
+                ApiKey(
+                    key_hash=hash_api_key(default_key),
+                    key_lookup_hash=lookup_hash,
+                    role=Role.ADMIN,
+                    description="local dev key",
+                )
+            )
+            session.commit()
 
 
-def create_stream_config(session: Session, payload: StreamConfigIn, created_by: str) -> StreamConfig:
+def create_stream_config(
+    session: Session,
+    payload: StreamConfigIn,
+    created_by: str,
+    *,
+    commit: bool = True,
+) -> StreamConfig:
     current_version = session.exec(
         select(StreamConfig.version)
         .where(StreamConfig.stream_id == payload.stream_id)
@@ -179,7 +217,10 @@ def create_stream_config(session: Session, payload: StreamConfigIn, created_by: 
         created_by=created_by,
     )
     session.add(config)
-    session.commit()
+    if commit:
+        session.commit()
+    else:
+        session.flush()
     session.refresh(config)
     return config
 
@@ -209,7 +250,14 @@ def list_stream_configs(session: Session, stream_id: str) -> list[StreamConfig]:
     )
 
 
-def create_prior_config(session: Session, stream_id: str, payload: PriorConfigIn, created_by: str) -> PriorConfig:
+def create_prior_config(
+    session: Session,
+    stream_id: str,
+    payload: PriorConfigIn,
+    created_by: str,
+    *,
+    commit: bool = True,
+) -> PriorConfig:
     current_version = session.exec(
         select(PriorConfig.version)
         .where(PriorConfig.stream_id == stream_id)
@@ -227,7 +275,10 @@ def create_prior_config(session: Session, stream_id: str, payload: PriorConfigIn
         created_by=created_by,
     )
     session.add(config)
-    session.commit()
+    if commit:
+        session.commit()
+    else:
+        session.flush()
     session.refresh(config)
     return config
 
@@ -329,10 +380,24 @@ def record_audit(
     after: Optional[dict],
     reason: Optional[str],
     *,
+    actor_role: Optional[Role] = None,
+    api_key_id: Optional[int] = None,
     commit: bool = True,
 ) -> AuditEntry:
+    if actor_role is None:
+        role_value = actor.split(":key-", 1)[0]
+        try:
+            actor_role = Role(role_value)
+        except ValueError:
+            actor_role = None
+    if api_key_id is None and ":key-" in actor:
+        _, key_id_text = actor.rsplit(":key-", 1)
+        if key_id_text.isdigit():
+            api_key_id = int(key_id_text)
     entry = AuditEntry(
         actor=actor,
+        actor_role=actor_role,
+        api_key_id=api_key_id,
         action=action,
         entity_type=entity_type,
         entity_id=entity_id,

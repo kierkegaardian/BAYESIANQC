@@ -14,10 +14,13 @@ Bayesian priors represent the expected in-control mean/variance for a QC stream.
    ```
 2. Run the FastAPI app:
    ```bash
+   docker compose up -d postgres
+   export BAYESIANQC_DB_URL=postgresql+psycopg://bayesianqc:bayesianqc@127.0.0.1:54329/bayesianqc
+   export BAYESIANQC_SEED_LOCAL_DEV_KEY=1
    uvicorn app.main:app --reload --port 8010
    ```
-3. The app creates a local SQLite DB at `./bayesianqc.db` on first run.
-4. API calls require an `X-API-Key` header. Default local key: `local-dev-key` (admin) or set `BAYESIANQC_API_KEY`.
+3. The app applies Alembic migrations to Postgres on startup.
+4. API calls require an `X-API-Key` header. With `BAYESIANQC_SEED_LOCAL_DEV_KEY=1`, the local admin key is `local-dev-key`; otherwise create keys with `scripts/create_api_key.py`.
 5. Open `http://127.0.0.1:8010/docs` or ingest QC data (manual or automated) against the seeded HbA1c stream using the `/qc/records` endpoint. The API returns frequentist signals (1-3s/2-2s/R-4s/4-1s/10x), Bayesian-style risk, disposition, duplicate detection, and an audit entry. Alerts are created for action/warning states.
 
 ## Sample payload helper
@@ -41,6 +44,38 @@ curl -X POST http://127.0.0.1:8010/qc/records/csv \
 ```bash
 python scripts/create_api_key.py --role qc_analyst --description "local tester"
 ```
+Stored API-key hashes use salted PBKDF2. Legacy SHA-256 key hashes are migrated after successful authentication.
+
+## Postgres dev database
+Postgres is the only supported app runtime. The built-in default URL is:
+`postgresql+psycopg://bayesianqc:bayesianqc@127.0.0.1:54329/bayesianqc`.
+
+```bash
+docker compose up -d postgres
+export BAYESIANQC_DB_URL=postgresql+psycopg://bayesianqc:bayesianqc@127.0.0.1:54329/bayesianqc
+export BAYESIANQC_SEED_LOCAL_DEV_KEY=1
+uvicorn app.main:app --reload --port 8010
+```
+`init_db()` applies Alembic migrations automatically. The app rejects `sqlite://` URLs at startup; legacy SQLite files are import sources only.
+See [Lab Readiness](docs/LAB_READINESS.md), [Validation Package](docs/VALIDATION_PACKAGE.md), and [Migration Strategy](docs/MIGRATION_STRATEGY.md) before any lab-like deployment.
+
+To rehearse the current Postgres schema:
+```bash
+python scripts/rehearse_sqlite_to_postgres.py --postgres-url "$BAYESIANQC_DB_URL"
+```
+
+For a legacy SQLite import rehearsal only, create a disposable target and copy into it:
+```bash
+docker exec bayesianqc-postgres-1 dropdb -U bayesianqc --if-exists bayesianqc_disposable
+docker exec bayesianqc-postgres-1 createdb -U bayesianqc bayesianqc_disposable
+export POSTGRES_COPY_URL=postgresql+psycopg://bayesianqc:bayesianqc@127.0.0.1:54329/bayesianqc_disposable
+python scripts/rehearse_sqlite_to_postgres.py \
+  --postgres-url "$POSTGRES_COPY_URL" \
+  --copy-data \
+  --truncate-target
+```
+Only run the copy form against a disposable target; it truncates target rows when `--truncate-target` is present. The JSON output includes Alembic head/version checks, row-count parity, Postgres sequence checks, and posterior parameter recomputation.
+Do not set `BAYESIANQC_DB_URL` to SQLite; the app will fail fast.
 
 ## Frontend UI (Vue + Element Plus)
 ```bash
@@ -53,11 +88,13 @@ Override the API base with `VITE_API_URL` in `frontend/.env.local`.
 Every UI page includes a Help button with page purpose and basic usage notes.
 Chart view now centers on the stream mean, shows color-coded 1/2/3 sigma bands using stream config limits, and uses a broken Y-axis when outliers exceed control limits (with an optional log-scale toggle).
 Click chart points to resolve them (exclude from stats) or reinstate them.
+The unattended chart kiosk is available at `http://127.0.0.1:5177/kiosk/charts`; the refinery demo kiosk is at `http://127.0.0.1:5177/kiosk/refinery` after loading `scripts/load_chart_kiosk_suite.py`.
 
 ## Endpoint map
 - `GET /` Landing page with links and basic usage.
 - `GET /docs` Interactive Swagger UI.
 - `GET /redoc` Reference docs.
+- `GET /me` Current role, API-key id, and permissions.
 - `POST /qc/records` Ingest a QC record (requires `X-API-Key`).
 - `POST /qc/records/csv` Ingest QC records from CSV (requires `X-API-Key`).
 - `PATCH /qc/records/{record_id}/resolution` Resolve/reinstate a QC record (requires `X-API-Key` + approve permission).
@@ -92,13 +129,21 @@ Click chart points to resolve them (exclude from stats) or reinstate them.
 
 ## Testing
 - Install dependencies with `pip install -r requirements.txt` (inside your virtualenv).
-- Run the automated checks:
+- Start Postgres, then run the automated checks:
   ```bash
+  docker compose up -d postgres
   pytest
   ```
+  The test harness creates a disposable Postgres database from `BAYESIANQC_POSTGRES_TEST_URL` or the local Compose URL.
+- Run the local/dev Postgres gate:
+  ```bash
+  make check-postgres
+  ```
+  For the destructive copy rehearsal, create a disposable target database and run `make migration-rehearse-postgres-copy POSTGRES_COPY_URL=postgresql+psycopg://...`.
 
 ## Documents
 - [Software Requirements Specification](docs/SRS.md): Full, structured requirements including manual QC entry, workflow, and compliance expectations.
+- [Tool Flow Diagram](docs/TOOL_FLOW_DIAGRAM.html): Browser-openable end-user and technical flow diagram.
 
 ## Roadmap
 

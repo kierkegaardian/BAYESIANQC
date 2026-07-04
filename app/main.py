@@ -3,20 +3,20 @@ from __future__ import annotations
 import csv
 import json
 import os
-from collections.abc import Sequence
+from collections.abc import AsyncIterator, Sequence
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from io import StringIO
-from typing import Any, Optional
-from uuid import uuid4
+from typing import NoReturn, Optional
 
-from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile, status
+from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, Response, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from fastapi.responses import HTMLResponse
 from sqlalchemy import and_, or_
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, col, select
 
-from app import bayesian, frequentist
 from app.api_models import (
     AlertSummary,
     CapaSummary,
@@ -42,9 +42,10 @@ from app.db_models import (
     PriorConfig,
     QCEvent,
     QCRecord,
+    QCRecordQuarantine,
     StreamConfig,
 )
-from app.domain import Disposition, SignalSeverity
+from app.domain import Disposition
 from app.evaluations import reprocess_stream_evaluations
 from app.models import (
     AnalyteIn,
@@ -58,7 +59,7 @@ from app.models import (
     CapaIn,
     CapaOut,
     CapaStatus,
-    DuplicateStatus,
+    CurrentUserOut,
     EventType,
     IngestionResult,
     InstrumentIn,
@@ -76,34 +77,47 @@ from app.models import (
     QCEventIn,
     QCEventOut,
     QCRecordIn,
-    QCRecordOut,
     QCRecordResolutionIn,
     QCRecordResolutionOut,
+    QCRecordQuarantineOut,
     FrequentistSignal,
+    QuarantineResult,
+    QuarantineReviewIn,
+    QuarantineStatus,
     StreamConfigIn,
     StreamConfigOut,
 )
-from app.rbac import UserContext, require_permission
+from app.rbac import ROLE_PERMISSIONS, UserContext, require_permission
+from app.routers.qc_backlog import router as qc_backlog_router
+from app.services.ingestion import audit_out as _audit_out
+from app.services.ingestion import alert_out as _alert_out
+from app.services.ingestion import process_ingestion
+from app.services.locks import stream_write_lock
+from app.services.quarantine import quarantine_out
 from app.storage import (
-    create_alert,
     create_capa,
     create_event,
     create_investigation,
     create_prior_config,
     create_stream_config,
-    detect_duplicate,
-    get_active_stream_config,
-    get_idempotent_response,
     list_stream_configs,
     record_audit,
     seed_defaults,
-    store_receipt,
     update_alert,
     update_capa,
     update_investigation,
 )
 
-app = FastAPI(title="Bayesian QC Prototype", version="0.2.0", docs_url=None, redoc_url=None)
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    init_db()
+    with Session(get_engine()) as session:
+        seed_defaults(session)
+    yield
+
+
+app = FastAPI(title="Bayesian QC Prototype", version="0.2.0", docs_url=None, redoc_url=None, lifespan=lifespan)
 
 cors_origins = [
     origin.strip()
@@ -128,13 +142,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.on_event("startup")
-def startup() -> None:
-    init_db()
-    with Session(get_engine()) as session:
-        seed_defaults(session)
+app.include_router(qc_backlog_router)
 
 
 def _help_button(content: str) -> str:
@@ -206,7 +214,7 @@ def _inject_help(html: str, content: str) -> str:
 async def root_page():
     content = (
         "This is the BayesianQC API landing page. Use the links below to open the "
-        "interactive docs and remember to send an X-API-Key header (default: local-dev-key) "
+        "interactive docs and remember to send an X-API-Key header. Local demos can seed local-dev-key "
         "when calling endpoints."
     )
     html = """
@@ -224,7 +232,7 @@ async def root_page():
       <li><a href="/redoc">ReDoc</a> for reference docs</li>
       <li><a href="/openapi.json">OpenAPI JSON</a></li>
     </ul>
-    <p>All API calls require <code>X-API-Key</code> (default: <code>local-dev-key</code>).</p>
+    <p>All API calls require <code>X-API-Key</code>. Local demos can seed <code>local-dev-key</code>.</p>
   </body>
 </html>
 """
@@ -235,7 +243,7 @@ async def root_page():
 async def custom_docs():
     content = (
         "Use Swagger UI to explore endpoints and send requests. Click a route, choose "
-        "'Try it out', and add the X-API-Key header (default: local-dev-key) before executing."
+        "'Try it out', and add the X-API-Key header before executing."
     )
     openapi_url = app.openapi_url
     if openapi_url is None:
@@ -263,21 +271,11 @@ async def custom_redoc():
     return HTMLResponse(_inject_help(html, content))
 
 
-def normalize_units(value: float, units: str, config: StreamConfig) -> tuple[float, str]:
-    if units == config.units:
-        return value, units
-    if config.unit_conversions and units in config.unit_conversions:
-        conversion = config.unit_conversions[units]
-        if isinstance(conversion, dict):
-            factor = float(conversion.get("factor", 1.0))
-            offset = float(conversion.get("offset", 0.0))
-        else:
-            factor = float(conversion)
-            offset = 0.0
-        return value * factor + offset, config.units
-    if config.allowed_units and units in config.allowed_units and units == config.units:
-        return value, units
-    raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Units do not match stream configuration")
+@app.get("/me", response_model=CurrentUserOut)
+def current_user(
+    user: UserContext = Depends(require_permission(Permission.READ)),
+) -> CurrentUserOut:
+    return CurrentUserOut(role=user.role, api_key_id=user.api_key_id, permissions=ROLE_PERMISSIONS.get(user.role, []))
 
 
 def parse_csv_row(row: dict[str, str | None]) -> QCRecordIn:
@@ -288,37 +286,6 @@ def parse_csv_row(row: dict[str, str | None]) -> QCRecordIn:
         except json.JSONDecodeError as exc:
             raise HTTPException(status_code=422, detail=f"Invalid flags JSON: {cleaned['flags']}") from exc
     return QCRecordIn.model_validate(cleaned)
-
-
-def validate_bounds(value: float, config: StreamConfig) -> None:
-    if config.min_value is not None and value < config.min_value:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Result below configured minimum")
-    if config.max_value is not None and value > config.max_value:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Result above configured maximum")
-
-
-def determine_disposition(
-    signals: Sequence[FrequentistSignal], risk: Optional[BayesianRisk], config: StreamConfig
-) -> Disposition:
-    if any(s.severity == SignalSeverity.ACTION for s in signals):
-        return Disposition.REJECT
-    required_hold = config.bayes_hold_consecutive or 1
-    required_warn = config.bayes_warn_consecutive or 1
-    hold_triggered = bool(risk and risk.hold_streak >= required_hold)
-    warn_triggered = bool(risk and risk.warn_streak >= required_warn)
-    if hold_triggered:
-        return Disposition.HOLD_FOR_REVIEW
-    if signals or warn_triggered:
-        return Disposition.MONITOR
-    return Disposition.ACCEPT
-
-
-def alert_severity(disposition: Disposition) -> str:
-    if disposition in {Disposition.REJECT, Disposition.HOLD_FOR_REVIEW}:
-        return "action"
-    if disposition == Disposition.MONITOR:
-        return "warn"
-    return "info"
 
 
 def _lot_segments(records: Sequence[QCRecord]) -> list[LotSegmentOut]:
@@ -340,42 +307,6 @@ def _lot_segments(records: Sequence[QCRecord]) -> list[LotSegmentOut]:
         last_time = record.timestamp
     segments.append(LotSegmentOut(control_material_lot=current_lot, start=start_time, end=last_time, count=count))
     return segments
-
-
-def _audit_out(entry: AuditEntry) -> AuditEntryOut:
-    after = entry.after
-    if after is None:
-        raise RuntimeError("Audit entry missing after snapshot")
-    return AuditEntryOut(
-        timestamp=entry.timestamp,
-        actor=entry.actor,
-        action=entry.action,
-        entity_type=entry.entity_type,
-        entity_id=entry.entity_id,
-        before=entry.before,
-        after=after,
-        reason=entry.reason,
-    )
-
-
-def _alert_out(alert: AlertRecord, qc_record_timestamp: Optional[datetime] = None) -> AlertOut:
-    acknowledged = alert.status in {AlertStatus.ACKNOWLEDGED, AlertStatus.CLOSED}
-    return AlertOut(
-        id=alert.alert_id,
-        stream_id=alert.stream_id,
-        created_at=alert.created_at,
-        qc_record_id=alert.qc_record_id,
-        qc_record_timestamp=qc_record_timestamp,
-        signals=[FrequentistSignal.model_validate(signal) for signal in alert.signals],
-        bayesian_risk=BayesianRisk.model_validate(alert.bayesian_risk),
-        disposition=Disposition(alert.disposition),
-        acknowledged=acknowledged,
-        status=alert.status,
-        acknowledged_at=alert.acknowledged_at,
-        acknowledged_by=alert.acknowledged_by,
-        assigned_to=alert.assigned_to,
-        due_at=alert.due_at,
-    )
 
 
 def _stream_out(config: StreamConfig) -> StreamConfigOut:
@@ -506,187 +437,114 @@ def validate_capa_fields(payload: CapaIn) -> None:
         raise HTTPException(status_code=422, detail="verification_plan is required for CAPA approval")
 
 
-def process_ingestion(
+def require_reason(value: Optional[str], detail: str) -> str:
+    reason = value.strip() if value else ""
+    if not reason:
+        raise HTTPException(status_code=422, detail=detail)
+    return reason
+
+
+def raise_config_version_conflict(exc: IntegrityError) -> NoReturn:
+    raise HTTPException(status_code=409, detail="Configuration version conflict; retry the request") from exc
+
+
+@app.get("/qc/quarantine", response_model=list[QCRecordQuarantineOut])
+def list_qc_quarantine(
+    status_filter: QuarantineStatus = Query(default=QuarantineStatus.OPEN, alias="status"),
+    limit: int = Query(default=100, ge=1, le=500),
+    user: UserContext = Depends(require_permission(Permission.READ)),
+    session: Session = Depends(get_session),
+) -> list[QCRecordQuarantineOut]:
+    query = (
+        select(QCRecordQuarantine)
+        .where(QCRecordQuarantine.status == status_filter)
+        .order_by(col(QCRecordQuarantine.created_at).desc())
+        .limit(limit)
+    )
+    return [quarantine_out(row) for row in session.exec(query).all()]
+
+
+@app.patch("/qc/quarantine/{quarantine_id}", response_model=QCRecordQuarantineOut)
+def review_qc_quarantine(
+    quarantine_id: int,
+    payload: QuarantineReviewIn,
+    user: UserContext = Depends(require_permission(Permission.APPROVE)),
+    session: Session = Depends(get_session),
+) -> QCRecordQuarantineOut:
+    row = session.exec(select(QCRecordQuarantine).where(QCRecordQuarantine.id == quarantine_id)).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Quarantine record not found")
+    before = row.model_dump(mode="json")
+    row.status = payload.status
+    row.reviewed_at = datetime.now(timezone.utc)
+    row.reviewed_by = user.actor
+    row.review_reason = payload.review_reason
+    session.add(row)
+    session.flush()
+    out = quarantine_out(row)
+    record_audit(
+        session=session,
+        actor=user.actor,
+        actor_role=user.role,
+        api_key_id=user.api_key_id,
+        action="review_qc_quarantine",
+        entity_type="qc_quarantine",
+        entity_id=str(out.id),
+        before=before,
+        after=out.model_dump(mode="json"),
+        reason=payload.review_reason,
+        commit=False,
+    )
+    session.commit()
+    session.refresh(row)
+    return quarantine_out(row)
+
+
+@app.post("/qc/records", response_model=IngestionResult | QuarantineResult)
+def ingest_qc_record(
     payload: QCRecordIn,
-    session: Session,
-    user: UserContext,
-    idempotency_key: Optional[str],
-) -> IngestionResult:
-    try:
-        record_time = payload.timestamp
-        config = get_active_stream_config(session, payload.stream_id, record_time)
-        if not config:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stream not configured")
-
-        if payload.qc_level != config.qc_level:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="QC level does not match stream configuration"
-            )
-
-        normalized_value, normalized_units = normalize_units(payload.result_value, payload.units, config)
-        validate_bounds(normalized_value, config)
-
-        record = QCRecord(
-            stream_id=payload.stream_id,
-            timestamp=payload.timestamp,
-            result_value=normalized_value,
-            analyte=payload.analyte,
-            qc_level=payload.qc_level,
-            instrument_id=payload.instrument_id,
-            method_id=payload.method_id,
-            operator_id=payload.operator_id,
-            reagent_lot=payload.reagent_lot,
-            control_material_lot=payload.control_material_lot,
-            calibration_status=payload.calibration_status,
-            run_id=payload.run_id,
-            units=normalized_units,
-            flags=payload.flags,
-            entry_source=payload.entry_source,
-            comments=payload.comments,
-            raw_payload=payload.model_dump(mode="json"),
-            duplicate_status=DuplicateStatus.UNIQUE,
-            idempotency_key=idempotency_key,
-        )
-
-        duplicate_status = detect_duplicate(session, record)
-        record.duplicate_status = duplicate_status
-        session.add(record)
-        session.flush()
-        if record.id is None:
-            raise RuntimeError("QC record missing id after flush")
-
-        has_later_record = (
-            session.exec(
-                select(QCRecord.id)
-                .where(QCRecord.stream_id == record.stream_id, QCRecord.timestamp > record.timestamp)
-                .limit(1)
-            ).first()
-            is not None
-        )
-        if has_later_record:
-            # Out-of-order ingestion can invalidate cached evaluations for subsequent points.
-            reprocess_stream_evaluations(session, record.stream_id, commit=False)
-            session.refresh(record)
-            if record.signals is None or record.bayesian_risk is None or record.disposition is None:
-                raise RuntimeError("Reprocessing did not persist evaluations for ingested record")
-            signals = [FrequentistSignal.model_validate(s) for s in record.signals]
-            risk = BayesianRisk.model_validate(record.bayesian_risk)
-            disposition = Disposition(record.disposition)
-        else:
-            signals = frequentist.evaluate_rules(
-                session,
-                record.result_value,
-                record.timestamp,
-                record.stream_id,
-                config,
-            )
-            risk = bayesian.infer_risk(
-                session,
-                record.result_value,
-                record.timestamp,
-                record.stream_id,
-                config,
-                commit=False,
-            )
-            disposition = determine_disposition(signals, risk, config)
-            record.signals = [s.model_dump(mode="json") for s in signals]
-            record.bayesian_risk = risk.model_dump(mode="json")
-            record.disposition = disposition.value
-            session.add(record)
-
-        record_payload = payload.model_copy(update={"result_value": normalized_value, "units": normalized_units})
-        qc_out = QCRecordOut(record=record_payload, signals=signals, bayesian_risk=risk, disposition=disposition)
-
-        audit_entry = record_audit(
-            session=session,
-            actor=user.role.value,
-            action="ingest_qc",
-            entity_type="qc_record",
-            entity_id=str(record.id),
-            before=None,
-            after=qc_out.model_dump(mode="json"),
-            reason=payload.comments,
-            commit=False,
-        )
-
-        alert_out = None
-        if disposition != Disposition.ACCEPT:
-            alert_record = create_alert(
-                session,
-                AlertRecord(
-                    alert_id=str(uuid4()),
-                    stream_id=record.stream_id,
-                    qc_record_id=record.id,
-                    severity=alert_severity(disposition),
-                    disposition=disposition.value,
-                    signals=[s.model_dump(mode="json") for s in signals],
-                    bayesian_risk=risk.model_dump(mode="json"),
-                ),
-                commit=False,
-            )
-            alert_out = _alert_out(alert_record, qc_record_timestamp=record.timestamp)
-
-        result = IngestionResult(
-            status="accepted",
-            duplicate=duplicate_status,
-            qc=qc_out,
-            alert_created=alert_out,
-            audit_entry=_audit_out(audit_entry),
-            idempotency_key=idempotency_key,
-        )
-        store_receipt(
-            session,
-            idempotency_key,
-            result.model_dump(mode="json"),
-            record.id,
-            commit=False,
-        )
-        session.commit()
-        return result
-    except Exception:
-        # Keep the session usable for CSV ingestion loops that continue after per-row errors.
-        session.rollback()
-        raise
-
-
-@app.post("/qc/records", response_model=IngestionResult)
-async def ingest_qc_record(
-    payload: QCRecordIn,
+    response: Response,
     idempotency_key: Optional[str] = Header(default=None, alias="Idempotency-Key"),
     user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
     session: Session = Depends(get_session),
-) -> IngestionResult:
-    if idempotency_key:
-        receipt = get_idempotent_response(session, idempotency_key)
-        if receipt:
-            return IngestionResult.model_validate(receipt.response)
-    return process_ingestion(payload, session, user, idempotency_key)
+) -> IngestionResult | QuarantineResult:
+    result = process_ingestion(payload, session, user, idempotency_key)
+    if isinstance(result, QuarantineResult):
+        response.status_code = status.HTTP_202_ACCEPTED
+    return result
 
 
 @app.post("/qc/records/csv", response_model=CsvIngestResult)
-async def ingest_qc_records_csv(
+def ingest_qc_records_csv(
     file: UploadFile = File(...),
     user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
     session: Session = Depends(get_session),
 ) -> CsvIngestResult:
     if not file.filename or not file.filename.lower().endswith(".csv"):
         raise HTTPException(status_code=400, detail="CSV file required")
-    content = (await file.read()).decode("utf-8")
+    content = file.file.read().decode("utf-8")
     reader = csv.DictReader(StringIO(content))
-    results: list[IngestionResult] = []
+    results: list[IngestionResult | QuarantineResult] = []
     errors: list[CsvRowError] = []
+    accepted = 0
+    quarantined = 0
     for idx, row in enumerate(reader, start=1):
         try:
             payload = parse_csv_row(row)
-            results.append(process_ingestion(payload, session, user, idempotency_key=None))
+            result = process_ingestion(payload, session, user, idempotency_key=None)
+            results.append(result)
+            if isinstance(result, QuarantineResult):
+                quarantined += 1
+            else:
+                accepted += 1
         except Exception as exc:  # noqa: BLE001 - report row-level errors
             session.rollback()
             errors.append(CsvRowError(row=idx, error=str(exc)))
-    return CsvIngestResult(accepted=len(results), errors=errors, results=results)
+    return CsvIngestResult(accepted=accepted, quarantined=quarantined, errors=errors, results=results)
 
 
 @app.patch("/qc/records/{record_id}/resolution", response_model=QCRecordResolutionOut)
-async def resolve_qc_record(
+def resolve_qc_record(
     record_id: int,
     payload: QCRecordResolutionIn,
     user: UserContext = Depends(require_permission(Permission.APPROVE)),
@@ -695,38 +553,52 @@ async def resolve_qc_record(
     record = session.exec(select(QCRecord).where(QCRecord.id == record_id)).first()
     if not record:
         raise HTTPException(status_code=404, detail="QC record not found")
-    before = record.model_dump(mode="json")
-    if payload.include_in_stats:
-        record.include_in_stats = True
-        record.resolved_at = None
-        record.resolved_by = None
-        record.resolved_reason = None
-    else:
-        record.include_in_stats = False
-        record.resolved_at = datetime.now(timezone.utc)
-        record.resolved_by = user.role.value
-        record.resolved_reason = payload.resolved_reason
-    session.add(record)
-    session.commit()
-    session.refresh(record)
-    record_audit(
-        session=session,
-        actor=user.role.value,
-        action="resolve_qc_record",
-        entity_type="qc_record",
-        entity_id=str(record.id),
-        before=before,
-        after=record.model_dump(mode="json"),
-        reason=payload.resolved_reason,
-    )
-    reprocess_stream_evaluations(session, record.stream_id)
-    return _qc_record_resolution_out(record)
+    with stream_write_lock(session, record.stream_id):
+        try:
+            session.refresh(record)
+            before = record.model_dump(mode="json")
+            reason = payload.resolved_reason
+            if payload.include_in_stats != record.include_in_stats:
+                reason = require_reason(
+                    payload.resolved_reason,
+                    "resolved_reason is required when changing statistical inclusion",
+                )
+            if payload.include_in_stats:
+                record.include_in_stats = True
+                record.resolved_at = None
+                record.resolved_by = None
+                record.resolved_reason = None
+            else:
+                record.include_in_stats = False
+                record.resolved_at = datetime.now(timezone.utc)
+                record.resolved_by = user.actor
+                record.resolved_reason = reason
+            session.add(record)
+            session.flush()
+            record_audit(
+                session=session,
+                actor=user.actor,
+                action="resolve_qc_record",
+                entity_type="qc_record",
+                entity_id=str(record.id),
+                before=before,
+                after=record.model_dump(mode="json"),
+                reason=reason,
+                commit=False,
+            )
+            reprocess_stream_evaluations(session, record.stream_id, commit=False)
+            session.commit()
+            session.refresh(record)
+            return _qc_record_resolution_out(record)
+        except Exception:
+            session.rollback()
+            raise
 
 
 @app.get("/instruments", response_model=list[InstrumentOut])
-async def list_instruments(
+def list_instruments(
     active: Optional[bool] = None,
-    user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
+    user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ):
     query = select(Instrument).order_by(col(Instrument.name).asc())
@@ -737,18 +609,18 @@ async def list_instruments(
 
 
 @app.post("/instruments", response_model=InstrumentOut)
-async def create_instrument(
+def create_instrument(
     payload: InstrumentIn,
     user: UserContext = Depends(require_permission(Permission.EDIT_CONFIG)),
     session: Session = Depends(get_session),
 ):
-    instrument = Instrument(**payload.model_dump(), created_by=user.role.value)
+    instrument = Instrument(**payload.model_dump(), created_by=user.actor)
     session.add(instrument)
     session.commit()
     session.refresh(instrument)
     record_audit(
         session,
-        actor=user.role.value,
+        actor=user.actor,
         action="create_instrument",
         entity_type="instrument",
         entity_id=str(instrument.id),
@@ -760,7 +632,7 @@ async def create_instrument(
 
 
 @app.patch("/instruments/{instrument_id}", response_model=InstrumentOut)
-async def update_instrument(
+def update_instrument(
     instrument_id: int,
     payload: InstrumentUpdate,
     user: UserContext = Depends(require_permission(Permission.EDIT_CONFIG)),
@@ -777,7 +649,7 @@ async def update_instrument(
     session.refresh(instrument)
     record_audit(
         session,
-        actor=user.role.value,
+        actor=user.actor,
         action="update_instrument",
         entity_type="instrument",
         entity_id=str(instrument.id),
@@ -789,10 +661,10 @@ async def update_instrument(
 
 
 @app.get("/methods", response_model=list[MethodOut])
-async def list_methods(
+def list_methods(
     instrument_id: Optional[int] = None,
     active: Optional[bool] = None,
-    user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
+    user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ):
     query = select(Method).order_by(col(Method.name).asc())
@@ -805,7 +677,7 @@ async def list_methods(
 
 
 @app.post("/methods", response_model=MethodOut)
-async def create_method(
+def create_method(
     payload: MethodIn,
     user: UserContext = Depends(require_permission(Permission.EDIT_CONFIG)),
     session: Session = Depends(get_session),
@@ -813,13 +685,13 @@ async def create_method(
     instrument = session.exec(select(Instrument).where(Instrument.id == payload.instrument_id)).first()
     if not instrument:
         raise HTTPException(status_code=404, detail="Instrument not found")
-    method = Method(**payload.model_dump(), created_by=user.role.value)
+    method = Method(**payload.model_dump(), created_by=user.actor)
     session.add(method)
     session.commit()
     session.refresh(method)
     record_audit(
         session,
-        actor=user.role.value,
+        actor=user.actor,
         action="create_method",
         entity_type="method",
         entity_id=str(method.id),
@@ -831,7 +703,7 @@ async def create_method(
 
 
 @app.patch("/methods/{method_id}", response_model=MethodOut)
-async def update_method(
+def update_method(
     method_id: int,
     payload: MethodUpdate,
     user: UserContext = Depends(require_permission(Permission.EDIT_CONFIG)),
@@ -852,7 +724,7 @@ async def update_method(
     session.refresh(method)
     record_audit(
         session,
-        actor=user.role.value,
+        actor=user.actor,
         action="update_method",
         entity_type="method",
         entity_id=str(method.id),
@@ -864,10 +736,10 @@ async def update_method(
 
 
 @app.get("/analytes", response_model=list[AnalyteOut])
-async def list_analytes(
+def list_analytes(
     method_id: Optional[int] = None,
     active: Optional[bool] = None,
-    user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
+    user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ):
     query = select(Analyte).order_by(col(Analyte.name).asc())
@@ -880,7 +752,7 @@ async def list_analytes(
 
 
 @app.post("/analytes", response_model=AnalyteOut)
-async def create_analyte(
+def create_analyte(
     payload: AnalyteIn,
     user: UserContext = Depends(require_permission(Permission.EDIT_CONFIG)),
     session: Session = Depends(get_session),
@@ -888,13 +760,13 @@ async def create_analyte(
     method = session.exec(select(Method).where(Method.id == payload.method_id)).first()
     if not method:
         raise HTTPException(status_code=404, detail="Method not found")
-    analyte = Analyte(**payload.model_dump(), created_by=user.role.value)
+    analyte = Analyte(**payload.model_dump(), created_by=user.actor)
     session.add(analyte)
     session.commit()
     session.refresh(analyte)
     record_audit(
         session,
-        actor=user.role.value,
+        actor=user.actor,
         action="create_analyte",
         entity_type="analyte",
         entity_id=str(analyte.id),
@@ -906,7 +778,7 @@ async def create_analyte(
 
 
 @app.patch("/analytes/{analyte_id}", response_model=AnalyteOut)
-async def update_analyte(
+def update_analyte(
     analyte_id: int,
     payload: AnalyteUpdate,
     user: UserContext = Depends(require_permission(Permission.EDIT_CONFIG)),
@@ -927,7 +799,7 @@ async def update_analyte(
     session.refresh(analyte)
     record_audit(
         session,
-        actor=user.role.value,
+        actor=user.actor,
         action="update_analyte",
         entity_type="analyte",
         entity_id=str(analyte.id),
@@ -939,8 +811,8 @@ async def update_analyte(
 
 
 @app.get("/streams", response_model=list[StreamConfigOut])
-async def list_streams(
-    user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
+def list_streams(
+    user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ):
     configs = session.exec(
@@ -958,98 +830,131 @@ async def list_streams(
 
 
 @app.get("/streams/{stream_id}/configs", response_model=list[StreamConfigOut])
-async def list_stream_versions(
+def list_stream_versions(
     stream_id: str,
-    user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
+    user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ):
     return [_stream_out(cfg) for cfg in list_stream_configs(session, stream_id)]
 
 
 @app.post("/streams", response_model=StreamConfigOut)
-async def create_stream(
+def create_stream(
     payload: StreamConfigIn,
     user: UserContext = Depends(require_permission(Permission.EDIT_CONFIG)),
     session: Session = Depends(get_session),
 ):
-    config = create_stream_config(session, payload, user.role.value)
-    record_audit(
-        session,
-        actor=user.role.value,
-        action="create_stream",
-        entity_type="stream_config",
-        entity_id=str(config.id),
-        before=None,
-        after=config.model_dump(mode="json"),
-        reason=None,
-    )
-    return _stream_out(config)
+    with stream_write_lock(session, payload.stream_id):
+        try:
+            config = create_stream_config(session, payload, user.actor, commit=False)
+            record_audit(
+                session,
+                actor=user.actor,
+                action="create_stream",
+                entity_type="stream_config",
+                entity_id=str(config.id),
+                before=None,
+                after=config.model_dump(mode="json"),
+                reason=None,
+                commit=False,
+            )
+            session.commit()
+            session.refresh(config)
+            return _stream_out(config)
+        except IntegrityError as exc:
+            session.rollback()
+            raise_config_version_conflict(exc)
+        except Exception:
+            session.rollback()
+            raise
 
 
 @app.post("/streams/{stream_id}/configs", response_model=StreamConfigOut)
-async def create_stream_version(
+def create_stream_version(
     stream_id: str,
     payload: StreamConfigIn,
     user: UserContext = Depends(require_permission(Permission.EDIT_CONFIG)),
     session: Session = Depends(get_session),
 ):
     payload = payload.model_copy(update={"stream_id": stream_id})
-    config = create_stream_config(session, payload, user.role.value)
-    record_audit(
-        session,
-        actor=user.role.value,
-        action="create_stream_version",
-        entity_type="stream_config",
-        entity_id=str(config.id),
-        before=None,
-        after=config.model_dump(mode="json"),
-        reason=None,
-    )
-    latest_ts = session.exec(
-        select(QCRecord.timestamp)
-        .where(QCRecord.stream_id == stream_id)
-        .order_by(col(QCRecord.timestamp).desc())
-        .limit(1)
-    ).first()
-    if latest_ts is not None and config.effective_from <= latest_ts:
-        reprocess_stream_evaluations(session, stream_id)
-    return _stream_out(config)
+    with stream_write_lock(session, stream_id):
+        try:
+            config = create_stream_config(session, payload, user.actor, commit=False)
+            record_audit(
+                session,
+                actor=user.actor,
+                action="create_stream_version",
+                entity_type="stream_config",
+                entity_id=str(config.id),
+                before=None,
+                after=config.model_dump(mode="json"),
+                reason=None,
+                commit=False,
+            )
+            latest_ts = session.exec(
+                select(QCRecord.timestamp)
+                .where(QCRecord.stream_id == stream_id)
+                .order_by(col(QCRecord.timestamp).desc())
+                .limit(1)
+            ).first()
+            if latest_ts is not None and config.effective_from <= latest_ts:
+                reprocess_stream_evaluations(session, stream_id, commit=False)
+            session.commit()
+            session.refresh(config)
+            return _stream_out(config)
+        except IntegrityError as exc:
+            session.rollback()
+            raise_config_version_conflict(exc)
+        except Exception:
+            session.rollback()
+            raise
 
 
 @app.post("/streams/{stream_id}/priors", response_model=PriorConfigOut)
-async def create_prior(
+def create_prior(
     stream_id: str,
     payload: PriorConfigIn,
     user: UserContext = Depends(require_permission(Permission.EDIT_CONFIG)),
     session: Session = Depends(get_session),
 ):
     payload = payload.model_copy(update={"stream_id": stream_id})
-    config = create_prior_config(session, stream_id, payload, user.role.value)
-    record_audit(
-        session,
-        actor=user.role.value,
-        action="create_prior",
-        entity_type="prior_config",
-        entity_id=str(config.id),
-        before=None,
-        after=config.model_dump(mode="json"),
-        reason=None,
-    )
-    latest_ts = session.exec(
-        select(QCRecord.timestamp)
-        .where(QCRecord.stream_id == stream_id)
-        .order_by(col(QCRecord.timestamp).desc())
-        .limit(1)
-    ).first()
-    if latest_ts is not None and config.effective_from <= latest_ts:
-        reprocess_stream_evaluations(session, stream_id)
-    return _prior_out(config)
+    with stream_write_lock(session, stream_id):
+        try:
+            config = create_prior_config(session, stream_id, payload, user.actor, commit=False)
+            record_audit(
+                session,
+                actor=user.actor,
+                action="create_prior",
+                entity_type="prior_config",
+                entity_id=str(config.id),
+                before=None,
+                after=config.model_dump(mode="json"),
+                reason=None,
+                commit=False,
+            )
+            latest_ts = session.exec(
+                select(QCRecord.timestamp)
+                .where(QCRecord.stream_id == stream_id)
+                .order_by(col(QCRecord.timestamp).desc())
+                .limit(1)
+            ).first()
+            if latest_ts is not None and config.effective_from <= latest_ts:
+                reprocess_stream_evaluations(session, stream_id, commit=False)
+            session.commit()
+            session.refresh(config)
+            return _prior_out(config)
+        except IntegrityError as exc:
+            session.rollback()
+            raise_config_version_conflict(exc)
+        except Exception:
+            session.rollback()
+            raise
 
 
 @app.get("/streams/{stream_id}/priors", response_model=list[PriorConfigOut])
-async def list_priors(
+def list_priors(
     stream_id: str,
-    user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
+    user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ):
     priors = session.exec(
@@ -1061,7 +966,7 @@ async def list_priors(
 
 
 @app.post("/qc/events", response_model=QCEventOut)
-async def ingest_event(
+def ingest_event(
     payload: QCEventIn,
     user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
     session: Session = Depends(get_session),
@@ -1076,12 +981,12 @@ async def ingest_event(
             analyte=payload.analyte,
             method_id=payload.method_id,
             event_metadata=payload.metadata,
-            created_by=user.role.value,
+            created_by=user.actor,
         ),
     )
     record_audit(
         session,
-        actor=user.role.value,
+        actor=user.actor,
         action="ingest_event",
         entity_type="qc_event",
         entity_id=str(event.id),
@@ -1093,11 +998,11 @@ async def ingest_event(
 
 
 @app.get("/qc/events", response_model=list[QCEventOut])
-async def list_events(
+def list_events(
     stream_id: Optional[str] = None,
     event_type: Optional[EventType] = None,
     limit: int = 200,
-    user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
+    user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ):
     query = select(QCEvent).order_by(col(QCEvent.timestamp).desc())
@@ -1110,8 +1015,8 @@ async def list_events(
 
 
 @app.get("/alerts", response_model=list[AlertOut])
-async def list_alerts(
-    user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
+def list_alerts(
+    user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ):
     rows = session.exec(
@@ -1123,7 +1028,7 @@ async def list_alerts(
 
 
 @app.patch("/alerts/{alert_id}", response_model=AlertOut)
-async def update_alert_status(
+def update_alert_status(
     alert_id: str,
     payload: AlertUpdate,
     user: UserContext = Depends(require_permission(Permission.APPROVE)),
@@ -1133,33 +1038,41 @@ async def update_alert_status(
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")
     before = alert.model_dump(mode="json")
-    if payload.status:
+    alert_changed = False
+    if payload.status is not None and payload.status != alert.status:
         alert.status = payload.status
-    if payload.acknowledged_by:
-        alert.acknowledged_by = payload.acknowledged_by
-        alert.acknowledged_at = datetime.now(timezone.utc)
-    if payload.assigned_to:
+        alert_changed = True
+        if payload.status in {AlertStatus.ACKNOWLEDGED, AlertStatus.CLOSED}:
+            alert.acknowledged_by = user.actor
+            alert.acknowledged_at = datetime.now(timezone.utc)
+        elif payload.status == AlertStatus.OPEN:
+            alert.acknowledged_by = None
+            alert.acknowledged_at = None
+    if payload.assigned_to is not None and payload.assigned_to != alert.assigned_to:
         alert.assigned_to = payload.assigned_to
-    if payload.due_at:
+        alert_changed = True
+    if payload.due_at is not None and payload.due_at != alert.due_at:
         alert.due_at = payload.due_at
+        alert_changed = True
+    reason = require_reason(payload.reason, "reason is required when updating an alert") if alert_changed else payload.reason
     alert = update_alert(session, alert)
     record_audit(
         session,
-        actor=user.role.value,
+        actor=user.actor,
         action="update_alert",
         entity_type="alert",
         entity_id=alert.alert_id,
         before=before,
         after=alert.model_dump(mode="json"),
-        reason=None,
+        reason=reason,
     )
     return _alert_out(alert)
 
 
 @app.get("/investigations", response_model=list[InvestigationOut])
-async def list_investigations(
+def list_investigations(
     status_filter: Optional[InvestigationStatus] = None,
-    user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
+    user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ):
     query = select(Investigation).order_by(col(Investigation.created_at).desc())
@@ -1176,7 +1089,7 @@ async def list_investigations(
 
 
 @app.post("/investigations", response_model=InvestigationOut)
-async def create_investigation_record(
+def create_investigation_record(
     payload: InvestigationIn,
     user: UserContext = Depends(require_permission(Permission.APPROVE)),
     session: Session = Depends(get_session),
@@ -1199,13 +1112,13 @@ async def create_investigation_record(
             outcome=payload.outcome,
             decision=payload.decision,
             status=payload.status or InvestigationStatus.OPEN,
-            created_by=user.role.value,
+            created_by=user.actor,
         ),
         alert_id=alert_id,
     )
     record_audit(
         session,
-        actor=user.role.value,
+        actor=user.actor,
         action="create_investigation",
         entity_type="investigation",
         entity_id=str(investigation.id),
@@ -1217,7 +1130,7 @@ async def create_investigation_record(
 
 
 @app.patch("/investigations/{investigation_id}", response_model=InvestigationOut)
-async def update_investigation_record(
+def update_investigation_record(
     investigation_id: int,
     payload: InvestigationIn,
     user: UserContext = Depends(require_permission(Permission.APPROVE)),
@@ -1227,19 +1140,20 @@ async def update_investigation_record(
     if not investigation:
         raise HTTPException(status_code=404, detail="Investigation not found")
     before = investigation.model_dump(mode="json")
-    updates = payload.model_dump(exclude_unset=True, exclude={"alert_id"})
+    updates = payload.model_dump(exclude_unset=True, exclude={"alert_id", "reason"})
+    reason = require_reason(payload.reason, "reason is required when updating an investigation") if updates else payload.reason
     for field, value in updates.items():
         setattr(investigation, field, value)
     investigation = update_investigation(session, investigation)
     record_audit(
         session,
-        actor=user.role.value,
+        actor=user.actor,
         action="update_investigation",
         entity_type="investigation",
         entity_id=str(investigation.id),
         before=before,
         after=investigation.model_dump(mode="json"),
-        reason=None,
+        reason=reason,
     )
     if investigation.id is None:
         raise RuntimeError("Investigation missing id")
@@ -1248,7 +1162,7 @@ async def update_investigation_record(
 
 
 @app.post("/capas", response_model=CapaOut)
-async def create_capa_record(
+def create_capa_record(
     payload: CapaIn,
     user: UserContext = Depends(require_permission(Permission.APPROVE)),
     session: Session = Depends(get_session),
@@ -1279,14 +1193,14 @@ async def create_capa_record(
             due_at=payload.due_at,
             verification_plan=payload.verification_plan,
             effectiveness_criteria=payload.effectiveness_criteria,
-            created_by=user.role.value,
+            created_by=user.actor,
         ),
         alert_id=alert_id,
         investigation_id=investigation_id,
     )
     record_audit(
         session,
-        actor=user.role.value,
+        actor=user.actor,
         action="create_capa",
         entity_type="capa",
         entity_id=str(capa.id),
@@ -1298,7 +1212,7 @@ async def create_capa_record(
 
 
 @app.patch("/capas/{capa_id}", response_model=CapaOut)
-async def update_capa_record(
+def update_capa_record(
     capa_id: int,
     payload: CapaIn,
     user: UserContext = Depends(require_permission(Permission.APPROVE)),
@@ -1308,7 +1222,8 @@ async def update_capa_record(
     if not capa:
         raise HTTPException(status_code=404, detail="CAPA not found")
     before = capa.model_dump(mode="json")
-    updates = payload.model_dump(exclude_unset=True, exclude={"alert_id", "investigation_id"})
+    updates = payload.model_dump(exclude_unset=True, exclude={"alert_id", "investigation_id", "reason"})
+    reason = require_reason(payload.reason, "reason is required when updating a CAPA") if updates else payload.reason
     for field, value in updates.items():
         setattr(capa, field, value)
     merged = capa.model_dump()
@@ -1318,13 +1233,13 @@ async def update_capa_record(
     capa = update_capa(session, capa)
     record_audit(
         session,
-        actor=user.role.value,
+        actor=user.actor,
         action="update_capa",
         entity_type="capa",
         entity_id=str(capa.id),
         before=before,
         after=capa.model_dump(mode="json"),
-        reason=None,
+        reason=reason,
     )
     if capa.id is None:
         raise RuntimeError("CAPA missing id")
@@ -1333,9 +1248,9 @@ async def update_capa_record(
 
 
 @app.get("/capas", response_model=list[CapaOut])
-async def list_capas(
+def list_capas(
     status_filter: Optional[CapaStatus] = None,
-    user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
+    user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ):
     query = select(Capa).order_by(col(Capa.created_at).desc())
@@ -1352,8 +1267,8 @@ async def list_capas(
 
 
 @app.get("/audit", response_model=list[AuditEntryOut])
-async def list_audit(
-    user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
+def list_audit(
+    user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ):
     entries = session.exec(select(AuditEntry).order_by(col(AuditEntry.timestamp).desc())).all()
@@ -1361,8 +1276,8 @@ async def list_audit(
 
 
 @app.get("/reports/summary", response_model=ReportSummaryOut)
-async def report_summary(
-    user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
+def report_summary(
+    user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ) -> ReportSummaryOut:
     alert_rows = session.exec(select(AlertRecord)).all()
@@ -1386,13 +1301,13 @@ async def report_summary(
 
 
 @app.get("/streams/{stream_id}/chart", response_model=StreamChartOut)
-async def stream_chart(
+def stream_chart(
     stream_id: str,
     limit: int = 200,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
     include_evaluations: bool = True,
-    user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
+    user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ) -> StreamChartOut:
     record_query = select(QCRecord).where(QCRecord.stream_id == stream_id)
@@ -1449,15 +1364,15 @@ async def stream_chart(
     if start:
         alert_rows_query = alert_rows_query.where(
             or_(
-                and_(QCRecord.timestamp.is_not(None), QCRecord.timestamp >= start),
-                and_(QCRecord.timestamp.is_(None), AlertRecord.created_at >= start),
+                and_(col(QCRecord.timestamp).is_not(None), col(QCRecord.timestamp) >= start),
+                and_(col(QCRecord.timestamp).is_(None), col(AlertRecord.created_at) >= start),
             )
         )
     if end:
         alert_rows_query = alert_rows_query.where(
             or_(
-                and_(QCRecord.timestamp.is_not(None), QCRecord.timestamp <= end),
-                and_(QCRecord.timestamp.is_(None), AlertRecord.created_at <= end),
+                and_(col(QCRecord.timestamp).is_not(None), col(QCRecord.timestamp) <= end),
+                and_(col(QCRecord.timestamp).is_(None), col(AlertRecord.created_at) <= end),
             )
         )
     alert_rows = session.exec(alert_rows_query.order_by(col(AlertRecord.created_at).desc()).limit(limit)).all()

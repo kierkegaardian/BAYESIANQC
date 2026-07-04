@@ -7,9 +7,8 @@ def as_utc(value: datetime) -> datetime:
     """
     Normalize datetimes for safe comparison.
 
-    SQLite commonly returns naive datetimes; we treat them as UTC.
+    Legacy imports and some driver paths can return naive datetimes; treat them as UTC.
     """
     if value.tzinfo is None:
         return value.replace(tzinfo=timezone.utc)
     return value.astimezone(timezone.utc)
-

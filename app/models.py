@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
+from typing import Literal
 from typing import List, Optional, Tuple
 
-from pydantic import BaseModel, Field, JsonValue, field_validator, model_validator
+from pydantic import BaseModel, JsonValue, field_validator, model_validator
 
 from app.domain import Disposition, SignalSeverity
 
@@ -19,6 +20,7 @@ class Role(str, Enum):
 
 
 class Permission(str, Enum):
+    READ = "read"
     INGEST_QC = "ingest_qc"
     EDIT_CONFIG = "edit_config"
     APPROVE = "approve"
@@ -60,6 +62,37 @@ class EntrySource(str, Enum):
     MANUAL = "manual"
 
 
+class QuarantineReason(str, Enum):
+    OUT_OF_BOUNDS = "out_of_bounds"
+    UNIT_MISMATCH = "unit_mismatch"
+    SUSPICIOUS_TIMESTAMP = "suspicious_timestamp"
+    MAPPING_FAILURE = "mapping_failure"
+
+
+class QuarantineStatus(str, Enum):
+    OPEN = "open"
+    REVIEWED = "reviewed"
+    REJECTED = "rejected"
+
+
+class QCBacklogSource(str, Enum):
+    SCHEDULED = "scheduled"
+    REQUESTED = "requested"
+
+
+class QCBacklogStatus(str, Enum):
+    OPEN = "open"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    CANCELED = "canceled"
+
+
+class QCBacklogPriority(str, Enum):
+    ROUTINE = "routine"
+    SOON = "soon"
+    URGENT = "urgent"
+
+
 class QCRecordIn(BaseModel):
     stream_id: str
     result_value: float
@@ -68,15 +101,16 @@ class QCRecordIn(BaseModel):
     qc_level: str
     instrument_id: str
     method_id: str
-    operator_id: Optional[str]
-    reagent_lot: Optional[str]
+    operator_id: Optional[str] = None
+    reagent_lot: Optional[str] = None
     control_material_lot: str
-    calibration_status: Optional[str]
-    run_id: Optional[str]
+    calibration_status: Optional[str] = None
+    run_id: Optional[str] = None
     units: str
     flags: Optional[List[str]] = None
     entry_source: EntrySource = EntrySource.AUTOMATED
-    comments: Optional[str]
+    comments: Optional[str] = None
+    qc_backlog_item_id: Optional[int] = None
 
     @field_validator("result_value")
     @classmethod
@@ -131,12 +165,66 @@ class QCRecordResolutionOut(BaseModel):
 class AuditEntryOut(BaseModel):
     timestamp: datetime
     actor: str
+    actor_role: Optional[Role] = None
+    api_key_id: Optional[int] = None
     action: str
     entity_type: str
     entity_id: Optional[str] = None
     before: Optional[dict[str, JsonValue]]
     after: dict[str, JsonValue]
     reason: Optional[str]
+
+
+class QuarantineFailureOut(BaseModel):
+    reason: QuarantineReason
+    detail: str
+    field: Optional[str] = None
+
+
+class QCRecordQuarantineOut(BaseModel):
+    id: int
+    status: QuarantineStatus
+    reason: QuarantineReason
+    reason_detail: str
+    stream_id: Optional[str] = None
+    payload: dict[str, JsonValue]
+    context: dict[str, JsonValue]
+    failures: List[QuarantineFailureOut]
+    actor: str
+    actor_role: Optional[Role] = None
+    api_key_id: Optional[int] = None
+    created_at: datetime
+    reviewed_at: Optional[datetime] = None
+    reviewed_by: Optional[str] = None
+    review_reason: Optional[str] = None
+    qc_record_id: Optional[int] = None
+    idempotency_key: Optional[str] = None
+
+
+class QuarantineReviewIn(BaseModel):
+    status: QuarantineStatus
+    review_reason: str
+
+    @field_validator("review_reason")
+    @classmethod
+    def review_reason_required(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("review_reason is required")
+        return stripped
+
+    @field_validator("status")
+    @classmethod
+    def status_must_be_review_decision(cls, value: QuarantineStatus) -> QuarantineStatus:
+        if value == QuarantineStatus.OPEN:
+            raise ValueError("status must be reviewed or rejected")
+        return value
+
+
+class CurrentUserOut(BaseModel):
+    role: Role
+    api_key_id: Optional[int]
+    permissions: List[Permission]
 
 
 class AlertOut(BaseModel):
@@ -169,6 +257,67 @@ class IngestionResult(BaseModel):
     alert_created: Optional[AlertOut]
     audit_entry: AuditEntryOut
     idempotency_key: Optional[str] = None
+
+
+class QuarantineResult(BaseModel):
+    status: Literal["quarantined"] = "quarantined"
+    quarantine: QCRecordQuarantineOut
+    audit_entry: AuditEntryOut
+    idempotency_key: Optional[str] = None
+
+
+class QCBacklogItemIn(BaseModel):
+    source: QCBacklogSource
+    stream_id: str
+    due_at: datetime
+    priority: QCBacklogPriority = QCBacklogPriority.ROUTINE
+    lab_bench: Optional[str] = None
+    assignment_group: Optional[str] = None
+    assigned_to: Optional[str] = None
+    reference_material_label: Optional[str] = None
+    notes: Optional[str] = None
+    requested_by: Optional[str] = None
+
+
+class QCBacklogItemUpdate(BaseModel):
+    status: Optional[QCBacklogStatus] = None
+    priority: Optional[QCBacklogPriority] = None
+    due_at: Optional[datetime] = None
+    lab_bench: Optional[str] = None
+    assignment_group: Optional[str] = None
+    assigned_to: Optional[str] = None
+    reference_material_label: Optional[str] = None
+    notes: Optional[str] = None
+    reason: Optional[str] = None
+
+
+class QCBacklogItemOut(BaseModel):
+    id: int
+    source: QCBacklogSource
+    status: QCBacklogStatus
+    priority: QCBacklogPriority
+    stream_id: str
+    analyte: str
+    method: str
+    instrument: str
+    site: Optional[str] = None
+    qc_level: str
+    units: str
+    reference_material_lot: str
+    reference_material_label: Optional[str] = None
+    due_at: datetime
+    lab_bench: Optional[str] = None
+    assignment_group: Optional[str] = None
+    assigned_to: Optional[str] = None
+    notes: Optional[str] = None
+    requested_by: Optional[str] = None
+    created_by: str
+    created_at: datetime
+    updated_at: datetime
+    completed_at: Optional[datetime] = None
+    completed_by: Optional[str] = None
+    completed_qc_record_id: Optional[int] = None
+    last_quarantine_id: Optional[int] = None
 
 
 class StreamConfigBase(BaseModel):
@@ -370,6 +519,7 @@ class AlertUpdate(BaseModel):
     acknowledged_by: Optional[str] = None
     assigned_to: Optional[str] = None
     due_at: Optional[datetime] = None
+    reason: Optional[str] = None
 
 
 class InvestigationBase(BaseModel):
@@ -384,6 +534,7 @@ class InvestigationBase(BaseModel):
 
 class InvestigationIn(InvestigationBase):
     status: Optional[InvestigationStatus] = None
+    reason: Optional[str] = None
 
 
 class InvestigationOut(InvestigationBase):
@@ -408,6 +559,7 @@ class CapaBase(BaseModel):
 
 class CapaIn(CapaBase):
     status: Optional[CapaStatus] = None
+    reason: Optional[str] = None
 
 
 class CapaOut(CapaBase):

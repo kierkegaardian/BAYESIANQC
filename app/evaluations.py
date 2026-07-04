@@ -10,7 +10,7 @@ from app.bayesian import update_posterior_and_infer_risk
 from app.db_models import PosteriorState, PriorConfig, QCRecord, StreamConfig
 from app.domain import Disposition, SignalSeverity
 from app.frequentist import evaluate_rules_for_values
-from app.models import BayesianRisk, FrequentistSignal
+from app.models import BayesianRisk
 from app.stats import sample_mean_sd
 from app.timeutils import as_utc
 
