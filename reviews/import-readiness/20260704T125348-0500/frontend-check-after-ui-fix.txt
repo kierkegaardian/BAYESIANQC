@@ -1,0 +1,21 @@
+
+> bayesianqc-ui@0.1.0 check
+> npm run typecheck && npm run build
+
+
+> bayesianqc-ui@0.1.0 typecheck
+> vue-tsc --noEmit
+
+
+> bayesianqc-ui@0.1.0 build
+> vite build
+
+vite v5.4.21 building for production...
+transforming...
+✓ 2055 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                     0.60 kB │ gzip:   0.38 kB
+dist/assets/index-h4dXTm7f.css    361.40 kB │ gzip:  49.92 kB
+dist/assets/index-DW1OlxRm.js   2,213.61 kB │ gzip: 716.85 kB
+✓ built in 12.21s

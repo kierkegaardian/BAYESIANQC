@@ -1,0 +1,10 @@
+AUTOMATED DISTILLATION REPORT
+Instrument: OptiDist-100
+Method: ASTM D86
+Operator: synthetic
+
+RESULT TABLE
+Test,Value,Timestamp,Level,Instrument,Method,Lot,Units
+D86 IBP,102.4,2026-07-04T10:00:00+00:00,Verification,OptiDist-100,ASTM D86,D86-CAL-01,degF
+D86 T50,482.6,2026-07-04T10:05:00+00:00,Verification,OptiDist-100,ASTM D86,D86-CAL-01,degF
+D86 T90,641.9,2026-07-04T10:10:00+00:00,Verification,OptiDist-100,ASTM D86,D86-CAL-01,degF

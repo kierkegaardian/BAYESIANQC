@@ -1,0 +1,5 @@
+Injection Type,Run ID,Acquired At,Analyte,Result,Level,Instrument,Method,Lot,Units,Sample Name
+CheckStandard,OL-SEQ-20260704-01,2026-07-04T09:10:00+00:00,HbA1c,5.21,Level 1,Architect,HPLC,LOT-001,%,QC L1 start
+Matrix,OL-SEQ-20260704-01,2026-07-04T09:12:00+00:00,HbA1c,6.48,Patient,Architect,HPLC,PATIENT,,Sample A synthetic
+SystemSuitability,OL-SEQ-20260704-01,2026-07-04T09:14:00+00:00,HbA1c,PASS,System,Architect,HPLC,LOT-001,%,System suitability synthetic
+CheckStandard,OL-SEQ-20260704-01,2026-07-04T09:20:00+00:00,HbA1c,5.18,Level 1,Architect,HPLC,LOT-001,%,QC L1 end

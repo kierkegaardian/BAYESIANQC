@@ -1,0 +1,7 @@
+
+> bayesianqc-ui@0.1.0 gen:api
+> ../.venv/bin/python ../scripts/generate_openapi_json.py --out ../openapi.json && openapi-typescript ../openapi.json -o src/api/schema.ts
+
+Wrote OpenAPI schema to ../openapi.json
+✨ openapi-typescript 7.10.1
+🚀 ../openapi.json → src/api/schema.ts [277.3ms]

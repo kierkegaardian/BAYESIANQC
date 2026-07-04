@@ -1,0 +1,14 @@
+usage: rehearse_sqlite_to_postgres.py [-h] [--sqlite-db SQLITE_DB]
+                                      [--postgres-url POSTGRES_URL]
+                                      [--copy-data] [--truncate-target]
+
+Rehearse BAYESIANQC Postgres upgrade and optional legacy import copy
+
+options:
+  -h, --help            show this help message and exit
+  --sqlite-db SQLITE_DB
+                        Legacy SQLite source DB path for count/copy rehearsal
+  --postgres-url POSTGRES_URL
+                        Target Postgres SQLAlchemy URL
+  --copy-data           Copy source SQLite rows into the Postgres target
+  --truncate-target     Delete target rows before copying

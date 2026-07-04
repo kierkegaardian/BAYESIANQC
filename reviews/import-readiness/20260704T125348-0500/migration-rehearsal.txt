@@ -1,0 +1,291 @@
+{
+  "postgres_rehearsal": {
+    "copy_status": "not_requested",
+    "posterior_checks": {
+      "mismatches": [],
+      "ok": true,
+      "posterior_state_rows": 118,
+      "streams_checked": 118,
+      "tolerance": 1e-09
+    },
+    "schema": {
+      "accessgrant_api_key_active": [
+        "api_key_id",
+        "active"
+      ],
+      "accessgrant_site_bench": [
+        "site",
+        "lab_bench"
+      ],
+      "alembic_version": "20260704_0006",
+      "alertrecord_stream_created": [
+        "stream_id",
+        "created_at"
+      ],
+      "ingestionreceipt_key_unique": true,
+      "ingestionreceipt_scope_columns": true,
+      "instrument_lab_bench": true,
+      "kioskpanel_kiosk_order": [
+        "kiosk_id",
+        "display_order"
+      ],
+      "posteriorstate_stream_unique": true,
+      "qccomment_target_created": [
+        "target_type",
+        "target_id",
+        "created_at"
+      ],
+      "qcrecord_stream_timestamp": [
+        "stream_id",
+        "timestamp"
+      ],
+      "streamconfig_control_material_id": true,
+      "streamconfig_lab_bench": true
+    },
+    "sequence_checks": {
+      "mismatches": [],
+      "status": "ok",
+      "tables": {
+        "accessgrant": {
+          "actual_next": 1,
+          "expected_next": 1,
+          "is_called": false,
+          "last_value": 1,
+          "max_id": 0,
+          "ok": true
+        },
+        "alertrecord": {
+          "actual_next": 996,
+          "expected_next": 996,
+          "is_called": true,
+          "last_value": 995,
+          "max_id": 995,
+          "ok": true
+        },
+        "analyte": {
+          "actual_next": 116,
+          "expected_next": 116,
+          "is_called": true,
+          "last_value": 115,
+          "max_id": 115,
+          "ok": true
+        },
+        "apikey": {
+          "actual_next": 2,
+          "expected_next": 2,
+          "is_called": true,
+          "last_value": 1,
+          "max_id": 1,
+          "ok": true
+        },
+        "auditentry": {
+          "actual_next": 6443,
+          "expected_next": 6443,
+          "is_called": true,
+          "last_value": 6442,
+          "max_id": 6442,
+          "ok": true
+        },
+        "capa": {
+          "actual_next": 1,
+          "expected_next": 1,
+          "is_called": false,
+          "last_value": 1,
+          "max_id": 0,
+          "ok": true
+        },
+        "capalink": {
+          "actual_next": 1,
+          "expected_next": 1,
+          "is_called": false,
+          "last_value": 1,
+          "max_id": 0,
+          "ok": true
+        },
+        "controlmaterial": {
+          "actual_next": 1,
+          "expected_next": 1,
+          "is_called": false,
+          "last_value": 1,
+          "max_id": 0,
+          "ok": true
+        },
+        "ingestionreceipt": {
+          "actual_next": 5198,
+          "expected_next": 5198,
+          "is_called": true,
+          "last_value": 5197,
+          "max_id": 5197,
+          "ok": true
+        },
+        "instrument": {
+          "actual_next": 40,
+          "expected_next": 40,
+          "is_called": true,
+          "last_value": 39,
+          "max_id": 39,
+          "ok": true
+        },
+        "investigation": {
+          "actual_next": 1,
+          "expected_next": 1,
+          "is_called": false,
+          "last_value": 1,
+          "max_id": 0,
+          "ok": true
+        },
+        "investigationalertlink": {
+          "actual_next": 1,
+          "expected_next": 1,
+          "is_called": false,
+          "last_value": 1,
+          "max_id": 0,
+          "ok": true
+        },
+        "kiosklayout": {
+          "actual_next": 1,
+          "expected_next": 1,
+          "is_called": false,
+          "last_value": 1,
+          "max_id": 0,
+          "ok": true
+        },
+        "kioskpanel": {
+          "actual_next": 1,
+          "expected_next": 1,
+          "is_called": false,
+          "last_value": 1,
+          "max_id": 0,
+          "ok": true
+        },
+        "method": {
+          "actual_next": 40,
+          "expected_next": 40,
+          "is_called": true,
+          "last_value": 39,
+          "max_id": 39,
+          "ok": true
+        },
+        "posteriorstate": {
+          "actual_next": 219,
+          "expected_next": 219,
+          "is_called": true,
+          "last_value": 218,
+          "max_id": 218,
+          "ok": true
+        },
+        "priorconfig": {
+          "actual_next": 219,
+          "expected_next": 219,
+          "is_called": true,
+          "last_value": 218,
+          "max_id": 218,
+          "ok": true
+        },
+        "qcbacklogitem": {
+          "actual_next": 34,
+          "expected_next": 34,
+          "is_called": true,
+          "last_value": 33,
+          "max_id": 33,
+          "ok": true
+        },
+        "qccomment": {
+          "actual_next": 1,
+          "expected_next": 1,
+          "is_called": false,
+          "last_value": 1,
+          "max_id": 0,
+          "ok": true
+        },
+        "qcevent": {
+          "actual_next": 637,
+          "expected_next": 637,
+          "is_called": true,
+          "last_value": 636,
+          "max_id": 636,
+          "ok": true
+        },
+        "qcrecord": {
+          "actual_next": 5166,
+          "expected_next": 5166,
+          "is_called": true,
+          "last_value": 5165,
+          "max_id": 5165,
+          "ok": true
+        },
+        "qcrecordquarantine": {
+          "actual_next": 36,
+          "expected_next": 36,
+          "is_called": true,
+          "last_value": 35,
+          "max_id": 35,
+          "ok": true
+        },
+        "streamconfig": {
+          "actual_next": 119,
+          "expected_next": 119,
+          "is_called": true,
+          "last_value": 118,
+          "max_id": 118,
+          "ok": true
+        }
+      }
+    },
+    "target_counts": {
+      "accessgrant": 0,
+      "alertrecord": 517,
+      "analyte": 115,
+      "apikey": 1,
+      "auditentry": 6442,
+      "capa": 0,
+      "capalink": 0,
+      "controlmaterial": 0,
+      "ingestionreceipt": 2673,
+      "instrument": 39,
+      "investigation": 0,
+      "investigationalertlink": 0,
+      "kiosklayout": 0,
+      "kioskpanel": 0,
+      "method": 39,
+      "posteriorstate": 118,
+      "priorconfig": 118,
+      "qcbacklogitem": 17,
+      "qccomment": 0,
+      "qcevent": 336,
+      "qcrecord": 2658,
+      "qcrecordquarantine": 18,
+      "streamconfig": 118
+    }
+  },
+  "revision_head": "20260704_0006",
+  "sqlite_source": {
+    "counts": {
+      "accessgrant": -1,
+      "alertrecord": 0,
+      "analyte": 1,
+      "apikey": 1,
+      "auditentry": 0,
+      "capa": 0,
+      "capalink": 0,
+      "controlmaterial": -1,
+      "ingestionreceipt": 0,
+      "instrument": 1,
+      "investigation": 0,
+      "investigationalertlink": 0,
+      "kiosklayout": -1,
+      "kioskpanel": -1,
+      "method": 1,
+      "posteriorstate": 0,
+      "priorconfig": 1,
+      "qcbacklogitem": 0,
+      "qccomment": -1,
+      "qcevent": 0,
+      "qcrecord": 0,
+      "qcrecordquarantine": 0,
+      "streamconfig": 1
+    },
+    "exists": true,
+    "path": "bayesianqc.db"
+  }
+}

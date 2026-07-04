@@ -1,5 +1,5 @@
 <template>
-  <el-container style="height: 100%">
+  <el-container class="app-shell">
     <el-aside width="240px" class="sidebar">
       <div class="brand">
         <div class="brand-title">BayesianQC</div>
@@ -46,7 +46,7 @@
         </el-sub-menu>
       </el-menu>
     </el-aside>
-    <el-container>
+    <el-container class="content-shell">
       <el-header class="header">
         <div>
           <div class="header-title">{{ routeTitle }}</div>
@@ -106,6 +106,15 @@ onMounted(() => {
   padding: 16px 0;
 }
 
+.app-shell {
+  height: 100%;
+  min-width: 0;
+}
+
+.content-shell {
+  min-width: 0;
+}
+
 .brand {
   padding: 0 20px 20px 20px;
 }
@@ -153,5 +162,35 @@ onMounted(() => {
 .el-main {
   min-width: 0;
   overflow: auto;
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    flex-direction: column;
+    height: auto;
+    min-height: 100%;
+  }
+
+  .sidebar {
+    padding: 12px 0;
+    width: 100% !important;
+  }
+
+  .brand {
+    padding: 0 16px 12px;
+  }
+
+  .header {
+    align-items: stretch;
+    padding: 12px 16px;
+  }
+
+  .header-actions {
+    align-self: flex-start;
+  }
+
+  .el-main {
+    padding: 12px;
+  }
 }
 </style>

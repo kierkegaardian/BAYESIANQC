@@ -1,0 +1,3 @@
+Backend started (PID 1440421).
+Frontend started (PID 1440423).
+Open http://localhost:5177 (or your LAN IP) for the UI.

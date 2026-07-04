@@ -1,0 +1,72 @@
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>BayesianQC API</title>
+  </head>
+  <body style="font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Arial, sans-serif; padding: 24px;">
+    <h1>BayesianQC API</h1>
+    <p>Prototype QC ingestion + decisioning API with persistent storage.</p>
+    <ul>
+      <li><a href="/docs">Swagger UI</a> for interactive requests</li>
+      <li><a href="/redoc">ReDoc</a> for reference docs</li>
+      <li><a href="/openapi.json">OpenAPI JSON</a></li>
+    </ul>
+    <p>All API calls require <code>X-API-Key</code>. Local demos can seed <code>local-dev-key</code>.</p>
+
+<style>
+  #bayesianqc-help-button {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 9999;
+    padding: 10px 14px;
+    border-radius: 999px;
+    border: 1px solid #1f2937;
+    background: #111827;
+    color: #f9fafb;
+    font: 600 14px/1.2 ui-sans-serif, system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+    cursor: pointer;
+  }
+  #bayesianqc-help-panel {
+    position: fixed;
+    right: 16px;
+    bottom: 64px;
+    z-index: 9999;
+    max-width: 360px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid #1f2937;
+    background: #f9fafb;
+    color: #111827;
+    font: 14px/1.4 ui-sans-serif, system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    display: none;
+  }
+  #bayesianqc-help-panel h3 {
+    margin: 0 0 6px 0;
+    font-size: 15px;
+  }
+  #bayesianqc-help-panel p {
+    margin: 0;
+  }
+</style>
+<button id="bayesianqc-help-button" type="button">Help</button>
+<div id="bayesianqc-help-panel" role="dialog" aria-live="polite">
+  <h3>What this page does</h3>
+  <p>This is the BayesianQC API landing page. Use the links below to open the interactive docs and remember to send an X-API-Key header. Local demos can seed local-dev-key when calling endpoints.</p>
+</div>
+<script>
+  (function() {
+    var button = document.getElementById('bayesianqc-help-button');
+    var panel = document.getElementById('bayesianqc-help-panel');
+    if (!button || !panel) return;
+    button.addEventListener('click', function() {
+      panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    });
+  })();
+</script>
+
+</body>
+</html>

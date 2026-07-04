@@ -1,0 +1,2 @@
+NAME                    IMAGE                COMMAND                  SERVICE    CREATED        STATUS                  PORTS
+bayesianqc-postgres-1   postgres:16-alpine   "docker-entrypoint.s…"   postgres   24 hours ago   Up 18 hours (healthy)   0.0.0.0:54329->5432/tcp, [::]:54329->5432/tcp

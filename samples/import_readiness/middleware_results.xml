@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Batch source="synthetic-middleware">
+  <Result>
+    <timestamp>2026-07-04T11:00:00+00:00</timestamp>
+    <result_value>5.19</result_value>
+    <analyte>HbA1c</analyte>
+    <qc_level>Level 1</qc_level>
+    <instrument_id>Architect</instrument_id>
+    <method_id>HPLC</method_id>
+    <control_material_lot>LOT-001</control_material_lot>
+    <units>%</units>
+    <run_id>MW-20260704-01</run_id>
+  </Result>
+</Batch>

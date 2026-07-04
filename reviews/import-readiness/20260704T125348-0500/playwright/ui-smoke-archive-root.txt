@@ -1,0 +1,53 @@
+{
+  "profileVisible": true,
+  "readyVisible": true,
+  "appliedVisible": true,
+  "peakVisible": true,
+  "failedVisible": true,
+  "overflow": [
+    {
+      "page": "imports",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "bodyScrollWidth": 1440,
+      "overflow": false
+    },
+    {
+      "page": "profiles",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "bodyScrollWidth": 1440,
+      "overflow": false
+    },
+    {
+      "page": "imports",
+      "width": 1100,
+      "scrollWidth": 1100,
+      "bodyScrollWidth": 1100,
+      "overflow": false
+    },
+    {
+      "page": "profiles",
+      "width": 1100,
+      "scrollWidth": 1100,
+      "bodyScrollWidth": 1100,
+      "overflow": false
+    },
+    {
+      "page": "imports",
+      "width": 390,
+      "scrollWidth": 422,
+      "bodyScrollWidth": 422,
+      "overflow": true
+    },
+    {
+      "page": "profiles",
+      "width": 390,
+      "scrollWidth": 422,
+      "bodyScrollWidth": 422,
+      "overflow": true
+    }
+  ],
+  "pageErrors": [],
+  "severeConsoleCount": 1
+}

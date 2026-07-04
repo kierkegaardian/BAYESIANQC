@@ -1,0 +1,3 @@
+Analyte	Peak	RT	Area	Height
+Toluene	Toluene	2.14	118233	5312
+Hexadecane	Hexadecane	7.82	98331	4110

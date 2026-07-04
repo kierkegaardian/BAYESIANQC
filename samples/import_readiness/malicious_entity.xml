@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Batch [
+  <!ENTITY xxe SYSTEM "file:///etc/passwd">
+]>
+<Batch>
+  <Result>
+    <timestamp>2026-07-04T11:15:00+00:00</timestamp>
+    <result_value>&xxe;</result_value>
+    <analyte>HbA1c</analyte>
+    <qc_level>Level 1</qc_level>
+    <instrument_id>Architect</instrument_id>
+    <method_id>HPLC</method_id>
+    <control_material_lot>LOT-001</control_material_lot>
+    <units>%</units>
+  </Result>
+</Batch>

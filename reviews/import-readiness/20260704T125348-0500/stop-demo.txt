@@ -1,0 +1,2 @@
+Stopped process 1282164.
+Stopped process 1282162.

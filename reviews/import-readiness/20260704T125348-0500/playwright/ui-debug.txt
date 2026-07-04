@@ -1,0 +1,104 @@
+after login url http://127.0.0.1:5177/
+after login text BayesianQC
+Quality Control Console
+Dashboard
+QC Backlog
+Ingest QC
+Quarantine
+Imports
+Alerts
+Audit
+Investigations
+CAPAs
+Events
+Charts
+Kiosks
+Configuration
+Dashboard
+API: http://127.0.0.1:8010
+Role: admin · Key #1
+Log out
+Operational Summary
+Live counts from the QC workflow.
+Refresh
+Alerts
+
+Total: 517
+
+Open: 517
+
+Acknowledged: 0
+
+Investigations
+
+Total: 0
+
+Open: 0
+
+CAPAs
+
+Total: 0
+
+Open: 0
+
+?
+
+Connected to API
+profiles url http://127.0.0.1:5177/config/import-profiles
+profiles text BayesianQC
+Quality Control Console
+Dashboard
+QC Backlog
+Ingest QC
+Quarantine
+Imports
+Alerts
+Audit
+Investigations
+CAPAs
+Events
+Charts
+Kiosks
+Configuration
+Add Datastream
+Parser Profiles
+Instruments
+Methods
+Analytes
+Streams
+Parser Profiles
+API: http://127.0.0.1:8010
+Role: admin · Key #1
+Log out
+Parser Profiles
+Versioned parser configuration for instrument result and artifact files.
+Active
+Refresh
+New Profile
+Name
+Type
+delimited_direct
+Status
+draft
+Source ID
+Instrument
+Signature
+File Extensions
+Filename Patterns
+Config JSON
+Clear
+Create Profile
+Profile
+
+Status
+
+Source
+
+Instrument
+
+Files
+
+Actions
+No Data
+?
+form items 9
