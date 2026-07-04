@@ -236,9 +236,94 @@ Visualize credible intervals for the posterior mean and predictive intervals for
 
 Ingest proficiency-testing events, z-scores, assigned values, uncertainty, and bias evidence. Link method uncertainty budgets to stream configuration and Bayesian priors.
 
+Feature scope:
+- Treat proficiency testing and interlaboratory crosscheck data as a separate evidence workflow from routine QC charting.
+- Store round/program metadata, provider, sample identifiers, assigned or accepted reference value, uncertainty, peer-group context, and received/reported timestamps.
+- Compute and preserve z-score or equivalent performance metrics when the lab SOP defines the formula and acceptance criteria.
+- Link PT/ILCP failures to alerts, investigations, CAPA, affected-method review, and auditor export packets.
+- Do not treat PT/ILCP samples as ordinary posterior-updating QC points unless a lab-owned policy explicitly says to do so.
+
 ### F2.8 CAPA Effectiveness Automation
 
 Let CAPAs define statistical effectiveness criteria and have the system propose pass/fail when post-CAPA data meets or misses the criteria.
+
+## Execution Planning TODO: Advanced SQC Waves
+
+Use these roadmap handles when generating execution plans in future chats. Each wave should produce its own plan before implementation; avoid bundling all advanced statistics into one slice.
+
+Before any implementation wave, create a fit-for-purpose research note for the target method. The note should compare qcc-style feature coverage, open statistical references, lab SOP needs, and BAYESIANQC workflow constraints. Use qcc as a feature taxonomy and behavior reference only; do not copy, port, or translate GPL-licensed code into this project.
+
+### qcc-Informed Gap Research Backlog
+
+TODO: Determine which qcc-supported SPC features are worth implementing in BAYESIANQC, and in what form, before treating them as product commitments.
+
+Research needed:
+- Full Shewhart family fit: decide which of `xbar`, `R`, `S`, one-at-time, `p`, `np`, `c`, `u`, and `g` charts map to likely lab workflows.
+- One-at-time / I-MR fit: determine whether moving-range sigma estimation should become the default for individual analytical-result streams or remain an optional baseline method.
+- Attribute and count workflows: define the data model for defect, nonconforming-unit, nonconformity, and non-event counts before implementing `p`, `np`, `c`, `u`, or `g` charts.
+- Phase I / Phase II semantics: decide how baseline/training data, monitoring data, exclusions, and new data should be represented in a validated lab workflow.
+- Rule-set alignment: compare current Westgard-style rules with Western Electric-style rule variants and decide which built-in schemes and severity defaults should be offered.
+- EWMA / CUSUM fit: determine parameters, warm-up, reset, and disposition semantics that make sense for lab QC rather than generic manufacturing SPC.
+- OC curves, ARL, and process capability: decide whether these are analyst planning tools, validation-pack outputs, or routine dashboard features.
+- Multivariate SPC: identify real use cases before adding Hotelling T2-style charts, covariance modeling, or ellipse views.
+- Pareto and cause-effect tools: decide whether these belong in investigation/CAPA analytics rather than the core QC chart module.
+- Overdispersion checks: determine whether binomial/Poisson diagnostics are needed for attribute/count QC streams.
+- Extension model: decide whether BAYESIANQC should expose custom chart/rule plugins or keep methods as reviewed, versioned first-party modules.
+
+### W1 SQC Configuration Foundation
+
+TODO: Build the versioned configuration layer that later chart families can share.
+
+Plan must cover:
+- Versioned chart family, rule set, baseline method, control-limit source, severity policy, affected-interval policy, and SOP reference.
+- Effective-date behavior, retroactive reprocessing rules, and audit rationale.
+- Fixtures that prove historical reconstruction uses the then-effective config.
+
+### W2 Routine Shewhart Expansion
+
+TODO: Expand beyond the current individual Levey-Jennings/Shewhart chart without overfitting to demo data.
+
+Plan must cover:
+- I-MR first for individual analytical results, including moving range calculation and optional MR chart view.
+- X-bar/R/S only after subgroup data has a real data model and import path.
+- Attribute charts (`p`, `np`, `c`, `u`) only when a defect/count workflow exists.
+- Process capability only after baseline selection, distribution assumptions, and spec limits are explicit.
+
+### W3 EWMA and CUSUM
+
+TODO: Implement EWMA and CUSUM as configurable small-shift detectors.
+
+Plan must cover:
+- EWMA lambda, warm-up behavior, dynamic limits, reset policy, and chart overlay.
+- CUSUM target, reference value, decision interval, one-sided/two-sided handling, reset policy, and chart overlay.
+- Signal generation, disposition integration, audit evidence, and validation fixtures.
+
+### W4 D6299-Style Precision and Bias Support
+
+TODO: Add standards-aware evidence support for precision, bias, and site-performance workflows without embedding licensed standards text.
+
+Plan must cover:
+- Lab-owned SOP binding for precision/bias checks, accepted reference values, site precision, and bias acceptance criteria.
+- Robust baseline and outlier handling, uncertainty inputs, and reportable evidence packets.
+- Clear separation between "supports following D6299-style workflows" and "certifies compliance."
+
+### W5 PT / ILCP Module
+
+TODO: Build a dedicated proficiency-testing and interlaboratory crosscheck workflow.
+
+Plan must cover:
+- PT/ILCP round metadata, assigned or accepted values, uncertainty, peer-group summaries, z-scores or local performance metrics, and report packets.
+- Links to alerts, investigations, CAPA, method review, and affected-result evaluation.
+- Guardrails that keep PT/ILCP evidence distinct from routine QC posterior updates unless policy-approved.
+
+### W6 Validation and Export Layer
+
+TODO: Make advanced SQC outputs defensible for audit and future standards mapping.
+
+Plan must cover:
+- Backtesting with known fixtures for each chart/rule family.
+- Reproducible export packets for chart state, rule firings, Bayesian risk, PT/ILCP evidence, investigations, and CAPA links.
+- A release-note gap statement that says which methods are supported, partially supported, or not supported.
 
 ## Phase 3: Operational and Enterprise Readiness
 
