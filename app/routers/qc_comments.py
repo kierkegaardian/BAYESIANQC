@@ -25,9 +25,9 @@ def list_qc_comments(
     user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ) -> list[QCCommentOut]:
-    del user
     return list_comments(
         session,
+        user=user,
         target_type=target_type,
         target_id=target_id,
         stream_id=stream_id,

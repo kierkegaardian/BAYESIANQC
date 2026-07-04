@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Literal
 from typing import List, Optional, Tuple
 
-from pydantic import BaseModel, JsonValue, field_validator, model_validator
+from pydantic import BaseModel, Field, JsonValue, field_validator, model_validator
 
 from app.domain import Disposition, SignalSeverity
 
@@ -229,10 +229,20 @@ class QuarantineReviewIn(BaseModel):
         return value
 
 
+class EffectiveScopeOut(BaseModel):
+    unrestricted: bool
+    enforced: bool
+    sites: List[str] = Field(default_factory=list)
+    lab_benches: List[str] = Field(default_factory=list)
+    stream_ids: List[str] = Field(default_factory=list)
+    assignment_groups: List[str] = Field(default_factory=list)
+
+
 class CurrentUserOut(BaseModel):
     role: Role
     api_key_id: Optional[int]
     permissions: List[Permission]
+    effective_scope: EffectiveScopeOut
 
 
 class AlertOut(BaseModel):

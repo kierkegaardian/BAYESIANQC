@@ -8,6 +8,7 @@ from sqlmodel import Session, col, select
 from app.db_models import AlertRecord, QCComment, QCRecord
 from app.models import QCCommentIn, QCCommentOut, QCCommentTargetType
 from app.rbac import UserContext
+from app.services.access_scopes import require_alert_access, require_comment_target_access, require_record_access, stream_is_accessible
 from app.storage import record_audit
 
 
@@ -81,6 +82,8 @@ def _target_run_context(session: Session, target_id: str, stream_id: Optional[st
     if not records:
         raise HTTPException(status_code=404, detail="QC run target not found")
     stream_ids = {record.stream_id for record in records}
+    if stream_id is not None and stream_id not in stream_ids:
+        raise HTTPException(status_code=404, detail="QC run target not found")
     return {
         "stream_id": stream_id or (next(iter(stream_ids)) if len(stream_ids) == 1 else None),
         "qc_record_id": records[0].id if len(records) == 1 else None,
@@ -99,6 +102,7 @@ def _target_context(session: Session, payload: QCCommentIn) -> TargetContext:
 
 def create_comment(session: Session, payload: QCCommentIn, user: UserContext) -> QCCommentOut:
     context = _target_context(session, payload)
+    require_comment_target_access(session, user, stream_id=context["stream_id"], hide=True)
     comment = QCComment(
         target_type=payload.target_type,
         target_id=payload.target_id,
@@ -135,6 +139,7 @@ def create_comment(session: Session, payload: QCCommentIn, user: UserContext) ->
 def list_comments(
     session: Session,
     *,
+    user: UserContext,
     target_type: Optional[QCCommentTargetType] = None,
     target_id: Optional[str] = None,
     stream_id: Optional[str] = None,
@@ -143,6 +148,14 @@ def list_comments(
     run_id: Optional[str] = None,
     limit: int = 200,
 ) -> list[QCCommentOut]:
+    if target_type is not None and target_id is not None:
+        require_comment_target_access(session, user, stream_id=_target_context(session, QCCommentIn(target_type=target_type, target_id=target_id, body="scope-check", stream_id=stream_id))["stream_id"])
+    if qc_record_id is not None:
+        require_record_access(session, user, qc_record_id)
+    if alert_id is not None:
+        require_alert_access(session, user, alert_id)
+    if stream_id is not None:
+        require_comment_target_access(session, user, stream_id=stream_id)
     query = select(QCComment)
     if target_type is not None:
         query = query.where(QCComment.target_type == target_type)
@@ -156,5 +169,9 @@ def list_comments(
         query = query.where(QCComment.alert_id == alert_id)
     if run_id is not None:
         query = query.where(QCComment.run_id == run_id)
-    rows = session.exec(query.order_by(col(QCComment.created_at).asc(), col(QCComment.id).asc()).limit(limit)).all()
+    rows = [
+        row
+        for row in session.exec(query.order_by(col(QCComment.created_at).asc(), col(QCComment.id).asc()).limit(limit)).all()
+        if stream_is_accessible(session, user, row.stream_id)
+    ]
     return [comment_out(row) for row in rows]

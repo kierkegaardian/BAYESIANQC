@@ -81,7 +81,7 @@ def upload_import(
         auto_apply=auto_apply,
         user=user,
     )
-    return ImportCreateOut(batch=batch_detail(session, batch), collector_action=batch.collector_action)
+    return ImportCreateOut(batch=batch_detail(session, batch, user), collector_action=batch.collector_action)
 
 
 @router.get("/qc/imports", response_model=list[ImportBatchOut])
@@ -91,8 +91,7 @@ def list_import_batches(
     user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ) -> list[ImportBatchOut]:
-    del user
-    return list_batches(session, status, limit)
+    return list_batches(session, status, limit, user)
 
 
 @router.get("/qc/imports/{batch_id}", response_model=ImportBatchDetailOut)
@@ -101,8 +100,7 @@ def get_import_batch(
     user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ) -> ImportBatchDetailOut:
-    del user
-    return batch_detail(session, get_batch(session, batch_id))
+    return batch_detail(session, get_batch(session, batch_id), user)
 
 
 @router.post("/qc/imports/{batch_id}/apply", response_model=ImportBatchDetailOut)
@@ -112,7 +110,7 @@ def apply_import_batch(
     session: Session = Depends(get_session),
 ) -> ImportBatchDetailOut:
     batch = apply_ready_rows(session, get_batch(session, batch_id), user)
-    return batch_detail(session, batch)
+    return batch_detail(session, batch, user)
 
 
 @router.patch("/qc/imports/rows/{row_id}", response_model=ImportRowOut)

@@ -228,6 +228,14 @@ def quarantine_ingestion(
         audit_entry=audit_out(audit_entry),
         idempotency_key=idempotency_key,
     )
-    store_receipt(session, idempotency_key, result.model_dump(mode="json"), None, commit=False)
+    store_receipt(
+        session,
+        idempotency_key,
+        result.model_dump(mode="json"),
+        None,
+        payload.stream_id,
+        user.api_key_id,
+        commit=False,
+    )
     session.commit()
     return result

@@ -300,6 +300,8 @@ def schema_checks(engine: Engine) -> dict[str, Any]:
     qcrecord_indexes = {index["name"]: index.get("column_names") for index in inspector.get_indexes("qcrecord")}
     posterior_indexes = {index["name"]: bool(index.get("unique")) for index in inspector.get_indexes("posteriorstate")}
     receipt_indexes = {index["name"]: bool(index.get("unique")) for index in inspector.get_indexes("ingestionreceipt")}
+    receipt_columns = {column["name"] for column in inspector.get_columns("ingestionreceipt")}
+    access_indexes = {index["name"]: index.get("column_names") for index in inspector.get_indexes("accessgrant")}
     alert_indexes = {index["name"]: index.get("column_names") for index in inspector.get_indexes("alertrecord")}
     comment_indexes = {index["name"]: index.get("column_names") for index in inspector.get_indexes("qccomment")}
     kiosk_indexes = {index["name"]: index.get("column_names") for index in inspector.get_indexes("kioskpanel")}
@@ -312,6 +314,9 @@ def schema_checks(engine: Engine) -> dict[str, Any]:
         "qcrecord_stream_timestamp": qcrecord_indexes.get("ix_qcrecord_stream_timestamp"),
         "posteriorstate_stream_unique": posterior_indexes.get("ix_posteriorstate_stream_id"),
         "ingestionreceipt_key_unique": receipt_indexes.get("ix_ingestionreceipt_idempotency_key"),
+        "ingestionreceipt_scope_columns": {"stream_id", "api_key_id"} <= receipt_columns,
+        "accessgrant_api_key_active": access_indexes.get("ix_accessgrant_api_key_active"),
+        "accessgrant_site_bench": access_indexes.get("ix_accessgrant_site_bench"),
         "alertrecord_stream_created": alert_indexes.get("ix_alertrecord_stream_created"),
         "qccomment_target_created": comment_indexes.get("ix_qccomment_target_created"),
         "instrument_lab_bench": "lab_bench" in instrument_columns,

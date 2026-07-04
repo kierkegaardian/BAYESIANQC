@@ -97,6 +97,16 @@ from app.routers.stream_setups import router as stream_setups_router
 from app.services.ingestion import audit_out as _audit_out
 from app.services.ingestion import alert_out as _alert_out
 from app.services.ingestion import process_ingestion
+from app.services.access_scopes import (
+    effective_scope,
+    require_alert_access,
+    require_record_access,
+    require_stream_access,
+    require_stream_context_access,
+    scope_summary_for_me,
+    stream_is_accessible,
+    stream_scope_predicate,
+)
 from app.services.locks import stream_write_lock
 from app.services.quarantine import quarantine_out
 from app.storage import (
@@ -284,8 +294,14 @@ async def custom_redoc():
 @app.get("/me", response_model=CurrentUserOut)
 def current_user(
     user: UserContext = Depends(require_permission(Permission.READ)),
+    session: Session = Depends(get_session),
 ) -> CurrentUserOut:
-    return CurrentUserOut(role=user.role, api_key_id=user.api_key_id, permissions=ROLE_PERMISSIONS.get(user.role, []))
+    return CurrentUserOut(
+        role=user.role,
+        api_key_id=user.api_key_id,
+        permissions=ROLE_PERMISSIONS.get(user.role, []),
+        effective_scope=scope_summary_for_me(session, user),
+    )
 
 
 def parse_csv_row(row: dict[str, str | None]) -> QCRecordIn:
@@ -471,7 +487,8 @@ def list_qc_quarantine(
         .order_by(col(QCRecordQuarantine.created_at).desc())
         .limit(limit)
     )
-    return [quarantine_out(row) for row in session.exec(query).all()]
+    rows = [row for row in session.exec(query).all() if stream_is_accessible(session, user, row.stream_id)]
+    return [quarantine_out(row) for row in rows]
 
 
 @app.patch("/qc/quarantine/{quarantine_id}", response_model=QCRecordQuarantineOut)
@@ -484,6 +501,7 @@ def review_qc_quarantine(
     row = session.exec(select(QCRecordQuarantine).where(QCRecordQuarantine.id == quarantine_id)).first()
     if not row:
         raise HTTPException(status_code=404, detail="Quarantine record not found")
+    require_stream_access(session, user, row.stream_id)
     before = row.model_dump(mode="json")
     row.status = payload.status
     row.reviewed_at = datetime.now(timezone.utc)
@@ -560,9 +578,7 @@ def resolve_qc_record(
     user: UserContext = Depends(require_permission(Permission.APPROVE)),
     session: Session = Depends(get_session),
 ):
-    record = session.exec(select(QCRecord).where(QCRecord.id == record_id)).first()
-    if not record:
-        raise HTTPException(status_code=404, detail="QC record not found")
+    record = require_record_access(session, user, record_id)
     with stream_write_lock(session, record.stream_id):
         try:
             session.refresh(record)
@@ -827,7 +843,8 @@ def list_streams(
     user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ):
-    query = select(StreamConfig)
+    scope = effective_scope(session, user)
+    query = select(StreamConfig).where(stream_scope_predicate(scope))
     if site:
         query = query.where(StreamConfig.site == site)
     if lab_bench:
@@ -852,6 +869,7 @@ def list_stream_versions(
     user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ):
+    require_stream_access(session, user, stream_id)
     return [_stream_out(cfg) for cfg in list_stream_configs(session, stream_id)]
 
 
@@ -861,6 +879,13 @@ def create_stream(
     user: UserContext = Depends(require_permission(Permission.EDIT_CONFIG)),
     session: Session = Depends(get_session),
 ):
+    require_stream_context_access(
+        session,
+        user,
+        stream_id=payload.stream_id,
+        site=payload.site,
+        lab_bench=payload.lab_bench,
+    )
     with stream_write_lock(session, payload.stream_id):
         try:
             config = create_stream_config(session, payload, user.actor, commit=False)
@@ -893,7 +918,15 @@ def create_stream_version(
     user: UserContext = Depends(require_permission(Permission.EDIT_CONFIG)),
     session: Session = Depends(get_session),
 ):
+    require_stream_access(session, user, stream_id, hide=False)
     payload = payload.model_copy(update={"stream_id": stream_id})
+    require_stream_context_access(
+        session,
+        user,
+        stream_id=payload.stream_id,
+        site=payload.site,
+        lab_bench=payload.lab_bench,
+    )
     with stream_write_lock(session, stream_id):
         try:
             config = create_stream_config(session, payload, user.actor, commit=False)
@@ -934,6 +967,7 @@ def create_prior(
     user: UserContext = Depends(require_permission(Permission.EDIT_CONFIG)),
     session: Session = Depends(get_session),
 ):
+    require_stream_access(session, user, stream_id, hide=False)
     payload = payload.model_copy(update={"stream_id": stream_id})
     with stream_write_lock(session, stream_id):
         try:
@@ -974,6 +1008,7 @@ def list_priors(
     user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ):
+    require_stream_access(session, user, stream_id)
     priors = session.exec(
         select(PriorConfig)
         .where(PriorConfig.stream_id == stream_id)
@@ -988,6 +1023,8 @@ def ingest_event(
     user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
     session: Session = Depends(get_session),
 ):
+    if payload.stream_id is not None:
+        require_stream_access(session, user, payload.stream_id, hide=False)
     event = create_event(
         session,
         QCEvent(
@@ -1024,10 +1061,11 @@ def list_events(
 ):
     query = select(QCEvent).order_by(col(QCEvent.timestamp).desc())
     if stream_id:
+        require_stream_access(session, user, stream_id)
         query = query.where(QCEvent.stream_id == stream_id)
     if event_type:
         query = query.where(QCEvent.event_type == event_type)
-    events = session.exec(query.limit(limit)).all()
+    events = [event for event in session.exec(query.limit(limit)).all() if stream_is_accessible(session, user, event.stream_id)]
     return [_event_out(event) for event in events]
 
 
@@ -1041,7 +1079,11 @@ def list_alerts(
         .join(QCRecord, col(QCRecord.id) == col(AlertRecord.qc_record_id), isouter=True)
         .order_by(col(AlertRecord.created_at).desc())
     ).all()
-    return [_alert_out(alert, qc_record_timestamp=qc_timestamp) for alert, qc_timestamp in rows]
+    return [
+        _alert_out(alert, qc_record_timestamp=qc_timestamp)
+        for alert, qc_timestamp in rows
+        if stream_is_accessible(session, user, alert.stream_id)
+    ]
 
 
 @app.patch("/alerts/{alert_id}", response_model=AlertOut)
@@ -1051,9 +1093,7 @@ def update_alert_status(
     user: UserContext = Depends(require_permission(Permission.APPROVE)),
     session: Session = Depends(get_session),
 ):
-    alert = session.exec(select(AlertRecord).where(AlertRecord.alert_id == alert_id)).first()
-    if not alert:
-        raise HTTPException(status_code=404, detail="Alert not found")
+    alert = require_alert_access(session, user, alert_id)
     before = alert.model_dump(mode="json")
     alert_changed = False
     if payload.status is not None and payload.status != alert.status:
@@ -1288,7 +1328,11 @@ def list_audit(
     user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ):
-    entries = session.exec(select(AuditEntry).order_by(col(AuditEntry.timestamp).desc())).all()
+    scope = effective_scope(session, user)
+    query = select(AuditEntry).order_by(col(AuditEntry.timestamp).desc())
+    if not scope.unrestricted:
+        query = query.where(AuditEntry.api_key_id == user.api_key_id)
+    entries = session.exec(query).all()
     return [_audit_out(entry) for entry in entries]
 
 
@@ -1327,6 +1371,7 @@ def stream_chart(
     user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ) -> StreamChartOut:
+    require_stream_access(session, user, stream_id)
     record_query = select(QCRecord).where(QCRecord.stream_id == stream_id)
     if start:
         record_query = record_query.where(QCRecord.timestamp >= start)

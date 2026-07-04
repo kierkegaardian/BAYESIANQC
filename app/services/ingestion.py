@@ -26,6 +26,7 @@ from app.models import (
     QuarantineResult,
 )
 from app.rbac import UserContext
+from app.services.access_scopes import require_backlog_access, require_stream_access
 from app.services.locks import stream_write_lock
 from app.services.qc_backlog import complete_backlog_item, note_backlog_quarantine, validate_backlog_for_payload
 from app.services.quarantine import (
@@ -158,12 +159,19 @@ def process_ingestion(
             if idempotency_key:
                 receipt = get_idempotent_response(session, idempotency_key)
                 if receipt:
+                    require_stream_access(session, user, receipt.stream_id or payload.stream_id)
                     if receipt.response.get("status") == "quarantined":
                         return QuarantineResult.model_validate(receipt.response)
                     return IngestionResult.model_validate(receipt.response)
 
             backlog_item = validate_backlog_for_payload(session, payload) if payload.qc_backlog_item_id else None
+            if backlog_item is not None:
+                require_backlog_access(session, user, backlog_item)
             config = get_active_stream_config(session, payload.stream_id, payload.timestamp)
+            if config is not None:
+                require_stream_access(session, user, config.stream_id)
+            else:
+                require_stream_access(session, user, payload.stream_id)
             if not config:
                 return quarantine_with_backlog_note(
                     payload,
@@ -327,6 +335,8 @@ def process_ingestion(
                 idempotency_key,
                 result.model_dump(mode="json"),
                 record.id,
+                record.stream_id,
+                user.api_key_id,
                 commit=False,
             )
             session.commit()

@@ -8,6 +8,7 @@ from sqlmodel import Session
 from app.db import get_session
 from app.models import Permission
 from app.rbac import UserContext, require_permission
+from app.services.access_scopes import require_kiosk_access
 from app.services.kiosks import append_kiosk_panel, create_kiosk, get_kiosk, kiosk_layout_out, list_kiosks
 from app.stream_setup_models import KioskLayoutIn, KioskLayoutOut, KioskPanelIn
 
@@ -22,8 +23,7 @@ def list_kiosk_layouts(
     user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ) -> list[KioskLayoutOut]:
-    del user
-    return list_kiosks(session, active=active, site=site, lab_bench=lab_bench)
+    return list_kiosks(session, user=user, active=active, site=site, lab_bench=lab_bench)
 
 
 @router.post("", response_model=KioskLayoutOut)
@@ -41,8 +41,9 @@ def get_kiosk_layout(
     user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ) -> KioskLayoutOut:
-    del user
-    return kiosk_layout_out(session, get_kiosk(session, slug))
+    layout = get_kiosk(session, slug)
+    require_kiosk_access(session, user, layout)
+    return kiosk_layout_out(session, layout)
 
 
 @router.post("/{slug}/panels", response_model=KioskLayoutOut)

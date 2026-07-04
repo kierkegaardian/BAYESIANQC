@@ -1168,6 +1168,7 @@ export interface components {
         CurrentUserOut: {
             /** Api Key Id */
             api_key_id: number | null;
+            effective_scope: components["schemas"]["EffectiveScopeOut"];
             /** Permissions */
             permissions: components["schemas"]["Permission"][];
             role: components["schemas"]["Role"];
@@ -1182,6 +1183,21 @@ export interface components {
          * @enum {string}
          */
         DuplicateStatus: "unique" | "duplicate" | "possible_duplicate";
+        /** EffectiveScopeOut */
+        EffectiveScopeOut: {
+            /** Assignment Groups */
+            assignment_groups?: string[];
+            /** Enforced */
+            enforced: boolean;
+            /** Lab Benches */
+            lab_benches?: string[];
+            /** Sites */
+            sites?: string[];
+            /** Stream Ids */
+            stream_ids?: string[];
+            /** Unrestricted */
+            unrestricted: boolean;
+        };
         /**
          * EntrySource
          * @enum {string}

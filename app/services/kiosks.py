@@ -7,6 +7,7 @@ from sqlmodel import Session, col, select
 
 from app.db_models import KioskLayout, KioskPanel, StreamConfig
 from app.rbac import UserContext
+from app.services.access_scopes import require_kiosk_access, require_stream_access
 from app.storage import record_audit
 from app.stream_setup_models import KioskLayoutIn, KioskLayoutOut, KioskPanelIn, KioskPanelOut
 
@@ -31,6 +32,7 @@ def kiosk_layout_out(session: Session, layout: KioskLayout) -> KioskLayoutOut:
 def list_kiosks(
     session: Session,
     *,
+    user: UserContext,
     active: Optional[bool] = None,
     site: Optional[str] = None,
     lab_bench: Optional[str] = None,
@@ -42,7 +44,14 @@ def list_kiosks(
         query = query.where(KioskLayout.site == site)
     if lab_bench:
         query = query.where(KioskLayout.lab_bench == lab_bench)
-    return [kiosk_layout_out(session, layout) for layout in session.exec(query).all()]
+    layouts = []
+    for layout in session.exec(query).all():
+        try:
+            require_kiosk_access(session, user, layout)
+        except HTTPException:
+            continue
+        layouts.append(kiosk_layout_out(session, layout))
+    return layouts
 
 
 def get_kiosk(session: Session, slug: str) -> KioskLayout:
@@ -99,6 +108,8 @@ def append_kiosk_panel(session: Session, slug: str, payload: KioskPanelIn, user:
     if layout.id is None:
         raise RuntimeError("Kiosk layout missing id")
     ensure_stream_exists(session, payload.stream_id)
+    require_kiosk_access(session, user, layout)
+    require_stream_access(session, user, payload.stream_id, hide=False)
     panel_data = payload.model_dump()
     if panel_data.get("display_order") is None:
         panel_data["display_order"] = _next_display_order(session, layout.id)

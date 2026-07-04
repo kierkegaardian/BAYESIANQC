@@ -40,6 +40,24 @@ class ApiKey(SQLModel, table=True):
     active: bool = True
 
 
+class AccessGrant(SQLModel, table=True):
+    __table_args__ = (
+        Index("ix_accessgrant_api_key_active", "api_key_id", "active"),
+        Index("ix_accessgrant_site_bench", "site", "lab_bench"),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    api_key_id: int = Field(index=True, foreign_key="apikey.id")
+    site: Optional[str] = None
+    lab_bench: Optional[str] = None
+    stream_id: Optional[str] = Field(default=None, index=True)
+    assignment_group: Optional[str] = Field(default=None, index=True)
+    active: bool = True
+    created_at: datetime = Field(default_factory=utcnow)
+    created_by: str = Field(default="system")
+    reason: Optional[str] = None
+
+
 class Instrument(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(index=True)
@@ -412,3 +430,5 @@ class IngestionReceipt(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utcnow)
     response: dict[str, Any] = Field(sa_column=Column(JSON))
     qc_record_id: Optional[int] = Field(default=None, index=True)
+    stream_id: Optional[str] = Field(default=None, index=True)
+    api_key_id: Optional[int] = Field(default=None, index=True)

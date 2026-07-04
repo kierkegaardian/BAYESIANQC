@@ -16,6 +16,7 @@ from app.models import (
     QCBacklogStatus,
 )
 from app.rbac import UserContext, require_permission
+from app.services.access_scopes import require_backlog_access
 from app.services.qc_backlog import (
     backlog_out,
     create_backlog_item,
@@ -42,9 +43,9 @@ def list_qc_backlog(
     user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ) -> list[QCBacklogItemOut]:
-    del user
     return list_backlog_items(
         session,
+        user=user,
         statuses=status_filter,
         source=source,
         instrument=instrument,
@@ -64,8 +65,9 @@ def get_qc_backlog_item(
     user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ) -> QCBacklogItemOut:
-    del user
-    return backlog_out(get_backlog_item(session, item_id))
+    item = get_backlog_item(session, item_id)
+    require_backlog_access(session, user, item)
+    return backlog_out(item)
 
 
 @router.post("", response_model=QCBacklogItemOut)

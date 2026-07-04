@@ -146,6 +146,7 @@ def test_alembic_upgrade_head_creates_current_schema(disposable_postgres_url: st
     tables = set(inspector.get_table_names())
     assert {
         "alembic_version",
+        "accessgrant",
         "apikey",
         "auditentry",
         "controlmaterial",
@@ -181,10 +182,17 @@ def test_alembic_upgrade_head_creates_current_schema(disposable_postgres_url: st
     assert bool(posterior_stream_index.get("unique")) is True
 
     receipt_indexes = inspector.get_indexes("ingestionreceipt")
+    receipt_columns = {column["name"] for column in inspector.get_columns("ingestionreceipt")}
     receipt_key_index = next(
         index for index in receipt_indexes if index.get("name") == "ix_ingestionreceipt_idempotency_key"
     )
     assert bool(receipt_key_index.get("unique")) is True
+    assert {"stream_id", "api_key_id"} <= receipt_columns
+    assert _index_columns(receipt_indexes, "ix_ingestionreceipt_stream_id") == ["stream_id"]
+    assert _index_columns(receipt_indexes, "ix_ingestionreceipt_api_key_id") == ["api_key_id"]
+    access_grant_indexes = inspector.get_indexes("accessgrant")
+    assert _index_columns(access_grant_indexes, "ix_accessgrant_api_key_active") == ["api_key_id", "active"]
+    assert _index_columns(access_grant_indexes, "ix_accessgrant_site_bench") == ["site", "lab_bench"]
 
     alert_indexes = inspector.get_indexes("alertrecord")
     assert _index_columns(alert_indexes, "ix_alertrecord_stream_created") == ["stream_id", "created_at"]
@@ -219,12 +227,12 @@ def test_alembic_upgrade_head_creates_current_schema(disposable_postgres_url: st
 
     with engine.connect() as connection:
         version = connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-    assert version == "20260704_0005"
+    assert version == "20260704_0006"
 
 
 def test_rehearsal_revision_head_tracks_alembic_head() -> None:
     expected = ScriptDirectory.from_config(_alembic_config(app_db.DEFAULT_DB_URL)).get_current_head()
-    assert rehearsal.revision_head() == expected == "20260704_0005"
+    assert rehearsal.revision_head() == expected == "20260704_0006"
 
 
 def test_init_db_delegates_to_alembic(monkeypatch) -> None:
@@ -255,6 +263,9 @@ def test_postgres_alembic_upgrade_creates_current_schema(disposable_postgres_url
     assert schema["streamconfig_control_material_id"] is True
     assert schema["kioskpanel_kiosk_order"] == ["kiosk_id", "display_order"]
     assert schema["posteriorstate_stream_unique"] is True
+    assert schema["ingestionreceipt_scope_columns"] is True
+    assert schema["accessgrant_api_key_active"] == ["api_key_id", "active"]
+    assert schema["accessgrant_site_bench"] == ["site", "lab_bench"]
     assert rehearsal.posterior_checks(engine)["ok"] is True
     engine.dispose()
 

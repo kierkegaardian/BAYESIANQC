@@ -9,7 +9,9 @@ from app.import_db_models import ImportBatch, ImportRow, InstrumentRun
 from app.import_models import ImportBatchStatus, ImportRowStatus
 from app.models import EntrySource, IngestionResult, QCRecordIn, QuarantineResult
 from app.rbac import UserContext
+from app.services.access_scopes import backlog_item_is_accessible, stream_is_accessible
 from app.services.ingestion import process_ingestion
+from app.services.qc_backlog import get_backlog_item
 
 
 def _as_datetime(value: Any) -> datetime:
@@ -60,6 +62,20 @@ def _payload_from_row(fields: dict[str, Any]) -> QCRecordIn:
 
 def _apply_one(session: Session, batch: ImportBatch, row: ImportRow, user: UserContext) -> None:
     fields = dict(row.parsed_fields)
+    stream_id = fields.get("stream_id")
+    if not isinstance(stream_id, str) or not stream_is_accessible(session, user, stream_id):
+        row.status = ImportRowStatus.IGNORED
+        row.errors = [*row.errors, "out of scope for current API key"]
+        session.add(row)
+        session.commit()
+        return
+    backlog_id = fields.get("qc_backlog_item_id")
+    if isinstance(backlog_id, int) and not backlog_item_is_accessible(session, user, get_backlog_item(session, backlog_id)):
+        row.status = ImportRowStatus.IGNORED
+        row.errors = [*row.errors, "backlog item out of scope for current API key"]
+        session.add(row)
+        session.commit()
+        return
     run = _get_or_create_run(session, batch, fields)
     if run.id is None:
         raise RuntimeError("Instrument run missing id")

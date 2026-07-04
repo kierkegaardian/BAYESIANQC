@@ -359,12 +359,20 @@ def store_receipt(
     key: Optional[str],
     response: dict,
     record_id: Optional[int],
+    stream_id: Optional[str],
+    api_key_id: Optional[int],
     *,
     commit: bool = True,
 ) -> None:
     if not key:
         return
-    receipt = IngestionReceipt(idempotency_key=key, response=response, qc_record_id=record_id)
+    receipt = IngestionReceipt(
+        idempotency_key=key,
+        response=response,
+        qc_record_id=record_id,
+        stream_id=stream_id,
+        api_key_id=api_key_id,
+    )
     session.add(receipt)
     if commit:
         session.commit()

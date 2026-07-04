@@ -17,6 +17,13 @@ from app.models import (
     QCRecordIn,
 )
 from app.rbac import UserContext
+from app.services.access_scopes import (
+    backlog_context_is_accessible,
+    backlog_scope_predicate,
+    effective_scope,
+    require_backlog_access,
+    require_stream_access,
+)
 from app.storage import get_active_stream_config, record_audit
 
 ACTIVE_STATUSES = [QCBacklogStatus.OPEN, QCBacklogStatus.IN_PROGRESS]
@@ -42,6 +49,7 @@ def get_backlog_item(session: Session, item_id: int) -> QCBacklogItem:
 def list_backlog_items(
     session: Session,
     *,
+    user: UserContext,
     statuses: Optional[list[QCBacklogStatus]],
     source: Optional[QCBacklogSource],
     instrument: Optional[str],
@@ -54,7 +62,10 @@ def list_backlog_items(
     limit: int,
 ) -> list[QCBacklogItemOut]:
     selected_statuses = statuses or ACTIVE_STATUSES
-    query = select(QCBacklogItem).where(col(QCBacklogItem.status).in_(selected_statuses))
+    query = select(QCBacklogItem).where(
+        col(QCBacklogItem.status).in_(selected_statuses),
+        backlog_scope_predicate(effective_scope(session, user)),
+    )
     if source:
         query = query.where(QCBacklogItem.source == source)
     if instrument:
@@ -79,6 +90,17 @@ def create_backlog_item(session: Session, payload: QCBacklogItemIn, user: UserCo
     config = get_active_stream_config(session, payload.stream_id, payload.due_at)
     if config is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stream not configured")
+    require_stream_access(session, user, config.stream_id, hide=False)
+    lab_bench = payload.lab_bench or config.lab_bench
+    if not backlog_context_is_accessible(
+        session,
+        user,
+        stream_id=config.stream_id,
+        site=config.site,
+        lab_bench=lab_bench,
+        assignment_group=payload.assignment_group,
+    ):
+        raise HTTPException(status_code=403, detail="Target backlog scope is not allowed")
     item = QCBacklogItem(
         source=payload.source,
         status=QCBacklogStatus.OPEN,
@@ -93,7 +115,7 @@ def create_backlog_item(session: Session, payload: QCBacklogItemIn, user: UserCo
         reference_material_lot=config.control_material_lot,
         reference_material_label=payload.reference_material_label,
         due_at=payload.due_at,
-        lab_bench=payload.lab_bench or config.lab_bench,
+        lab_bench=lab_bench,
         assignment_group=payload.assignment_group,
         assigned_to=payload.assigned_to,
         notes=payload.notes,
@@ -128,8 +150,17 @@ def update_backlog_item(
     user: UserContext,
 ) -> QCBacklogItemOut:
     item = get_backlog_item(session, item_id)
-    before = item.model_dump(mode="json")
     data = payload.model_dump(exclude_unset=True)
+    require_backlog_access(
+        session,
+        user,
+        item,
+        target_lab_bench=data.get("lab_bench"),
+        target_assignment_group=data.get("assignment_group"),
+        target_lab_bench_provided="lab_bench" in data,
+        target_assignment_group_provided="assignment_group" in data,
+    )
+    before = item.model_dump(mode="json")
     target_status = data.pop("status", None)
     reason = data.pop("reason", None)
     if target_status and target_status != item.status:

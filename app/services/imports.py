@@ -20,11 +20,13 @@ from app.import_models import (
 )
 from app.models import EntrySource, QCRecordIn
 from app.rbac import UserContext
+from app.services.access_scopes import backlog_item_is_accessible, effective_scope, require_stream_access
 from app.services.import_apply import apply_ready_rows, refresh_batch_status
 from app.services.import_mapping import build_import_row
 from app.services.import_outputs import batch_out
 from app.services.import_profiles import select_profile
 from app.services.import_readers import read_source_rows
+from app.services.qc_backlog import get_backlog_item
 from app.storage import get_active_stream_config, record_audit
 
 
@@ -221,6 +223,12 @@ def update_row(session: Session, row_id: int, payload, user: UserContext) -> Imp
     row = session.exec(select(ImportRow).where(ImportRow.id == row_id)).first()
     if row is None:
         raise HTTPException(status_code=404, detail="Import row not found")
+    if row.stream_id is not None:
+        require_stream_access(session, user, row.stream_id)
+    elif not effective_scope(session, user).unrestricted:
+        batch = session.exec(select(ImportBatch).where(ImportBatch.id == row.batch_id)).first()
+        if batch is None or batch.created_by != user.actor:
+            raise HTTPException(status_code=404, detail="Import row not found")
     before = row.model_dump(mode="json")
     fields = dict(row.parsed_fields)
     if payload.parsed_fields:
@@ -230,6 +238,7 @@ def update_row(session: Session, row_id: int, payload, user: UserContext) -> Imp
         config = get_active_stream_config(session, payload.stream_id, timestamp)
         if config is None:
             raise HTTPException(status_code=422, detail="Stream not configured")
+        require_stream_access(session, user, config.stream_id, hide=False)
         fields.update(
             stream_id=config.stream_id,
             analyte=config.analyte,
@@ -241,6 +250,9 @@ def update_row(session: Session, row_id: int, payload, user: UserContext) -> Imp
         )
         row.stream_id = config.stream_id
     if payload.qc_backlog_item_id is not None:
+        backlog = get_backlog_item(session, payload.qc_backlog_item_id)
+        if not backlog_item_is_accessible(session, user, backlog):
+            raise HTTPException(status_code=403, detail="QC backlog item is out of scope")
         fields["qc_backlog_item_id"] = payload.qc_backlog_item_id
         row.qc_backlog_item_id = payload.qc_backlog_item_id
     QCRecordIn.model_validate({**fields, "entry_source": EntrySource.AUTOMATED})

@@ -130,7 +130,7 @@ import type {
   QCBacklogStatus,
   StreamConfigOut,
 } from "../api/contracts";
-import { canApprove, canIngestQc, sessionUser } from "../api/session";
+import { canApprove, canIngestQc, defaultScopeFilter, loadSessionUser, sessionUser } from "../api/session";
 import { formatDateTime } from "./ingestionWorkflow";
 
 type Filters = {
@@ -173,6 +173,19 @@ function currentActor(): string {
 function compact(value: string): string | null {
   const trimmed = value.trim();
   return trimmed ? trimmed : null;
+}
+
+function applyScopeDefaults(): void {
+  const bench = defaultScopeFilter("lab_benches");
+  const group = defaultScopeFilter("assignment_groups");
+  if (bench) {
+    filters.lab_bench ||= bench;
+    draft.lab_bench ||= bench;
+  }
+  if (group) {
+    filters.assignment_group ||= group;
+    draft.assignment_group ||= group;
+  }
 }
 
 function buildQuery(): string {
@@ -246,6 +259,8 @@ function runQc(row: QCBacklogItemOut): void {
 }
 
 onMounted(async () => {
+  await loadSessionUser().catch(() => null);
+  applyScopeDefaults();
   await Promise.all([loadStreams(), loadBacklog()]);
 });
 </script>

@@ -21,6 +21,7 @@ export type CurrentUserOut = components["schemas"]["CurrentUserOut"];
 export type Disposition = components["schemas"]["Disposition"];
 export type EntrySource = components["schemas"]["EntrySource"];
 export type EventType = components["schemas"]["EventType"];
+export type EffectiveScopeOut = components["schemas"]["EffectiveScopeOut"];
 export type FrequentistSignal = components["schemas"]["FrequentistSignal"];
 export type IngestionResult = components["schemas"]["IngestionResult"];
 export type CollectorAction = components["schemas"]["CollectorAction"];

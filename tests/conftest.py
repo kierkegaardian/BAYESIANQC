@@ -87,6 +87,7 @@ os.environ.setdefault("BAYESIANQC_SEED_LOCAL_DEV_KEY", "1")
 from app.db import get_engine, init_db
 from app.db_models import (
     AlertRecord,
+    AccessGrant,
     ApiKey,
     Analyte,
     AuditEntry,
@@ -155,6 +156,7 @@ def reset_db():
             Analyte,
             Method,
             Instrument,
+            AccessGrant,
             ApiKey,
         ]:
             session.execute(delete(table))

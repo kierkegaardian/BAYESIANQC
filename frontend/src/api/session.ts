@@ -1,6 +1,6 @@
 import { computed, readonly, ref } from "vue";
 import { api } from "./client";
-import type { CurrentUserOut, Permission } from "./contracts";
+import type { CurrentUserOut, EffectiveScopeOut, Permission } from "./contracts";
 
 const currentUser = ref<CurrentUserOut | null>(null);
 
@@ -18,6 +18,15 @@ export function clearSessionUser(): void {
 
 export function hasPermission(permission: Permission): boolean {
   return currentUser.value?.permissions.includes(permission) ?? false;
+}
+
+export function currentEffectiveScope(): EffectiveScopeOut | null {
+  return currentUser.value?.effective_scope ?? null;
+}
+
+export function defaultScopeFilter(key: "lab_benches" | "assignment_groups" | "sites"): string {
+  const values = currentEffectiveScope()?.[key] ?? [];
+  return values.length === 1 ? values[0] : "";
 }
 
 export const canIngestQc = computed(() => hasPermission("ingest_qc"));
