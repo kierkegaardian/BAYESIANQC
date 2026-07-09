@@ -229,6 +229,76 @@ async def test_enforcement_flag_disables_grant_filtering(
 
 
 @pytest.mark.anyio
+async def test_location_config_respects_scoped_edit_grants(
+    client: httpx.AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("BAYESIANQC_ENFORCE_ACCESS_GRANTS", "1")
+    west = (
+        await client.post(
+            "/enterprise-sites",
+            json={"name": "West Lab", "code": "WEST", "active": True},
+            headers=AUTH_HEADERS,
+        )
+    ).json()
+    east = (
+        await client.post(
+            "/enterprise-sites",
+            json={"name": "East Lab", "code": "EAST", "active": True},
+            headers=AUTH_HEADERS,
+        )
+    ).json()
+    west_area = (
+        await client.post(
+            "/lab-areas",
+            json={"site_id": west["id"], "name": "Chem Bench 1", "active": True},
+            headers=AUTH_HEADERS,
+        )
+    ).json()
+    east_area = (
+        await client.post(
+            "/lab-areas",
+            json={"site_id": east["id"], "name": "Heme Bench 1", "active": True},
+            headers=AUTH_HEADERS,
+        )
+    ).json()
+    restricted = _add_scoped_key("location-steward-key", Role.DATA_STEWARD, site="West Lab", lab_bench="Chem Bench 1")
+
+    sites = await client.get("/enterprise-sites?active=true", headers=restricted)
+    assert sites.status_code == 200
+    assert [row["name"] for row in sites.json()] == ["West Lab"]
+
+    areas = await client.get(f"/lab-areas?site_id={west['id']}&active=true", headers=restricted)
+    assert areas.status_code == 200
+    assert [row["id"] for row in areas.json()] == [west_area["id"]]
+
+    east_areas = await client.get(f"/lab-areas?site_id={east['id']}&active=true", headers=restricted)
+    assert east_areas.status_code == 200
+    assert east_areas.json() == []
+
+    denied_site = await client.post(
+        "/enterprise-sites",
+        json={"name": "North Lab", "active": True},
+        headers=restricted,
+    )
+    assert denied_site.status_code == 403
+
+    allowed_area = await client.post(
+        "/lab-areas",
+        json={"site_id": west["id"], "name": "Chem Bench 2", "active": True},
+        headers=restricted,
+    )
+    assert allowed_area.status_code == 200
+
+    denied_area = await client.post(
+        "/lab-areas",
+        json={"site_id": east["id"], "name": "Heme Bench 2", "active": True},
+        headers=restricted,
+    )
+    assert denied_area.status_code == 403
+    assert east_area["name"] == "Heme Bench 1"
+
+
+@pytest.mark.anyio
 async def test_import_apply_marks_cross_scope_rows_ignored(
     client: httpx.AsyncClient, monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:

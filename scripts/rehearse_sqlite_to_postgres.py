@@ -305,7 +305,9 @@ def schema_checks(engine: Engine) -> dict[str, Any]:
     alert_indexes = {index["name"]: index.get("column_names") for index in inspector.get_indexes("alertrecord")}
     comment_indexes = {index["name"]: index.get("column_names") for index in inspector.get_indexes("qccomment")}
     kiosk_indexes = {index["name"]: index.get("column_names") for index in inspector.get_indexes("kioskpanel")}
+    tables = set(inspector.get_table_names())
     instrument_columns = {column["name"] for column in inspector.get_columns("instrument")}
+    analyte_columns = {column["name"] for column in inspector.get_columns("analyte")}
     stream_columns = {column["name"] for column in inspector.get_columns("streamconfig")}
     with engine.connect() as connection:
         version = connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
@@ -320,6 +322,9 @@ def schema_checks(engine: Engine) -> dict[str, Any]:
         "alertrecord_stream_created": alert_indexes.get("ix_alertrecord_stream_created"),
         "qccomment_target_created": comment_indexes.get("ix_qccomment_target_created"),
         "instrument_lab_bench": "lab_bench" in instrument_columns,
+        "instrument_location_ids": {"site_id", "lab_area_id"} <= instrument_columns,
+        "analyte_metadata": {"result_resolution", "description"} <= analyte_columns,
+        "location_tables": {"enterprisesite", "labarea"} <= tables,
         "streamconfig_lab_bench": "lab_bench" in stream_columns,
         "streamconfig_control_material_id": "control_material_id" in stream_columns,
         "kioskpanel_kiosk_order": kiosk_indexes.get("ix_kioskpanel_kiosk_order"),

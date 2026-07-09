@@ -44,6 +44,15 @@ def get_session() -> Iterator[Session]:
         yield session
 
 
+def run_migrations_on_startup() -> bool:
+    value = os.getenv("BAYESIANQC_RUN_MIGRATIONS_ON_STARTUP")
+    if value is None:
+        return True
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
 def init_db() -> None:
+    if not run_migrations_on_startup():
+        return
     engine = get_engine()
     run_alembic_migrations(engine)

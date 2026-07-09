@@ -58,11 +58,35 @@ class AccessGrant(SQLModel, table=True):
     reason: Optional[str] = None
 
 
+class EnterpriseSite(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(index=True, unique=True)
+    code: Optional[str] = Field(default=None, index=True, unique=True)
+    description: Optional[str] = None
+    active: bool = True
+    created_at: datetime = Field(default_factory=utcnow)
+    created_by: str = Field(default="system")
+
+
+class LabArea(SQLModel, table=True):
+    __table_args__ = (UniqueConstraint("site_id", "name", name="uq_labarea_site_name"),)
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    site_id: int = Field(index=True, foreign_key="enterprisesite.id")
+    name: str = Field(index=True)
+    description: Optional[str] = None
+    active: bool = True
+    created_at: datetime = Field(default_factory=utcnow)
+    created_by: str = Field(default="system")
+
+
 class Instrument(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(index=True)
     manufacturer: Optional[str] = None
     model: Optional[str] = None
+    site_id: Optional[int] = Field(default=None, index=True, foreign_key="enterprisesite.id")
+    lab_area_id: Optional[int] = Field(default=None, index=True, foreign_key="labarea.id")
     site: Optional[str] = None
     lab_bench: Optional[str] = Field(default=None, index=True)
     active: bool = True
@@ -75,6 +99,7 @@ class Method(SQLModel, table=True):
     instrument_id: int = Field(index=True, foreign_key="instrument.id")
     name: str = Field(index=True)
     technique: Optional[str] = None
+    description: Optional[str] = None
     active: bool = True
     created_at: datetime = Field(default_factory=utcnow)
     created_by: str = Field(default="system")
@@ -85,6 +110,8 @@ class Analyte(SQLModel, table=True):
     method_id: int = Field(index=True, foreign_key="method.id")
     name: str = Field(index=True)
     units: Optional[str] = None
+    result_resolution: Optional[float] = None
+    description: Optional[str] = None
     active: bool = True
     created_at: datetime = Field(default_factory=utcnow)
     created_by: str = Field(default="system")

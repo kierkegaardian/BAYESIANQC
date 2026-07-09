@@ -11,12 +11,23 @@ const API_BASE =
   `${DEFAULT_API_PROTOCOL}://${DEFAULT_API_HOST}:8010`;
 
 const API_KEY_STORAGE = "bayesianqc_api_key";
+const AUTH_MODE = import.meta.env.VITE_AUTH_MODE || "api-key";
+
+export function usesEdgeAuth(): boolean {
+  return AUTH_MODE === "edge-basic";
+}
 
 export function getApiKey(): string | null {
+  if (usesEdgeAuth()) {
+    return null;
+  }
   return window.localStorage.getItem(API_KEY_STORAGE);
 }
 
 export function setApiKey(key: string): void {
+  if (usesEdgeAuth()) {
+    return;
+  }
   window.localStorage.setItem(API_KEY_STORAGE, key);
 }
 

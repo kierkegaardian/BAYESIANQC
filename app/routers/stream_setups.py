@@ -19,8 +19,7 @@ def preview_datastream_setup(
     user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ) -> StreamSetupPreviewOut:
-    del user
-    return preview_stream_setups(session, payload)
+    return preview_stream_setups(session, payload, user)
 
 
 @router.post("/apply", response_model=StreamSetupApplyOut)
@@ -50,11 +49,10 @@ async def preview_datastream_import(
     user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ) -> StreamSetupPreviewOut:
-    del user
     if not file.filename or not file.filename.lower().endswith(".xlsx"):
         raise HTTPException(status_code=400, detail="Upload must be an .xlsx workbook")
     batch, invalid_rows = parse_workbook(await file.read())
-    preview = preview_stream_setups(session, batch)
+    preview = preview_stream_setups(session, batch, user)
     rows = invalid_rows + preview.rows
     return StreamSetupPreviewOut(
         valid=sum(1 for row in rows if row.valid),

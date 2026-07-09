@@ -57,7 +57,7 @@
             Role: {{ sessionUser.role }} · Key #{{ sessionUser.api_key_id ?? "unknown" }}
           </div>
         </div>
-        <div class="header-actions">
+        <div v-if="!edgeAuth" class="header-actions">
           <el-button type="primary" plain @click="logout">Log out</el-button>
         </div>
       </el-header>
@@ -71,7 +71,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { clearApiKey, getApiBase } from "../api/client";
+import { clearApiKey, getApiBase, usesEdgeAuth } from "../api/client";
 import { clearSessionUser, loadSessionUser, sessionUser } from "../api/session";
 
 const route = useRoute();
@@ -82,6 +82,7 @@ const routeTitle = computed(
   () => route.meta.helpTitle ?? "BayesianQC"
 );
 const apiBase = getApiBase();
+const edgeAuth = usesEdgeAuth();
 
 function logout() {
   clearApiKey();
@@ -93,7 +94,9 @@ onMounted(() => {
   void loadSessionUser().catch(() => {
     clearApiKey();
     clearSessionUser();
-    router.push("/login");
+    if (!edgeAuth) {
+      router.push("/login");
+    }
   });
 });
 </script>
