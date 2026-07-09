@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: bayesianqc
+      POSTGRES_USER: bayesianqc
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - ${BAYESIANQC_REMOTE_ROOT:-/srv/bayesianqc}/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bayesianqc -d bayesianqc"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    image: bayesianqc-demo-api:${BAYESIANQC_RELEASE_ID:-local}
+    build:
+      context: ../..
+      dockerfile: deploy/demo-vps/Dockerfile.api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - ${BAYESIANQC_REMOTE_ROOT:-/srv/bayesianqc}/secrets/app.env
+    environment:
+      BAYESIANQC_DB_URL: postgresql+psycopg://bayesianqc:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/bayesianqc
+      BAYESIANQC_IMPORT_ARCHIVE_ROOT: /var/lib/bayesianqc/import-archive
+      BAYESIANQC_REQUIRE_IMPORT_ARCHIVE_ROOT: "1"
+      BAYESIANQC_RUN_MIGRATIONS_ON_STARTUP: "0"
+    volumes:
+      - ${BAYESIANQC_REMOTE_ROOT:-/srv/bayesianqc}/import-archive:/var/lib/bayesianqc/import-archive
+    expose:
+      - "8010"
+
+  web:
+    image: bayesianqc-demo-web:${BAYESIANQC_RELEASE_ID:-local}
+    build:
+      context: ../..
+      dockerfile: deploy/demo-vps/Dockerfile.web
+      args:
+        VITE_API_URL: /api
+        VITE_AUTH_MODE: edge-basic
+    expose:
+      - "80"
+
+  caddy:
+    image: caddy:2.8-alpine
+    depends_on:
+      - api
+      - web
+    env_file:
+      - ${BAYESIANQC_REMOTE_ROOT:-/srv/bayesianqc}/secrets/app.env
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${BAYESIANQC_REMOTE_ROOT:-/srv/bayesianqc}/caddy/data:/data
+      - ${BAYESIANQC_REMOTE_ROOT:-/srv/bayesianqc}/caddy/config:/config

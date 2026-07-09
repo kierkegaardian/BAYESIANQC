@@ -59,6 +59,8 @@ uvicorn app.main:app --reload --port 8010
 ```
 `init_db()` applies Alembic migrations automatically. The app rejects `sqlite://` URLs at startup; legacy SQLite files are import sources only.
 See [Lab Readiness](docs/LAB_READINESS.md), [Validation Package](docs/VALIDATION_PACKAGE.md), and [Migration Strategy](docs/MIGRATION_STRATEGY.md) before any lab-like deployment.
+For a password-protected synthetic stakeholder demo on a Docker-capable host, see
+[Stakeholder Demo Docker-Host Deployment](docs/STAKEHOLDER_DEMO_VPS_DEPLOYMENT.md).
 
 To rehearse the current Postgres schema:
 ```bash
@@ -111,7 +113,7 @@ python scripts/load_chart_kiosk_suite.py --suite demo
 ```
 The demo fixtures are synthetic product-demo data only, not validated ASTM, manufacturer, clinical, pharmacological, or regulatory reference data.
 
-The guided datastream setup workflow is available in the UI at `Configuration -> Add Datastream`. It can create or reuse the instrument, method, parameter/analyte, control material, stream config, Bayesian prior, and optional saved kiosk assignment in one reviewed setup. Bulk setup starts from `GET /stream-setups/template.xlsx`, then uses `/stream-setups/import/preview` and `/stream-setups/apply`.
+The flat datastream setup workflow is available in the UI at `Configuration -> Add Datastream`. It selects governed enterprise site, lab bench/area, instrument, test/method, analyte, and control material records, with explicit Add-new routes that return to the builder. Preview/Apply still creates or versions the stream config, Bayesian prior, and optional saved kiosk assignment as one reviewed setup. Bulk setup starts from `GET /stream-setups/template.xlsx`, then uses `/stream-setups/import/preview` and `/stream-setups/apply`.
 
 ## Endpoint map
 - `GET /` Landing page with links and basic usage.
@@ -123,7 +125,13 @@ The guided datastream setup workflow is available in the UI at `Configuration ->
 - `PATCH /qc/records/{record_id}/resolution` Resolve/reinstate a QC record (requires `X-API-Key` + approve permission).
 - `GET /qc/comments` List comments by record, alert, run, or stream context.
 - `POST /qc/comments` Add a contextual QC comment for a QC record, alert, or run (requires `X-API-Key` + ingest permission).
-- `GET /instruments` List instruments.
+- `GET /enterprise-sites` List governed enterprise sites.
+- `POST /enterprise-sites` Create an enterprise site (requires `X-API-Key` + edit permission and unrestricted scope when access grants are enforced).
+- `PATCH /enterprise-sites/{site_id}` Update an enterprise site (requires `X-API-Key` + edit permission).
+- `GET /lab-areas` List governed lab benches/areas, optionally filtered by `site_id`.
+- `POST /lab-areas` Create a lab bench/area under a site (requires `X-API-Key` + edit permission and allowed site scope).
+- `PATCH /lab-areas/{area_id}` Update a lab bench/area (requires `X-API-Key` + edit permission).
+- `GET /instruments` List instruments, optionally filtered by `site_id`, `lab_area_id`, `site`, or `lab_bench`.
 - `POST /instruments` Create an instrument (requires `X-API-Key` + edit permission).
 - `PATCH /instruments/{instrument_id}` Update an instrument (requires `X-API-Key` + edit permission).
 - `GET /methods` List methods.
@@ -132,6 +140,7 @@ The guided datastream setup workflow is available in the UI at `Configuration ->
 - `GET /analytes` List analytes.
 - `POST /analytes` Create an analyte (requires `X-API-Key` + edit permission).
 - `PATCH /analytes/{analyte_id}` Update an analyte (requires `X-API-Key` + edit permission).
+- `POST /tests` Create or reuse one method plus a required analyte in one transaction (requires `X-API-Key` + edit permission).
 - `GET /control-materials` List control materials.
 - `POST /control-materials` Create a control material (requires `X-API-Key` + edit permission).
 - `GET /kiosks` List saved kiosk layouts.
@@ -167,7 +176,7 @@ The guided datastream setup workflow is available in the UI at `Configuration ->
 - Start Postgres, then run the automated checks:
   ```bash
   docker compose up -d postgres
-  pytest
+  .venv/bin/pytest
   ```
   The test harness creates a disposable Postgres database from `BAYESIANQC_POSTGRES_TEST_URL` or the local Compose URL.
 - Run the local/dev Postgres gate:
@@ -188,7 +197,7 @@ The guided datastream setup workflow is available in the UI at `Configuration ->
 
 ### Visualization & UI
 - **Risk Trendline:** Add a secondary Y-axis to the Levey-Jennings chart to visualize the "Risk Score" trajectory over time.
-- **Configuration UI:** Build dedicated UI forms for managing `StreamConfig` and `PriorConfig` (currently API-driven).
+- **Configuration UI:** Add dedicated management pages for governed sites and lab areas beyond the datastream-builder create-return flow.
 - **Uncertainty Visualization (Fan Charts):**
   - *Goal:* Visualize the evolution of belief over time by overlaying Credible Intervals (CI) for the mean and Predictive Intervals (PI) for future results on the Levey-Jennings chart.
   - *Research:*
