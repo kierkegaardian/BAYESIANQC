@@ -1,0 +1,26 @@
+FROM python:3.13.5-slim@sha256:4c2cf9917bd1cbacc5e9b07320025bdb7cdf2df7b0ceaccb55e9dd7e30987419
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+ARG APP_UID=1000
+ARG APP_GID=1000
+
+RUN groupadd --gid "$APP_GID" bayesianqc \
+    && useradd --uid "$APP_UID" --gid bayesianqc --create-home --home-dir /home/bayesianqc bayesianqc
+
+WORKDIR /app
+
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY --chown=bayesianqc:bayesianqc alembic.ini ./
+COPY --chown=bayesianqc:bayesianqc app ./app
+COPY --chown=bayesianqc:bayesianqc migrations ./migrations
+COPY --chown=bayesianqc:bayesianqc scripts ./scripts
+COPY --chown=bayesianqc:bayesianqc samples ./samples
+
+USER bayesianqc
+EXPOSE 8010
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8010"]

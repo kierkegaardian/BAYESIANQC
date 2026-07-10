@@ -35,5 +35,8 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: uv sync --group dev
       - run: npm --prefix frontend ci --include=dev
+      - run: uv run pip-audit
+      - run: npm --prefix frontend audit --omit=dev --audit-level=high
+      - run: npm --prefix frontend audit --audit-level=high
       - run: make check NPM=npm
       - run: make postgres-upgrade test-postgres migration-rehearse-postgres

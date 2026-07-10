@@ -6,6 +6,8 @@ POSTGRES_TEST_URL ?= $(POSTGRES_URL)
 POSTGRES_COPY_URL ?=
 IMPORT_ARCHIVE_ROOT ?= $(HOME)/.local/state/bayesianqc/import-archive
 DB_IMPORT_ARCHIVE_ROOT ?= $(IMPORT_ARCHIVE_ROOT)
+JOSH_DEMO_REMOTE_ROOT ?= /home/geoff/services/bayesianqc-josh-demo
+JOSH_DEMO_STABILITY_SECONDS ?= 900
 
 DEMO_VPS_HOST ?=
 DEMO_VPS_DOMAIN ?= qc.geoffsmiscellany.com
@@ -15,7 +17,7 @@ DEMO_VPS_SKIP_PUBLIC_SMOKE ?= 0
 DEMO_VPS_SSH_KEY_ARG := $(if $(DEMO_VPS_SSH_KEY),--ssh-key "$(DEMO_VPS_SSH_KEY)",)
 DEMO_VPS_SKIP_PUBLIC_SMOKE_ARG := $(if $(filter 1 true yes,$(DEMO_VPS_SKIP_PUBLIC_SMOKE)),--skip-public-smoke,)
 
-.PHONY: lint typecheck test build check postgres-up postgres-upgrade test-postgres migration-upgrade migration-rehearse migration-rehearse-postgres migration-rehearse-postgres-copy import-restore-proof check-postgres demo-vps-bootstrap demo-vps-deploy demo-vps-reset-data demo-vps-rotate-password demo-vps-smoke demo-vps-rollback
+.PHONY: lint typecheck test frontend-test build check postgres-up postgres-upgrade test-postgres migration-upgrade migration-rehearse migration-rehearse-postgres migration-rehearse-postgres-copy import-restore-proof check-postgres demo-vps-bootstrap demo-vps-deploy demo-vps-reset-data demo-vps-rotate-password demo-vps-smoke demo-vps-rollback josh-demo-bootstrap josh-demo-deploy josh-demo-reset josh-demo-smoke josh-demo-status josh-demo-start-tunnel josh-demo-stop josh-demo-teardown josh-demo-rotate-password
 
 lint:
 	$(PYTHON) -m ruff check app tests scripts
@@ -26,10 +28,13 @@ typecheck:
 test:
 	$(PYTHON) -m pytest
 
+frontend-test:
+	$(NPM) --prefix frontend test
+
 build:
 	$(NPM) --prefix frontend run check
 
-check: lint typecheck test build
+check: lint typecheck test frontend-test build
 
 postgres-up:
 	docker compose up -d postgres
@@ -83,3 +88,30 @@ demo-vps-rollback:
 	test -n "$(DEMO_VPS_HOST)" || (echo "Set DEMO_VPS_HOST"; exit 2)
 	test -n "$(DEMO_VPS_RELEASE_ID)" || (echo "Set DEMO_VPS_RELEASE_ID"; exit 2)
 	scripts/demo_vps.sh rollback --host "$(DEMO_VPS_HOST)" --domain "$(DEMO_VPS_DOMAIN)" --remote-root "$(DEMO_VPS_REMOTE_ROOT)" --release-id "$(DEMO_VPS_RELEASE_ID)" $(DEMO_VPS_SSH_KEY_ARG) $(DEMO_VPS_SKIP_PUBLIC_SMOKE_ARG)
+
+josh-demo-bootstrap:
+	scripts/josh_demo.sh bootstrap --remote-root "$(JOSH_DEMO_REMOTE_ROOT)"
+
+josh-demo-deploy:
+	scripts/josh_demo.sh deploy --remote-root "$(JOSH_DEMO_REMOTE_ROOT)"
+
+josh-demo-reset:
+	scripts/josh_demo.sh reset --remote-root "$(JOSH_DEMO_REMOTE_ROOT)"
+
+josh-demo-smoke:
+	scripts/josh_demo.sh smoke --remote-root "$(JOSH_DEMO_REMOTE_ROOT)" --stability-seconds "$(JOSH_DEMO_STABILITY_SECONDS)"
+
+josh-demo-status:
+	scripts/josh_demo.sh status --remote-root "$(JOSH_DEMO_REMOTE_ROOT)"
+
+josh-demo-start-tunnel:
+	scripts/josh_demo.sh start-tunnel --remote-root "$(JOSH_DEMO_REMOTE_ROOT)"
+
+josh-demo-stop:
+	scripts/josh_demo.sh stop --remote-root "$(JOSH_DEMO_REMOTE_ROOT)"
+
+josh-demo-teardown:
+	scripts/josh_demo.sh teardown --remote-root "$(JOSH_DEMO_REMOTE_ROOT)"
+
+josh-demo-rotate-password:
+	scripts/josh_demo.sh rotate-password --remote-root "$(JOSH_DEMO_REMOTE_ROOT)"

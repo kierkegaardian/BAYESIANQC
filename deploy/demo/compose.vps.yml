@@ -1,0 +1,9 @@
+services:
+  caddy:
+    volumes:
+      - ./Caddyfile.vps:/etc/caddy/Caddyfile:ro
+      - ${BAYESIANQC_REMOTE_ROOT:?BAYESIANQC_REMOTE_ROOT is required}/caddy/data:/data
+      - ${BAYESIANQC_REMOTE_ROOT:?BAYESIANQC_REMOTE_ROOT is required}/caddy/config:/config
+    ports:
+      - "80:80"
+      - "443:443"

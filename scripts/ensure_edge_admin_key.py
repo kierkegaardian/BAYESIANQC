@@ -2,8 +2,12 @@
 from __future__ import annotations
 
 import os
+import sys
+from pathlib import Path
 
 from sqlmodel import Session, col, select
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.db import get_engine
 from app.db_models import ApiKey

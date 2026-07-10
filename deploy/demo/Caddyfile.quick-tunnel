@@ -1,0 +1,118 @@
+(stakeholder_api_proxy) {
+	uri strip_prefix /api
+	reverse_proxy api:8010 {
+		header_up -Authorization
+		header_up X-API-Key {$BAYESIANQC_EDGE_API_KEY}
+	}
+}
+
+:8080 {
+	encode zstd gzip
+
+	basic_auth {
+		josh {$BAYESIANQC_BASIC_AUTH_HASH}
+	}
+
+	handle /docs* {
+		respond 404
+	}
+	handle /redoc* {
+		respond 404
+	}
+	handle /openapi.json* {
+		respond 404
+	}
+	handle /api/docs* {
+		respond 404
+	}
+	handle /api/redoc* {
+		respond 404
+	}
+	handle /api/openapi.json* {
+		respond 404
+	}
+
+	@api_read {
+		method GET HEAD OPTIONS
+		path /api/me /api/reports/summary /api/stream-catalog /api/kiosks /api/kiosks/* /api/alerts /api/alerts/* /api/investigations /api/investigations/* /api/capas /api/capas/* /api/qc/comments /api/qc/comments/* /api/qc/backlog /api/qc/backlog/* /api/qc/quarantine /api/qc/quarantine/*
+	}
+	handle @api_read {
+		import stakeholder_api_proxy
+	}
+
+	@stream_chart {
+		method GET HEAD OPTIONS
+		path_regexp exact_stream_chart ^/api/streams/[^/]+/chart$
+	}
+	handle @stream_chart {
+		import stakeholder_api_proxy
+	}
+
+	@comment_write {
+		method POST
+		path /api/qc/comments
+	}
+	handle @comment_write {
+		import stakeholder_api_proxy
+	}
+
+	@resolution_write {
+		method PATCH
+		path /api/qc/records/*/resolution
+	}
+	handle @resolution_write {
+		import stakeholder_api_proxy
+	}
+
+	@alert_write {
+		method PATCH
+		path /api/alerts/*
+	}
+	handle @alert_write {
+		import stakeholder_api_proxy
+	}
+
+	@investigation_create {
+		method POST
+		path /api/investigations
+	}
+	handle @investigation_create {
+		import stakeholder_api_proxy
+	}
+
+	@investigation_update {
+		method PATCH
+		path /api/investigations/*
+	}
+	handle @investigation_update {
+		import stakeholder_api_proxy
+	}
+
+	@capa_create {
+		method POST
+		path /api/capas
+	}
+	handle @capa_create {
+		import stakeholder_api_proxy
+	}
+
+	@capa_update {
+		method PATCH
+		path /api/capas/*
+	}
+	handle @capa_update {
+		import stakeholder_api_proxy
+	}
+
+	@api_denied path /api /api/*
+	handle @api_denied {
+		respond 403
+	}
+
+	handle {
+		reverse_proxy web:8080 {
+			header_up -Authorization
+			header_up -X-API-Key
+		}
+	}
+}

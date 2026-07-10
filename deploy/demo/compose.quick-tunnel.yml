@@ -1,0 +1,23 @@
+services:
+  caddy:
+    volumes:
+      - ./Caddyfile.quick-tunnel:/etc/caddy/Caddyfile:ro
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.6.0@sha256:ba461b8aa9c042156dbd39c38657fe7431bafa063220eab8d5330a523863da9f
+    command: ["tunnel", "--no-autoupdate", "--url", "http://caddy:8080"]
+    depends_on:
+      caddy:
+        condition: service_healthy
+    networks:
+      - tunnel_egress
+    restart: "no"
+    read_only: true
+    user: "65532:65532"
+    mem_limit: 256m
+    cpus: 0.5
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"

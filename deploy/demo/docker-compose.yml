@@ -1,0 +1,120 @@
+services:
+  postgres:
+    image: postgres:16-alpine@sha256:e013e867e712fec275706a6c51c966f0bb0c93cfa8f51000f85a15f9865a28cb
+    environment:
+      POSTGRES_DB: bayesianqc
+      POSTGRES_USER: bayesianqc
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - ${BAYESIANQC_REMOTE_ROOT:?BAYESIANQC_REMOTE_ROOT is required}/postgres:/var/lib/postgresql/data
+    networks:
+      - db_internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bayesianqc -d bayesianqc"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    mem_limit: 1g
+    cpus: 2.0
+    logging: &bounded_logs
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  api:
+    image: bayesianqc-josh-demo-api:${BAYESIANQC_RELEASE_ID:?BAYESIANQC_RELEASE_ID is required}
+    build:
+      context: ../..
+      dockerfile: deploy/demo/Dockerfile.api
+      args:
+        APP_UID: ${BAYESIANQC_APP_UID:-1000}
+        APP_GID: ${BAYESIANQC_APP_GID:-1000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      BAYESIANQC_DB_URL: postgresql+psycopg://bayesianqc:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/bayesianqc
+      BAYESIANQC_IMPORT_ARCHIVE_ROOT: /var/lib/bayesianqc/import-archive
+      BAYESIANQC_REQUIRE_IMPORT_ARCHIVE_ROOT: "1"
+      BAYESIANQC_RUN_MIGRATIONS_ON_STARTUP: "0"
+      BAYESIANQC_ENFORCE_ACCESS_GRANTS: "1"
+      BAYESIANQC_BREAK_GLASS_UNRESTRICTED_ADMIN: "0"
+    volumes:
+      - ${BAYESIANQC_REMOTE_ROOT:?BAYESIANQC_REMOTE_ROOT is required}/import-archive:/var/lib/bayesianqc/import-archive
+    networks:
+      - db_internal
+      - app_internal
+    expose:
+      - "8010"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import http.client; c=http.client.HTTPConnection('127.0.0.1',8010,timeout=3);
+          c.request('GET','/readyz'); r=c.getresponse(); raise SystemExit(0 if r.status == 200 else 1)
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+    mem_limit: 1g
+    cpus: 2.0
+    logging: *bounded_logs
+
+  web:
+    image: bayesianqc-josh-demo-web:${BAYESIANQC_RELEASE_ID:?BAYESIANQC_RELEASE_ID is required}
+    build:
+      context: ../..
+      dockerfile: deploy/demo/Dockerfile.web
+      args:
+        VITE_API_URL: /api
+        CLIENT_MODE: edge-basic
+        VITE_DEPLOYMENT_MODE: stakeholder
+    networks:
+      - app_internal
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 1.0
+    logging: *bounded_logs
+
+  caddy:
+    image: caddy:2.11.4-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    environment:
+      BAYESIANQC_EDGE_API_KEY: ${BAYESIANQC_EDGE_API_KEY:?BAYESIANQC_EDGE_API_KEY is required}
+      BAYESIANQC_BASIC_AUTH_HASH: ${BAYESIANQC_BASIC_AUTH_HASH:?BAYESIANQC_BASIC_AUTH_HASH is required}
+    networks:
+      - app_internal
+      - tunnel_egress
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD", "caddy", "validate", "--config", "/etc/caddy/Caddyfile"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 1.0
+    logging: *bounded_logs
+
+networks:
+  db_internal:
+    internal: true
+  app_internal:
+    internal: true
+  tunnel_egress:

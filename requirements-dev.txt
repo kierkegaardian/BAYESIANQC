@@ -1,2 +1,4 @@
+-r requirements.txt
+pip-audit==2.10.1
 pyright==1.1.408
-
+ruff>=0.12.0

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import json
+import os
+import re
 import subprocess
 import sys
-import os
 from pathlib import Path
 
 from app.db import run_migrations_on_startup
@@ -147,3 +149,143 @@ def test_edge_admin_key_script_rejects_missing_secret():
 
     assert result.returncode != 0
     assert "BAYESIANQC_EDGE_ADMIN_API_KEY is required" in result.stderr
+
+
+def test_josh_demo_external_images_are_immutable_and_match_declarations():
+    lock = json.loads(_read("deploy/demo/image-lock.json"))
+    assert lock["schema_version"] == 1
+    references = {**lock["build_bases"], **lock["runtime_images"]}
+    assert all(re.fullmatch(r"[^@]+@sha256:[0-9a-f]{64}", ref) for ref in references.values())
+
+    assert lock["build_bases"]["python"] in _read("deploy/demo/Dockerfile.api")
+    web_dockerfile = _read("deploy/demo/Dockerfile.web")
+    assert lock["build_bases"]["node"] in web_dockerfile
+    assert lock["build_bases"]["nginx"] in web_dockerfile
+    compose = _read("deploy/demo/docker-compose.yml")
+    assert lock["runtime_images"]["postgres"] in compose
+    assert lock["runtime_images"]["caddy"] in compose
+    assert lock["runtime_images"]["cloudflared"] in _read(
+        "deploy/demo/compose.quick-tunnel.yml"
+    )
+    assert lock["runtime_images"]["caddy"] in _read("deploy/demo/remote_lib.sh")
+
+
+def test_josh_demo_scripts_and_compose_validate(tmp_path):
+    for script in [
+        "scripts/josh_demo.sh",
+        "deploy/demo/remote.sh",
+        "deploy/demo/remote_lib.sh",
+    ]:
+        subprocess.run(["bash", "-n", str(ROOT / script)], check=True)
+
+    env_file = tmp_path / "demo.env"
+    env_file.write_text(
+        "\n".join(
+            [
+                "POSTGRES_PASSWORD=test-password",
+                "BAYESIANQC_EDGE_API_KEY=test-edge-key",
+                "BAYESIANQC_BASIC_AUTH_HASH=test-hash",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    env = {
+        **os.environ,
+        "BAYESIANQC_RELEASE_ID": "a" * 40,
+        "BAYESIANQC_REMOTE_ROOT": str(tmp_path / "remote"),
+    }
+    subprocess.run(
+        [
+            "docker",
+            "compose",
+            "--env-file",
+            str(env_file),
+            "-f",
+            str(ROOT / "deploy/demo/docker-compose.yml"),
+            "-f",
+            str(ROOT / "deploy/demo/compose.quick-tunnel.yml"),
+            "config",
+            "--quiet",
+        ],
+        check=True,
+        env=env,
+    )
+
+
+def test_josh_demo_edge_uses_safe_catalog_and_denies_full_stream_list():
+    for caddyfile in ["deploy/demo/Caddyfile.quick-tunnel", "deploy/demo/Caddyfile.vps"]:
+        content = _read(caddyfile)
+        proxy = _section(content, "(stakeholder_api_proxy) {\n", "\n}\n")
+        api_read = _section(content, "\t@api_read {\n", "\n\t}\n")
+        assert "header_up -Authorization" in proxy
+        assert "header_up X-API-Key {$BAYESIANQC_EDGE_API_KEY}" in proxy
+        assert "header_up -X-API-Key" not in proxy
+        assert "/api/stream-catalog" in api_read
+        assert "/api/streams " not in api_read
+        assert "^/api/streams/[^/]+/chart$" in content
+
+
+def test_josh_demo_public_smoke_mutates_once_restores_and_enforces_fifteen_minutes():
+    helper = _read("deploy/demo/public_smoke.py")
+    wrapper = _read("scripts/josh_demo.sh")
+    remote = _read("deploy/demo/remote.sh")
+
+    assert '"status": "acknowledged"' in helper
+    assert '"status": "open"' in helper
+    assert "finally:" in helper
+    assert "JOSH_DEMO_MUTATE_ALERT" in helper
+    assert "mutate_alert=0" in wrapper
+    assert 'remote_current record-public-smoke "$STABILITY_SECONDS"' in wrapper
+    assert '"/api/qc/backlog"' in helper
+    assert '"/api/qc/quarantine"' in helper
+    assert '"$stability_seconds" -ge 900' in remote
+    assert '"$RUNTIME_DIR/tunnel-started-at.txt"' in remote
+    assert "elapsed_seconds < required_seconds" in remote
+    assert "project_release_from_labels" in remote
+    assert 'label=com.docker.compose.project=$PROJECT_NAME' in remote
+
+    rejected = subprocess.run(
+        [
+            "bash",
+            str(ROOT / "scripts/josh_demo.sh"),
+            "smoke",
+            "--stability-seconds",
+            "899",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert rejected.returncode == 2
+    assert "at least 900" in rejected.stderr
+
+
+def test_resource_failure_invokes_project_scoped_tunnel_stop(tmp_path):
+    marker = tmp_path / "tunnel-stopped"
+    snippet = f"""
+set -u
+source {ROOT / 'deploy/demo/remote_lib.sh'}
+REMOTE_ROOT={tmp_path}
+df() {{ printf 'Filesystem 1024-blocks Used Available Capacity Mounted on\\n/dev/x 20 19 1 95%% /\\n'; }}
+stop_project_tunnel_containers() {{ printf stopped > {marker}; }}
+set +e
+require_demo_resources
+status=$?
+set -e
+[[ $status -eq 2 ]]
+[[ -f {marker} ]]
+"""
+    subprocess.run(["bash", "-c", snippet], check=True)
+    remote_lib = _read("deploy/demo/remote_lib.sh")
+    assert 'label=com.docker.compose.project=$PROJECT_NAME' in remote_lib
+    assert "killall" not in remote_lib
+    assert "docker prune" not in remote_lib
+    start_tunnel_case = _section(
+        _read("deploy/demo/remote.sh"),
+        "  start-tunnel)\n",
+        "    ;;\n",
+    )
+    assert start_tunnel_case.index("require_demo_resources") < start_tunnel_case.index(
+        "start_tunnel"
+    )
