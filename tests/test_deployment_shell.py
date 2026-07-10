@@ -21,3 +21,8 @@ target="$(backup_snapshot /tmp/release pre-reset-test)"
 [[ -s "$target/import-archive.tar.gz" ]]
 """
     subprocess.run(["bash", "-c", snippet], check=True)
+
+
+def test_web_image_normalizes_config_mode_after_secure_release_extract() -> None:
+    dockerfile = (ROOT / "deploy/demo/Dockerfile.web").read_text(encoding="utf-8")
+    assert "COPY --chmod=0644 deploy/demo/nginx.conf /etc/nginx/nginx.conf" in dockerfile
