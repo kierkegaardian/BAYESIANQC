@@ -43,7 +43,7 @@ deploy_release() {
   tar -xzf "$archive" -C "$release"
   [[ -f "$release/deploy/demo/docker-compose.yml" ]] || { echo "Invalid release archive" >&2; exit 2; }
   compose "$release" build api web
-  compose "$release" pull postgres caddy cloudflared
+  compose "$release" pull --policy missing postgres caddy cloudflared
   record_release_manifest "$release" "$expected_sha"
   compose "$release" up -d postgres
   wait_healthy "$release" postgres

@@ -35,3 +35,8 @@ def test_status_and_post_load_smoke_contracts_are_stable() -> None:
     assert '[[ -f "$RUNTIME_DIR/public-smoke.txt" ]] && cat' in show_status
     assert show_status.rstrip().endswith("return 0")
     assert 'wait_healthy "$release" api; wait_healthy "$release" caddy; private_smoke' in remote_lib
+
+
+def test_retry_uses_locally_available_pinned_runtime_images() -> None:
+    remote = (ROOT / "deploy/demo/remote.sh").read_text(encoding="utf-8")
+    assert 'pull --policy missing postgres caddy cloudflared' in remote
