@@ -26,3 +26,12 @@ target="$(backup_snapshot /tmp/release pre-reset-test)"
 def test_web_image_normalizes_config_mode_after_secure_release_extract() -> None:
     dockerfile = (ROOT / "deploy/demo/Dockerfile.web").read_text(encoding="utf-8")
     assert "COPY --chmod=0644 deploy/demo/nginx.conf /etc/nginx/nginx.conf" in dockerfile
+
+
+def test_status_and_post_load_smoke_contracts_are_stable() -> None:
+    remote = (ROOT / "deploy/demo/remote.sh").read_text(encoding="utf-8")
+    remote_lib = (ROOT / "deploy/demo/remote_lib.sh").read_text(encoding="utf-8")
+    show_status = remote.split("show_status() {", 1)[1].split("\n}", 1)[0]
+    assert '[[ -f "$RUNTIME_DIR/public-smoke.txt" ]] && cat' in show_status
+    assert show_status.rstrip().endswith("return 0")
+    assert 'wait_healthy "$release" api; wait_healthy "$release" caddy; private_smoke' in remote_lib

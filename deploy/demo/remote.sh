@@ -74,6 +74,7 @@ show_status() {
   [[ -f "$RUNTIME_DIR/tunnel-url.txt" ]] && echo "Tunnel URL: $(cat "$RUNTIME_DIR/tunnel-url.txt")"
   [[ -f "$RUNTIME_DIR/tunnel-started-at.txt" ]] && echo "Tunnel started: $(cat "$RUNTIME_DIR/tunnel-started-at.txt")"
   [[ -f "$RUNTIME_DIR/public-smoke.txt" ]] && cat "$RUNTIME_DIR/public-smoke.txt"
+  return 0
 }
 
 record_public_smoke() {

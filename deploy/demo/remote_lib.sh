@@ -274,7 +274,7 @@ reset_data() {
   wait_healthy "$release" web
   wait_healthy "$release" caddy
   load_fixtures "$release"
-  private_smoke "$release"
+  wait_healthy "$release" api; wait_healthy "$release" caddy; private_smoke "$release"
 }
 
 record_release_manifest() {
