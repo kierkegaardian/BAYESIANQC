@@ -402,8 +402,8 @@
     "metadata": {
       "family": "steel_metals",
       "fixture": "demo-kiosk",
-      "note": "precision failure review",
-      "scenario": "r4s_precision"
+      "note": "alternating variability review",
+      "scenario": "alternating_variability"
     },
     "method_id": "Hardness",
     "stream_id": "demo-steel_metals-hardness-h-03-rockwell-c",
@@ -894,8 +894,8 @@
     "metadata": {
       "family": "steel_metals",
       "fixture": "demo-kiosk",
-      "note": "precision failure review",
-      "scenario": "r4s_precision"
+      "note": "alternating variability review",
+      "scenario": "alternating_variability"
     },
     "method_id": "Coating",
     "stream_id": "demo-steel_metals-coatgauge-c-06-phosphate-weight",

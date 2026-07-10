@@ -5,9 +5,13 @@
     :title="tooltip"
     aria-live="polite"
   >
-    <span class="risk-badge__eyebrow">Bayesian</span>
-    <strong>{{ summary?.riskLabel ?? "Risk -" }}</strong>
-    <span>{{ summary?.stateLabel ?? "No data" }}</span>
+    <span class="risk-badge__eyebrow">Predictive action risk</span>
+    <strong>{{ summary?.riskLabel ?? "-" }}</strong>
+    <span>{{ summary?.riskContextLabel ?? "No evaluated data" }}</span>
+    <span class="risk-badge__decision" :class="decisionClass">
+      Overall: {{ summary?.stateLabel ?? "Not evaluated" }}
+    </span>
+    <span v-if="summary" class="risk-badge__reason">{{ summary.reasonLabel }}</span>
   </div>
 </template>
 
@@ -15,6 +19,7 @@
 import { computed } from "vue";
 import { bayesianRiskHelpText } from "./chartRisk";
 import type { ChartRiskSummary } from "./chartRisk";
+import { unavailableRiskMessage } from "./bayesianRiskAvailability";
 
 const props = withDefaults(
   defineProps<{
@@ -27,10 +32,15 @@ const props = withDefaults(
 );
 
 const tone = computed(() => props.summary?.tone ?? "none");
+const decisionClass = computed(() => {
+  const disposition = props.summary?.disposition;
+  return disposition === "reject" || disposition === "hold-for-review" ? "is-action" : "";
+});
 const tooltip = computed(() => {
   if (!props.summary) {
     return "No Bayesian risk is available for the current stream.";
   }
+  if (props.summary.status === "unavailable") return unavailableRiskMessage(props.summary.risk);
   return bayesianRiskHelpText("at the highlighted condition in the current chart window");
 });
 </script>
@@ -53,6 +63,10 @@ const tooltip = computed(() => {
   font-size: 12px;
   line-height: 1.2;
 }
+
+.risk-badge__decision { border-top: 1px solid rgb(148 163 184 / 40%); margin-top: 3px; padding-top: 4px; }
+.risk-badge__decision.is-action { color: #b91c1c; font-weight: 700; }
+.risk-badge__reason { max-width: 220px; }
 
 .risk-badge strong {
   color: #0f172a;
@@ -107,4 +121,7 @@ const tooltip = computed(() => {
 .risk-badge--kiosk span {
   color: #cbd5e1;
 }
+
+.risk-badge--kiosk .risk-badge__decision.is-action { color: #fca5a5; }
+.risk-badge--kiosk .risk-badge__reason { display: none; }
 </style>

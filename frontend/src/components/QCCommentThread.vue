@@ -3,7 +3,7 @@
     <div class="comment-thread__header">
       <div>
         <h3>{{ title }}</h3>
-        <div class="muted small-text">{{ targetLabel }}</div>
+        <div class="muted small-text">{{ stakeholder ? "Workflow context" : targetLabel }}</div>
       </div>
       <el-button size="small" @click="loadComments">Refresh</el-button>
     </div>
@@ -17,14 +17,14 @@
         <div class="comment-thread__meta">
           <span>{{ formatDateTime(comment.created_at) }}</span>
           <span>{{ comment.actor_role ?? "unknown" }}</span>
-          <span>Key #{{ comment.api_key_id ?? "unknown" }}</span>
+          <span v-if="!stakeholder">Key #{{ comment.api_key_id ?? "unknown" }}</span>
         </div>
         <p>{{ comment.body }}</p>
       </article>
     </div>
     <el-empty v-else-if="!loading && !loadError" description="No comments" :image-size="56" />
 
-    <div v-if="canIngestQc && !readOnly && !loadError" class="comment-thread__form">
+    <div v-if="canCommentQc && !readOnly && !loadError" class="comment-thread__form">
       <el-input v-model="draft" type="textarea" :rows="3" placeholder="Add comment" />
       <div class="comment-thread__actions">
         <el-button type="primary" :loading="saving" :disabled="!canSave" @click="saveComment">
@@ -41,7 +41,8 @@ import { computed, onMounted, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
 import { api } from "../api/client";
 import type { QCCommentIn, QCCommentOut, QCCommentTargetType } from "../api/contracts";
-import { canIngestQc } from "../api/session";
+import { canCommentQc } from "../api/session";
+import { isStakeholderDeployment } from "../deployment";
 
 const props = withDefaults(
   defineProps<{
@@ -59,6 +60,7 @@ const props = withDefaults(
 );
 
 const comments = ref<QCCommentOut[]>([]);
+const stakeholder = isStakeholderDeployment;
 const draft = ref("");
 const loading = ref(false);
 const loadError = ref("");
@@ -102,7 +104,7 @@ async function loadComments(): Promise<void> {
 
 async function saveComment(): Promise<void> {
   const body = draft.value.trim();
-  if (!body) {
+  if (!body || !canCommentQc.value || props.readOnly) {
     return;
   }
   saving.value = true;

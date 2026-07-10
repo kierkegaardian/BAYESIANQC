@@ -195,5 +195,15 @@ body {
 
   .page-header {
     align-items: stretch;
+    flex-direction: column;
+  }
+
+  .page-header > .toolbar,
+  .page-header > .el-button {
+    align-self: flex-start;
+  }
+
+  .el-dialog {
+    max-width: calc(100vw - 32px);
   }
 }

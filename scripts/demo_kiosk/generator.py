@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+from app.math.nig import beta_from_expected_sigma
 from scripts.demo_kiosk.paths import FAMILIES, OUTPUT_ROOT
 from scripts.demo_kiosk.scenarios import DemoScenario, scenario_for_stream
 
@@ -167,13 +168,15 @@ def render_family(family_id: str, spec: dict[str, Any]) -> tuple[dict[Path, str]
 
 
 def stream_config(stream_id: str, analyte: str, method: str, instrument: str, spec: dict[str, Any], qc_level: str, units: str, target: float, sigma: float, lot: str) -> dict[str, Any]:
-    return {"stream_id": stream_id, "analyte": analyte, "method": method, "instrument": instrument, "site": spec["site"], "matrix": "Synthetic demo control material", "qc_level": qc_level, "control_material_lot": lot, "units": units, "target_value": target, "sigma": sigma, "warning_limit_sd": 2.0, "action_limit_sd": 3.0, "min_value": round(target - 6 * sigma, 6), "max_value": round(target + 6 * sigma, 6), "risk_threshold_warn": 50, "risk_threshold_hold": 80, "bayes_warn_prob_threshold": 0.25, "bayes_warn_consecutive": 1, "bayes_hold_prob_threshold": 0.8, "bayes_hold_consecutive": 2, "effective_from": "2026-02-01T00:00:00Z"}
+    return {"stream_id": stream_id, "analyte": analyte, "method": method, "instrument": instrument, "site": spec["site"], "matrix": "Synthetic demo control material", "qc_level": qc_level, "control_material_lot": lot, "units": units, "target_value": target, "sigma": sigma, "warning_limit_sd": 2.0, "action_limit_sd": 3.0, "rule_set": {"rules": ["1-3s", "2-2s", "4-1s", "10x"]}, "min_value": round(target - 6 * sigma, 6), "max_value": round(target + 6 * sigma, 6), "risk_threshold_warn": 50, "risk_threshold_hold": 80, "bayes_warn_prob_threshold": 0.25, "bayes_warn_consecutive": 1, "bayes_hold_prob_threshold": 0.8, "bayes_hold_consecutive": 2, "effective_from": "2026-02-01T00:00:00Z"}
 
 
 def prior_config(stream_id: str, target: float, sigma: float, scenario: DemoScenario) -> dict[str, Any]:
     if scenario.weak_prior:
-        return {"stream_id": stream_id, "mu0": target, "kappa0": 0.35, "alpha0": 1.25, "beta0": round(float(sigma) ** 2 * 0.45, 6), "effective_from": "2026-02-01T00:00:00Z"}
-    return {"stream_id": stream_id, "mu0": target, "kappa0": 1.0, "alpha0": 2.0, "beta0": round(float(sigma) ** 2, 6), "effective_from": "2026-02-01T00:00:00Z"}
+        alpha = 1.25
+        return {"stream_id": stream_id, "mu0": target, "kappa0": 0.35, "alpha0": alpha, "beta0": round(beta_from_expected_sigma(alpha, sigma), 6), "effective_from": "2026-02-01T00:00:00Z"}
+    alpha = 2.0
+    return {"stream_id": stream_id, "mu0": target, "kappa0": 1.0, "alpha0": alpha, "beta0": round(beta_from_expected_sigma(alpha, sigma), 6), "effective_from": "2026-02-01T00:00:00Z"}
 
 
 def build_records(family_id: str, index: int, stream_id: str, analyte: str, qc_level: str, instrument: str, method: str, units: str, target: float, sigma: float, lot_a: str, lot_b: str, base: datetime, scenario: DemoScenario) -> tuple[list[dict[str, str]], dict[str, Any]]:

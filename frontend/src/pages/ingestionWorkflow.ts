@@ -52,7 +52,10 @@ export function formatDateTime(value: string): string {
   return new Date(value).toLocaleString();
 }
 
-export function formatPercent(value: number): string {
+export function formatPercent(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return "-";
+  }
   return `${(Math.max(0, Math.min(1, value)) * 100).toFixed(1)}%`;
 }
 
@@ -104,7 +107,7 @@ export function makeBatchRow(stream: StreamConfigOut, id: number, backlogItemId:
   return {
     id,
     stream_id: stream.stream_id,
-    result_value: stream.target_value,
+    result_value: null,
     comments: "",
     status: "draft",
     message: "",
@@ -165,9 +168,12 @@ function optionalText(value: string): string | null {
 }
 
 export function buildQcPayload(row: ManualBatchRow, stream: StreamConfigOut, common: ManualCommonFields): QCRecordIn {
+  if (row.result_value === null || !Number.isFinite(row.result_value)) {
+    throw new Error("A measured QC result is required");
+  }
   return {
     stream_id: stream.stream_id,
-    result_value: row.result_value ?? stream.target_value,
+    result_value: row.result_value,
     timestamp: new Date(common.timestamp).toISOString(),
     analyte: stream.analyte,
     qc_level: stream.qc_level,

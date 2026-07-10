@@ -13,7 +13,7 @@
     <el-card class="section-card">
       <div class="manual-header">
         <h3>Manual QC Entry</h3>
-        <el-select v-model="selectedStreamId" filterable placeholder="Recent stream" class="stream-picker">
+        <el-select v-model="selectedStreamId" filterable placeholder="Recent stream" class="stream-picker" aria-label="QC stream">
           <el-option
             v-for="stream in streams"
             :key="stream.stream_id"
@@ -73,7 +73,14 @@
             <strong>{{ formatDateTime(latestRecord.timestamp) }} · {{ formatNumber(latestRecord.result_value) }}</strong>
             <span>{{ latestRecord.disposition ?? "not evaluated" }}</span>
           </div>
-          <el-tooltip v-if="latestRisk" placement="top" :content="bayesianRiskTooltip">
+          <el-alert
+            v-if="latestRiskUnavailable"
+            type="warning"
+            :closable="false"
+            show-icon
+            :title="unavailableRiskMessage(latestRisk)"
+          />
+          <el-tooltip v-else-if="latestRisk" placement="top" :content="bayesianRiskTooltip">
             <div class="risk-grid" tabindex="0">
               <div><span>Risk</span><strong>{{ latestRisk.risk_score }}</strong></div>
               <div><span>P warn</span><strong>{{ formatPercent(latestRisk.probability_outside_warning) }}</strong></div>
@@ -86,11 +93,11 @@
       </div>
 
       <div class="batch-actions">
-        <el-button @click="addSelectedRow">Add Level</el-button>
-        <el-button :disabled="!selectedStream || peerLevelCount < 2" @click="addMatchingRows">Add Matching Levels</el-button>
-        <el-button :disabled="rows.length < 2" @click="clearRows">Clear Batch</el-button>
-        <el-button v-if="canIngestQc" type="primary" :disabled="!canSubmit" @click="submitBatch">
-          Submit {{ rows.length }} Record{{ rows.length === 1 ? "" : "s" }}
+        <el-button :disabled="submitting" @click="addSelectedRow">Add Level</el-button>
+        <el-button :disabled="submitting || !selectedStream || peerLevelCount < 2" @click="addMatchingRows">Add Matching Levels</el-button>
+        <el-button :disabled="submitting || rows.length < 2" @click="clearRows">Clear Batch</el-button>
+        <el-button v-if="canIngestQc" type="primary" :loading="submitting" :disabled="!canSubmit" @click="submitBatch">
+          Submit {{ submittableRows.length }} Record{{ submittableRows.length === 1 ? "" : "s" }}
         </el-button>
       </div>
 
@@ -174,6 +181,8 @@ import { canIngestQc } from "../api/session";
 import QCCommentThread from "../components/QCCommentThread.vue";
 import { bayesianRiskHelpText } from "./chartRisk";
 import { buildQcPayload, formatDateTime, formatNumber, formatPercent, latestChartRecord, limitValue, makeBatchRow, matchingLevelStreams, readManualRecent, statusTagType, type ManualBatchRow, type ManualCommonFields, validateManualRow, writeManualRecent } from "./ingestionWorkflow";
+import { runWithSubmissionLock } from "./submissionLock";
+import { riskIsUnavailable, unavailableRiskMessage } from "./bayesianRiskAvailability";
 
 const route = useRoute();
 const streams = ref<StreamConfigOut[]>([]);
@@ -183,6 +192,7 @@ const chartRecords = ref<QCRecordChartOutEvaluated[]>([]);
 const backlogItem = ref<QCBacklogItemOut | null>(null);
 const uploadSummary = ref<string | null>(null);
 const submittedRunId = ref<string | null>(null);
+const submitting = ref(false);
 let nextRowId = 1;
 
 const common = reactive<ManualCommonFields>({
@@ -193,18 +203,22 @@ const common = reactive<ManualCommonFields>({
   calibration_status: "ok",
   entry_source: "manual",
   comments: "",
-  idempotency_key: "",
+  idempotency_key: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `ui-${Date.now()}`,
 });
 
 const streamMap = computed(() => new Map(streams.value.map((stream) => [stream.stream_id, stream])));
 const selectedStream = computed(() => streamMap.value.get(selectedStreamId.value));
 const latestRecord = computed(() => latestChartRecord(chartRecords.value));
 const latestRisk = computed<BayesianRisk | null>(() => latestRecord.value?.bayesian_risk ?? null);
+const latestRiskUnavailable = computed(() => riskIsUnavailable(latestRisk.value));
 const bayesianRiskTooltip = bayesianRiskHelpText("through the latest point shown");
 const peerLevelCount = computed(() =>
   selectedStream.value ? matchingLevelStreams(streams.value, selectedStream.value).length : 0
 );
-const canSubmit = computed(() => canIngestQc.value && rows.value.length > 0 && rows.value.every((row) => rowErrors(row).length === 0));
+const submittableRows = computed(() => rows.value.filter((row) => row.status === "draft" || row.status === "error"));
+const canSubmit = computed(() =>
+  canIngestQc.value && !submitting.value && submittableRows.value.length > 0 && submittableRows.value.every((row) => rowErrors(row).length === 0)
+);
 
 async function loadStreams() {
   streams.value = await api.get<StreamConfigOut[]>("/streams");
@@ -293,8 +307,7 @@ function addMatchingRows(): void {
 }
 
 function syncRowToStream(row: ManualBatchRow): void {
-  const stream = streamFor(row);
-  row.result_value = stream?.target_value ?? null;
+  row.result_value = null;
   row.status = "draft";
   row.message = "";
 }
@@ -309,10 +322,12 @@ function clearRows(): void {
 }
 
 async function submitBatch(): Promise<void> {
+  if (!canSubmit.value) return;
+  await runWithSubmissionLock(submitting, async () => {
   let accepted = 0;
   let quarantined = 0;
   let latestRunId: string | null = null;
-  for (const [index, row] of rows.value.entries()) {
+  for (const row of submittableRows.value) {
     const stream = streamFor(row);
     const errors = rowErrors(row);
     if (!stream || errors.length > 0) {
@@ -322,7 +337,7 @@ async function submitBatch(): Promise<void> {
     }
     try {
       const headers = common.idempotency_key.trim()
-        ? { "Idempotency-Key": `${common.idempotency_key.trim()}-${index + 1}` }
+        ? { "Idempotency-Key": `${common.idempotency_key.trim()}-${row.id}` }
         : undefined;
       const response = await api.post<IngestionResult | QuarantineResult>(
         "/qc/records",
@@ -362,6 +377,7 @@ async function submitBatch(): Promise<void> {
   if (backlogItem.value) {
     backlogItem.value = await api.get<QCBacklogItemOut>(`/qc/backlog/${backlogItem.value.id}`);
   }
+  });
 }
 
 async function uploadCsv(options: UploadRequestOptions) {
@@ -392,6 +408,5 @@ onMounted(async () => {
   }
   await loadStreams();
   await loadBacklogHandoff();
-  await loadChartContext(selectedStreamId.value);
 });
 </script>

@@ -16,6 +16,14 @@
     "qc_level": "Assay QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.7,
     "site": "Synthetic Pharma QC",
     "stream_id": "demo-pharma_qc-hplc-assay-01-api-potency",
@@ -40,6 +48,14 @@
     "qc_level": "Assay QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.03,
     "site": "Synthetic Pharma QC",
     "stream_id": "demo-pharma_qc-hplc-assay-01-preservative-a",
@@ -64,6 +80,14 @@
     "qc_level": "Impurity QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.04,
     "site": "Synthetic Pharma QC",
     "stream_id": "demo-pharma_qc-hplc-assay-01-degradant-total",
@@ -88,6 +112,14 @@
     "qc_level": "Impurity QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.02,
     "site": "Synthetic Pharma QC",
     "stream_id": "demo-pharma_qc-hplc-assay-01-related-substance-a",
@@ -112,6 +144,14 @@
     "qc_level": "Impurity QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.015,
     "site": "Synthetic Pharma QC",
     "stream_id": "demo-pharma_qc-uplc-impurity-02-impurity-b",
@@ -136,6 +176,14 @@
     "qc_level": "Impurity QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.02,
     "site": "Synthetic Pharma QC",
     "stream_id": "demo-pharma_qc-uplc-impurity-02-impurity-c",
@@ -160,6 +208,14 @@
     "qc_level": "Purity QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.12,
     "site": "Synthetic Pharma QC",
     "stream_id": "demo-pharma_qc-uplc-impurity-02-main-peak-purity",
@@ -184,6 +240,14 @@
     "qc_level": "System suitability",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.08,
     "site": "Synthetic Pharma QC",
     "stream_id": "demo-pharma_qc-uplc-impurity-02-resolution-r1",
@@ -208,6 +272,14 @@
     "qc_level": "Dissolution QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 1.4,
     "site": "Synthetic Pharma QC",
     "stream_id": "demo-pharma_qc-dissolution-dt-03-dissolution-15-min",
@@ -232,6 +304,14 @@
     "qc_level": "Dissolution QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 1.8,
     "site": "Synthetic Pharma QC",
     "stream_id": "demo-pharma_qc-dissolution-dt-03-dissolution-30-min",
@@ -256,6 +336,14 @@
     "qc_level": "Dissolution QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 1.2,
     "site": "Synthetic Pharma QC",
     "stream_id": "demo-pharma_qc-dissolution-dt-03-dissolution-45-min",
@@ -280,6 +368,14 @@
     "qc_level": "Moisture QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.06,
     "site": "Synthetic Pharma QC",
     "stream_id": "demo-pharma_qc-kf-aqua-04-water-content",
@@ -304,6 +400,14 @@
     "qc_level": "Moisture QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.08,
     "site": "Synthetic Pharma QC",
     "stream_id": "demo-pharma_qc-kf-aqua-04-lod",
@@ -328,6 +432,14 @@
     "qc_level": "Moisture QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 18,
     "site": "Synthetic Pharma QC",
     "stream_id": "demo-pharma_qc-kf-aqua-04-residual-moisture",
@@ -352,6 +464,14 @@
     "qc_level": "Formulation QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.03,
     "site": "Synthetic Pharma QC",
     "stream_id": "demo-pharma_qc-formulation-bench-05-ph",
@@ -376,6 +496,14 @@
     "qc_level": "Formulation QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 4,
     "site": "Synthetic Pharma QC",
     "stream_id": "demo-pharma_qc-formulation-bench-05-osmolality",
@@ -400,6 +528,14 @@
     "qc_level": "Formulation QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 18,
     "site": "Synthetic Pharma QC",
     "stream_id": "demo-pharma_qc-formulation-bench-05-conductivity",
@@ -424,6 +560,14 @@
     "qc_level": "Drug panel L1",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 2.0,
     "site": "Synthetic Pharma QC",
     "stream_id": "demo-pharma_qc-lcms-drug-06-drug-a-control",
@@ -448,6 +592,14 @@
     "qc_level": "Drug panel L2",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 4.0,
     "site": "Synthetic Pharma QC",
     "stream_id": "demo-pharma_qc-lcms-drug-06-drug-b-control",
@@ -472,6 +624,14 @@
     "qc_level": "Drug panel L1",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 1.5,
     "site": "Synthetic Pharma QC",
     "stream_id": "demo-pharma_qc-lcms-drug-06-metabolite-m1",
@@ -496,6 +656,14 @@
     "qc_level": "System suitability",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.04,
     "site": "Synthetic Pharma QC",
     "stream_id": "demo-pharma_qc-lcms-drug-06-internal-standard-area",
@@ -520,6 +688,14 @@
     "qc_level": "Cleaning QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 4,
     "site": "Synthetic Pharma QC",
     "stream_id": "demo-pharma_qc-toc-clean-07-toc-rinse",
@@ -544,6 +720,14 @@
     "qc_level": "Water QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 8,
     "site": "Synthetic Pharma QC",
     "stream_id": "demo-pharma_qc-toc-clean-07-toc-wfi",
@@ -568,6 +752,14 @@
     "qc_level": "Residual solvent QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 45,
     "site": "Synthetic Pharma QC",
     "stream_id": "demo-pharma_qc-gc-solvent-08-residual-ethanol",
@@ -592,6 +784,14 @@
     "qc_level": "Residual solvent QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 20,
     "site": "Synthetic Pharma QC",
     "stream_id": "demo-pharma_qc-gc-solvent-08-residual-acetone",

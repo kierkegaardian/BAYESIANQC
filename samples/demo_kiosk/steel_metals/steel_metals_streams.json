@@ -16,6 +16,14 @@
     "qc_level": "Heat chemistry QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.006,
     "site": "Synthetic Metals Lab",
     "stream_id": "demo-steel_metals-oes-spark-01-carbon",
@@ -40,6 +48,14 @@
     "qc_level": "Heat chemistry QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.025,
     "site": "Synthetic Metals Lab",
     "stream_id": "demo-steel_metals-oes-spark-01-manganese",
@@ -64,6 +80,14 @@
     "qc_level": "Heat chemistry QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.01,
     "site": "Synthetic Metals Lab",
     "stream_id": "demo-steel_metals-oes-spark-01-silicon",
@@ -88,6 +112,14 @@
     "qc_level": "Heat chemistry QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.02,
     "site": "Synthetic Metals Lab",
     "stream_id": "demo-steel_metals-oes-spark-01-chromium",
@@ -112,6 +144,14 @@
     "qc_level": "Heat chemistry QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.015,
     "site": "Synthetic Metals Lab",
     "stream_id": "demo-steel_metals-oes-spark-01-nickel",
@@ -136,6 +176,14 @@
     "qc_level": "C/S QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.002,
     "site": "Synthetic Metals Lab",
     "stream_id": "demo-steel_metals-cs-burn-02-low-carbon",
@@ -160,6 +208,14 @@
     "qc_level": "C/S QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.001,
     "site": "Synthetic Metals Lab",
     "stream_id": "demo-steel_metals-cs-burn-02-sulfur",
@@ -184,6 +240,14 @@
     "qc_level": "C/S QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.012,
     "site": "Synthetic Metals Lab",
     "stream_id": "demo-steel_metals-cs-burn-02-high-carbon",
@@ -208,6 +272,14 @@
     "qc_level": "Hardness QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 1.0,
     "site": "Synthetic Metals Lab",
     "stream_id": "demo-steel_metals-hardness-h-03-rockwell-b",
@@ -232,6 +304,14 @@
     "qc_level": "Hardness QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.7,
     "site": "Synthetic Metals Lab",
     "stream_id": "demo-steel_metals-hardness-h-03-rockwell-c",
@@ -256,6 +336,14 @@
     "qc_level": "Hardness QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 4,
     "site": "Synthetic Metals Lab",
     "stream_id": "demo-steel_metals-hardness-h-03-vickers-hv10",
@@ -280,6 +368,14 @@
     "qc_level": "Hardness QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 3.5,
     "site": "Synthetic Metals Lab",
     "stream_id": "demo-steel_metals-hardness-h-03-brinell-hbw",
@@ -304,6 +400,14 @@
     "qc_level": "Tensile QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 6,
     "site": "Synthetic Metals Lab",
     "stream_id": "demo-steel_metals-tensile-t-04-yield-strength",
@@ -328,6 +432,14 @@
     "qc_level": "Tensile QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 8,
     "site": "Synthetic Metals Lab",
     "stream_id": "demo-steel_metals-tensile-t-04-ultimate-strength",
@@ -352,6 +464,14 @@
     "qc_level": "Tensile QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.8,
     "site": "Synthetic Metals Lab",
     "stream_id": "demo-steel_metals-tensile-t-04-elongation",
@@ -376,6 +496,14 @@
     "qc_level": "Tensile QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 1.2,
     "site": "Synthetic Metals Lab",
     "stream_id": "demo-steel_metals-tensile-t-04-reduction-area",
@@ -400,6 +528,14 @@
     "qc_level": "Impact QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 4,
     "site": "Synthetic Metals Lab",
     "stream_id": "demo-steel_metals-impact-i-05-charpy-0c",
@@ -424,6 +560,14 @@
     "qc_level": "Impact QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 3,
     "site": "Synthetic Metals Lab",
     "stream_id": "demo-steel_metals-impact-i-05-charpy-20c",
@@ -448,6 +592,14 @@
     "qc_level": "Impact QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 1.4,
     "site": "Synthetic Metals Lab",
     "stream_id": "demo-steel_metals-impact-i-05-charpy-lateral",
@@ -472,6 +624,14 @@
     "qc_level": "Coating QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 8,
     "site": "Synthetic Metals Lab",
     "stream_id": "demo-steel_metals-coatgauge-c-06-zinc-coating",
@@ -496,6 +656,14 @@
     "qc_level": "Coating QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.4,
     "site": "Synthetic Metals Lab",
     "stream_id": "demo-steel_metals-coatgauge-c-06-tin-coating",
@@ -520,6 +688,14 @@
     "qc_level": "Coating QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.12,
     "site": "Synthetic Metals Lab",
     "stream_id": "demo-steel_metals-coatgauge-c-06-phosphate-weight",
@@ -544,6 +720,14 @@
     "qc_level": "Microstructure QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.25,
     "site": "Synthetic Metals Lab",
     "stream_id": "demo-steel_metals-microscope-m-07-grain-size",
@@ -568,6 +752,14 @@
     "qc_level": "Inclusion QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.08,
     "site": "Synthetic Metals Lab",
     "stream_id": "demo-steel_metals-microscope-m-07-inclusion-rating",
@@ -592,6 +784,14 @@
     "qc_level": "Heat treat QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 6,
     "site": "Synthetic Metals Lab",
     "stream_id": "demo-steel_metals-furnaceprobe-f-08-austenitizing-temp",

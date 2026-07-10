@@ -11,9 +11,13 @@
           <el-option label="Reviewed" value="reviewed" />
           <el-option label="Rejected" value="rejected" />
         </el-select>
-        <el-button @click="loadQueue">Refresh</el-button>
+        <el-button :loading="loading" @click="loadQueue">Refresh</el-button>
       </div>
     </div>
+
+    <el-alert v-if="loadError" type="error" :closable="false" show-icon title="Quarantine rows could not be loaded." class="section-card">
+      <el-button size="small" @click="loadQueue">Retry</el-button>
+    </el-alert>
 
     <el-card>
       <el-table v-loading="loading" :data="rows" stripe class="full-width">
@@ -85,6 +89,7 @@ type QueueRow = QCRecordQuarantineOut & {
 
 const rows = ref<QueueRow[]>([]);
 const loading = ref(false);
+const loadError = ref(false);
 const statusFilter = ref<QuarantineStatus>("open");
 
 function toQueueRow(row: QCRecordQuarantineOut): QueueRow {
@@ -112,10 +117,14 @@ function statusTag(status: QuarantineStatus): "success" | "warning" | "danger" |
 
 async function loadQueue(): Promise<void> {
   loading.value = true;
+  loadError.value = false;
   try {
     const path = `/qc/quarantine?status=${encodeURIComponent(statusFilter.value)}`;
     const response = await api.get<QCRecordQuarantineOut[]>(path);
     rows.value = response.map(toQueueRow);
+  } catch {
+    rows.value = [];
+    loadError.value = true;
   } finally {
     loading.value = false;
   }

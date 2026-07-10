@@ -6,10 +6,15 @@
         <div class="muted">Scheduled and requested QC runs by bench, instrument, group, or assignee.</div>
       </div>
       <div class="toolbar">
-        <el-button @click="loadBacklog">Refresh</el-button>
+        <el-button :loading="loading" @click="loadBacklog">Refresh</el-button>
         <el-button v-if="canIngestQc" type="primary" @click="showCreate = true">New QC</el-button>
       </div>
     </div>
+
+    <el-alert v-if="loadError" type="error" :closable="false" show-icon class="section-card">
+      <template #title>Backlog data could not be loaded.</template>
+      <el-button size="small" @click="loadPage">Retry</el-button>
+    </el-alert>
 
     <el-card class="section-card">
       <el-tabs v-model="viewMode" @tab-change="applyView">
@@ -33,7 +38,7 @@
       </div>
     </el-card>
 
-    <el-table :data="items" stripe class="full-width">
+    <el-table v-loading="loading" :data="items" stripe class="full-width">
       <el-table-column label="Due" width="190">
         <template #default="{ row }">
           <el-tag :type="dueTag(row)">{{ dueLabel(row) }}</el-tag>
@@ -128,10 +133,11 @@ import type {
   QCBacklogPriority,
   QCBacklogSource,
   QCBacklogStatus,
-  StreamConfigOut,
+  StreamCatalogOut,
 } from "../api/contracts";
 import { canApprove, canIngestQc, defaultScopeFilter, loadSessionUser, sessionUser } from "../api/session";
 import { formatDateTime } from "./ingestionWorkflow";
+import { loadStreamCatalog } from "../api/streamCatalog";
 
 type Filters = {
   status: QCBacklogStatus[];
@@ -143,8 +149,10 @@ type Filters = {
 
 const router = useRouter();
 const items = ref<QCBacklogItemOut[]>([]);
-const streams = ref<StreamConfigOut[]>([]);
+const streams = ref<StreamCatalogOut[]>([]);
 const showCreate = ref(false);
+const loading = ref(false);
+const loadError = ref(false);
 const viewMode = ref("all");
 const filters = reactive<Filters>({
   status: ["open", "in_progress"],
@@ -199,13 +207,24 @@ function buildQuery(): string {
 }
 
 async function loadBacklog(): Promise<void> {
-  const query = buildQuery();
-  items.value = await api.get<QCBacklogItemOut[]>(`/qc/backlog${query ? `?${query}` : ""}`);
+  loading.value = true;
+  loadError.value = false;
+  try {
+    const query = buildQuery();
+    items.value = await api.get<QCBacklogItemOut[]>(`/qc/backlog${query ? `?${query}` : ""}`);
+  } catch { items.value = []; loadError.value = true; }
+  finally { loading.value = false; }
 }
 
 async function loadStreams(): Promise<void> {
-  streams.value = await api.get<StreamConfigOut[]>("/streams");
-  draft.stream_id = streams.value[0]?.stream_id ?? "";
+  try {
+    streams.value = await loadStreamCatalog();
+    draft.stream_id = streams.value[0]?.stream_id ?? "";
+  } catch { streams.value = []; loadError.value = true; }
+}
+
+async function loadPage(): Promise<void> {
+  await Promise.all([loadStreams(), loadBacklog()]);
 }
 
 function applyView(): void {
@@ -261,6 +280,6 @@ function runQc(row: QCBacklogItemOut): void {
 onMounted(async () => {
   await loadSessionUser().catch(() => null);
   applyScopeDefaults();
-  await Promise.all([loadStreams(), loadBacklog()]);
+  await loadPage();
 });
 </script>

@@ -22,7 +22,7 @@ STEP_HIGH = (0.0, 0.1, -0.1, 0.0, 0.2, 0.1, -0.1, 0.0, 0.1, -0.1, 0.0, 0.2, 0.1,
 STEP_LOW = tuple(-value for value in STEP_HIGH)
 MAINTENANCE_RECOVERY = (0.0, 0.2, 0.4, 0.7, 1.0, 1.4, 1.8, 2.1, 2.4, 2.8, 3.2, 2.7, 2.1, 1.2, 0.5, 0.2, 0.0, -0.1, 0.1, 0.0, -0.2, 0.1, 0.0, 0.2, -0.1)
 LOW_CONFIDENCE = (0.0, 1.4, -1.3, 1.5, -1.4, 1.6, -1.5, 1.7, -1.6, 1.8, -1.7, 1.9, -1.8, 1.7, -1.6, 1.8, -1.7, 1.6, -1.5, 1.4, -1.3, 1.2, -1.1, 0.8, -0.7)
-R4S_PRECISION = (0.0, 0.1, 2.2, -2.2, 2.1, -2.1, 1.8, -1.7, 1.5, -1.4, 1.2, -1.1, 0.8, -0.7, 0.4, -0.3, 0.2, -0.2, 0.1, 0.0, -0.1, 0.1, 0.0, -0.1, 0.0)
+ALTERNATING_VARIABILITY = (0.0, 0.1, 2.2, -2.2, 2.1, -2.1, 1.8, -1.7, 1.5, -1.4, 1.2, -1.1, 0.8, -0.7, 0.4, -0.3, 0.2, -0.2, 0.1, 0.0, -0.1, 0.1, 0.0, -0.1, 0.0)
 RETRY_CLUSTER = (0.0, 0.0, 0.1, 0.1, 0.1, -0.1, -0.1, 0.0, 0.2, 0.2, 0.1, 0.0, 0.0, -0.1, 0.0, 0.3, 0.2, 0.3, 0.2, 0.1, 0.2, 0.1, 0.0, 0.1, 0.0)
 
 SCENARIOS: tuple[DemoScenario, ...] = (
@@ -35,7 +35,13 @@ SCENARIOS: tuple[DemoScenario, ...] = (
     DemoScenario("maintenance_recovery", "maintenance recovery", MAINTENANCE_RECOVERY, 11, "maintenance restored baseline"),
     DemoScenario("step_shift_lot_low", "downward step after lot change", STEP_LOW, 19, "lot-to-lot low bias review"),
     DemoScenario("slow_drift_low", "slow low drift", DRIFT_LOW, 21, "low drift investigation opened"),
-    DemoScenario("r4s_precision", "R-4s precision failure", R4S_PRECISION, 4, "precision failure review"),
+    DemoScenario(
+        "alternating_variability",
+        "alternating high/low variability",
+        ALTERNATING_VARIABILITY,
+        4,
+        "alternating variability review",
+    ),
     DemoScenario("duplicate_retry_cluster", "duplicate retry cluster", RETRY_CLUSTER, 6, "duplicate retry cluster reviewed"),
     DemoScenario("stable_lot_b", "stable second-lot baseline", STABLE, 18, "stable lot transition review"),
 )

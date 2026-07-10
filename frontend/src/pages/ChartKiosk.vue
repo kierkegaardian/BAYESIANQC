@@ -2,7 +2,10 @@
   <main class="kiosk-screen">
     <header class="kiosk-header">
       <div class="kiosk-title">
-        <div class="kiosk-label">{{ kioskLabel }}</div>
+        <div class="kiosk-label">
+          {{ kioskLabel }}
+          <span v-if="isStakeholderDeployment" class="demo-notice">Synthetic stakeholder demonstration — not validated for laboratory use</span>
+        </div>
         <h1>{{ headerTitle }}</h1>
         <div class="kiosk-meta">
           {{ headerMeta }}
@@ -10,10 +13,14 @@
       </div>
       <div class="kiosk-header-right">
         <ChartRiskBadge v-if="isSingleView" :summary="riskSummary" kiosk />
-        <el-button v-if="isSingleView" size="small" @click="openGridView">Grid</el-button>
+        <el-button v-if="isSingleView" size="small" @click="openGridView">Back to overview</el-button>
+        <el-button v-if="isSingleView" size="small" @click="advancePanel">Next stream</el-button>
+        <el-button size="small" :disabled="interactionKeys.size > 0" @click="togglePause">
+          {{ interactionKeys.size > 0 ? "Paused for review" : manualPaused ? "Resume" : "Pause" }}
+        </el-button>
         <div class="kiosk-status" aria-live="polite">
           <span>{{ positionLabel }}</span>
-          <span>{{ secondsRemaining }}s</span>
+          <span>{{ paused ? "Paused" : `${secondsRemaining}s` }}</span>
           <span>{{ lastRefreshLabel }}</span>
         </div>
       </div>
@@ -28,6 +35,7 @@
       :forced-mode="mode"
       :refresh-token="refreshToken"
       @risk-summary="updateRiskSummary"
+      @interaction-active="setPanelInteraction(activePanel.streamId, $event)"
     />
 
     <div
@@ -42,6 +50,7 @@
         :mode="mode"
         :refresh-token="refreshToken"
         @open-single="openSingleStream"
+        @interaction-active="setPanelInteraction(panel.streamId, $event)"
       />
     </div>
     <div v-else class="kiosk-empty">
@@ -56,6 +65,7 @@ import { useRoute, useRouter } from "vue-router";
 import { api } from "../api/client";
 import type { KioskLayoutOut } from "../api/contracts";
 import { loadSessionUser } from "../api/session";
+import { isStakeholderDeployment } from "../deployment";
 import ChartRiskBadge from "./ChartRiskBadge.vue";
 import ChartView from "./ChartView.vue";
 import KioskChartTile from "./KioskChartTile.vue";
@@ -81,6 +91,9 @@ const lastRefreshAt = ref(new Date());
 const riskSummary = ref<ChartRiskSummary | null>(null);
 const savedLayout = ref<KioskLayout | null>(null);
 const kioskError = ref("");
+const manualPaused = ref(false);
+const interactionKeys = ref(new Set<string>());
+const paused = computed(() => manualPaused.value || interactionKeys.value.size > 0);
 let ticker: number | null = null;
 
 const mode = computed<ChartMode>(() => normalizeMode(route.query.mode));
@@ -187,6 +200,9 @@ function startTicker(): void {
   }
   resetCountdown();
   ticker = window.setInterval(() => {
+    if (paused.value) {
+      return;
+    }
     secondsRemaining.value -= 1;
     if (secondsRemaining.value <= 0) {
       advancePanel();
@@ -198,7 +214,19 @@ function updateRiskSummary(summary: ChartRiskSummary | null): void {
   riskSummary.value = summary;
 }
 
+function togglePause(): void {
+  manualPaused.value = !manualPaused.value;
+  if (!manualPaused.value) resetCountdown();
+}
+
+function setPanelInteraction(streamId: string, active: boolean): void {
+  const next = new Set(interactionKeys.value);
+  if (active) next.add(streamId); else next.delete(streamId);
+  interactionKeys.value = next;
+}
+
 function openSingleStream(streamId: string): void {
+  manualPaused.value = true;
   void router.push({
     path: route.path,
     query: { ...route.query, view: "single", stream: streamId },
@@ -206,6 +234,8 @@ function openSingleStream(streamId: string): void {
 }
 
 function openGridView(): void {
+  manualPaused.value = false;
+  interactionKeys.value = new Set();
   void router.push({
     path: route.path,
     query: { ...route.query, view: "grid", stream: undefined },
@@ -266,6 +296,14 @@ watch(intervalSeconds, () => {
 });
 
 watch(
+  viewMode,
+  (view) => {
+    manualPaused.value = view === "single";
+  },
+  { immediate: true }
+);
+
+watch(
   () => route.path,
   () => {
     void loadSavedLayout();
@@ -316,6 +354,16 @@ onBeforeUnmount(() => {
   font-weight: 700;
   letter-spacing: 0;
   text-transform: uppercase;
+}
+
+.demo-notice {
+  background: #78350f;
+  border: 1px solid #f59e0b;
+  border-radius: 999px;
+  color: #fef3c7;
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
 }
 
 h1 {

@@ -7,7 +7,7 @@
       </div>
       <div class="tile-actions">
         <ChartRiskBadge :summary="riskSummary" kiosk />
-        <el-button size="small" @click="emit('open-single', panel.streamId)">Open</el-button>
+        <el-button size="small" @click="emit('open-single', panel.streamId)">Inspect chart</el-button>
       </div>
     </header>
 
@@ -20,6 +20,7 @@
       :forced-mode="mode"
       :refresh-token="refreshToken"
       @risk-summary="updateRiskSummary"
+      @interaction-active="emit('interaction-active', $event)"
     />
   </section>
 </template>
@@ -39,6 +40,7 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{
   "open-single": [streamId: string];
+  "interaction-active": [active: boolean];
 }>();
 
 const riskSummary = ref<ChartRiskSummary | null>(null);

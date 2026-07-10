@@ -16,6 +16,14 @@
     "qc_level": "Naphtha D86 QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 1.0,
     "site": "Synthetic Fuels Lab",
     "stream_id": "demo-fuel_astm-optidist-fuel-01-d86-ibp",
@@ -40,6 +48,14 @@
     "qc_level": "Naphtha D86 QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 1.1,
     "site": "Synthetic Fuels Lab",
     "stream_id": "demo-fuel_astm-optidist-fuel-01-d86-10-recovered",
@@ -64,6 +80,14 @@
     "qc_level": "Naphtha D86 QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 1.8,
     "site": "Synthetic Fuels Lab",
     "stream_id": "demo-fuel_astm-optidist-fuel-01-d86-50-recovered",
@@ -88,6 +112,14 @@
     "qc_level": "Naphtha D86 QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 2.2,
     "site": "Synthetic Fuels Lab",
     "stream_id": "demo-fuel_astm-optidist-fuel-01-d86-90-recovered",
@@ -112,6 +144,14 @@
     "qc_level": "Diesel flash QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 1.3,
     "site": "Synthetic Fuels Lab",
     "stream_id": "demo-fuel_astm-flashcheck-fuel-02-pensky-flash-point",
@@ -136,6 +176,14 @@
     "qc_level": "Solvent flash QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.8,
     "site": "Synthetic Fuels Lab",
     "stream_id": "demo-fuel_astm-flashcheck-fuel-02-low-flash-solvent",
@@ -160,6 +208,14 @@
     "qc_level": "Lube fire point QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 1.6,
     "site": "Synthetic Fuels Lab",
     "stream_id": "demo-fuel_astm-flashcheck-fuel-02-fire-point",
@@ -184,6 +240,14 @@
     "qc_level": "Gasoline sulfur QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.8,
     "site": "Synthetic Fuels Lab",
     "stream_id": "demo-fuel_astm-sindie-fuel-03-total-sulfur",
@@ -208,6 +272,14 @@
     "qc_level": "Diesel sulfur QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.3,
     "site": "Synthetic Fuels Lab",
     "stream_id": "demo-fuel_astm-sindie-fuel-03-ulsd-sulfur",
@@ -232,6 +304,14 @@
     "qc_level": "Crude sulfur QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.05,
     "site": "Synthetic Fuels Lab",
     "stream_id": "demo-fuel_astm-sindie-fuel-03-crude-sulfur",
@@ -256,6 +336,14 @@
     "qc_level": "Gasoline density QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.7,
     "site": "Synthetic Fuels Lab",
     "stream_id": "demo-fuel_astm-densitypro-fuel-04-density-15c",
@@ -280,6 +368,14 @@
     "qc_level": "Crude density QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.4,
     "site": "Synthetic Fuels Lab",
     "stream_id": "demo-fuel_astm-densitypro-fuel-04-api-gravity",
@@ -304,6 +400,14 @@
     "qc_level": "Diesel density QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.002,
     "site": "Synthetic Fuels Lab",
     "stream_id": "demo-fuel_astm-densitypro-fuel-04-relative-density",
@@ -328,6 +432,14 @@
     "qc_level": "Diesel viscosity QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.05,
     "site": "Synthetic Fuels Lab",
     "stream_id": "demo-fuel_astm-viscobath-fuel-05-viscosity-40c",
@@ -352,6 +464,14 @@
     "qc_level": "Lube viscosity QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.12,
     "site": "Synthetic Fuels Lab",
     "stream_id": "demo-fuel_astm-viscobath-fuel-05-viscosity-100c",
@@ -376,6 +496,14 @@
     "qc_level": "Lube VI QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 1.5,
     "site": "Synthetic Fuels Lab",
     "stream_id": "demo-fuel_astm-viscobath-fuel-05-viscosity-index",
@@ -400,6 +528,14 @@
     "qc_level": "Crude pour QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 1.5,
     "site": "Synthetic Fuels Lab",
     "stream_id": "demo-fuel_astm-pourcloud-fuel-06-pour-point",
@@ -424,6 +560,14 @@
     "qc_level": "Diesel cloud QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 1.0,
     "site": "Synthetic Fuels Lab",
     "stream_id": "demo-fuel_astm-pourcloud-fuel-06-cloud-point",
@@ -448,6 +592,14 @@
     "qc_level": "Diesel CFPP QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 1.1,
     "site": "Synthetic Fuels Lab",
     "stream_id": "demo-fuel_astm-pourcloud-fuel-06-cold-filter-plugging",
@@ -472,6 +624,14 @@
     "qc_level": "Diesel color QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.2,
     "site": "Synthetic Fuels Lab",
     "stream_id": "demo-fuel_astm-colorscope-fuel-07-astm-color",
@@ -496,6 +656,14 @@
     "qc_level": "Kerosene color QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.8,
     "site": "Synthetic Fuels Lab",
     "stream_id": "demo-fuel_astm-colorscope-fuel-07-saybolt-color",
@@ -520,6 +688,14 @@
     "qc_level": "Finished fuel haze QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.25,
     "site": "Synthetic Fuels Lab",
     "stream_id": "demo-fuel_astm-colorscope-fuel-07-haze-index",
@@ -544,6 +720,14 @@
     "qc_level": "Gasoline vapor QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 1.1,
     "site": "Synthetic Fuels Lab",
     "stream_id": "demo-fuel_astm-vaporcheck-fuel-08-dvpe",
@@ -568,6 +752,14 @@
     "qc_level": "Gasoline RVP QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.2,
     "site": "Synthetic Fuels Lab",
     "stream_id": "demo-fuel_astm-vaporcheck-fuel-08-rvp",
@@ -592,6 +784,14 @@
     "qc_level": "V/L QC",
     "risk_threshold_hold": 80,
     "risk_threshold_warn": 50,
+    "rule_set": {
+      "rules": [
+        "1-3s",
+        "2-2s",
+        "4-1s",
+        "10x"
+      ]
+    },
     "sigma": 0.8,
     "site": "Synthetic Fuels Lab",
     "stream_id": "demo-fuel_astm-vaporcheck-fuel-08-vapor-liquid-ratio",

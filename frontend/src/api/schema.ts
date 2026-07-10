@@ -28,7 +28,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Get Alert */
+        get: operations["get_alert_alerts__alert_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -115,7 +116,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Get Capa */
+        get: operations["get_capa_capas__capa_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -178,6 +180,23 @@ export interface paths {
         patch: operations["update_enterprise_site_enterprise_sites__site_id__patch"];
         trace?: never;
     };
+    "/healthz": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Healthz */
+        get: operations["healthz_healthz_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/instruments": {
         parameters: {
             query?: never;
@@ -238,7 +257,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Get Investigation */
+        get: operations["get_investigation_investigations__investigation_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -665,6 +685,23 @@ export interface paths {
         patch: operations["resolve_qc_record_qc_records__record_id__resolution_patch"];
         trace?: never;
     };
+    "/readyz": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Readyz */
+        get: operations["readyz_readyz_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/reports/summary": {
         parameters: {
             query?: never;
@@ -674,6 +711,26 @@ export interface paths {
         };
         /** Report Summary */
         get: operations["report_summary_reports_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/stream-catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Stream Catalog
+         * @description Return only current display fields; scheduled/governed details stay private.
+         */
+        get: operations["list_stream_catalog_stream_catalog_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -885,6 +942,11 @@ export interface components {
         AlertSummary: {
             /** Acknowledged */
             acknowledged: number;
+            /**
+             * Closed
+             * @default 0
+             */
+            closed: number;
             /** Open */
             open: number;
             /** Total */
@@ -998,6 +1060,8 @@ export interface components {
                 number,
                 number
             ] | null;
+            /** Engine Id */
+            engine_id?: string | null;
             /**
              * Hold Streak
              * @default 0
@@ -1015,34 +1079,38 @@ export interface components {
             /** Predictive Sigma */
             predictive_sigma?: number | null;
             /** Probability Outside Limits */
-            probability_outside_limits: number;
-            /**
-             * Probability Outside Warning
-             * @default 0
-             */
-            probability_outside_warning: number;
+            probability_outside_limits?: number | null;
+            /** Probability Outside Warning */
+            probability_outside_warning?: number | null;
             /** Risk Score */
-            risk_score: number;
+            risk_score?: number | null;
+            /** @default available */
+            status: components["schemas"]["BayesianRiskStatus"];
+            unavailable_reason?: components["schemas"]["BayesianRiskUnavailableReason"] | null;
             /**
              * Warn Streak
              * @default 0
              */
             warn_streak: number;
         };
+        /**
+         * BayesianRiskStatus
+         * @enum {string}
+         */
+        BayesianRiskStatus: "available" | "unavailable";
+        /**
+         * BayesianRiskUnavailableReason
+         * @enum {string}
+         */
+        BayesianRiskUnavailableReason: "missing_effective_prior" | "model_evaluation_failure";
         /** Body_ingest_qc_records_csv_qc_records_csv_post */
         Body_ingest_qc_records_csv_qc_records_csv_post: {
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
         };
         /** Body_preview_datastream_import_stream_setups_import_preview_post */
         Body_preview_datastream_import_stream_setups_import_preview_post: {
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
         };
         /** Body_upload_import_qc_imports_post */
@@ -1052,10 +1120,7 @@ export interface components {
              * @default false
              */
             auto_apply: boolean;
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
             /** Profile Id */
             profile_id?: number | null;
@@ -1128,6 +1193,8 @@ export interface components {
             /** Root Cause Category */
             root_cause_category?: string | null;
             status: components["schemas"]["CapaStatus"];
+            /** Stream Id */
+            stream_id?: string | null;
             /**
              * Updated At
              * Format: date-time
@@ -1732,6 +1799,8 @@ export interface components {
             /** Problem Statement */
             problem_statement: string;
             status: components["schemas"]["InvestigationStatus"];
+            /** Stream Id */
+            stream_id?: string | null;
             /** Suspected Cause */
             suspected_cause?: string | null;
             /**
@@ -2081,13 +2150,13 @@ export interface components {
          * Permission
          * @enum {string}
          */
-        Permission: "read" | "ingest_qc" | "edit_config" | "manage_imports" | "approve" | "override";
+        Permission: "read" | "ingest_qc" | "edit_config" | "manage_imports" | "approve" | "override" | "comment_qc" | "resolve_qc" | "manage_alerts" | "manage_investigations" | "manage_capas";
         /** PriorConfigIn */
         PriorConfigIn: {
             /** Alpha0 */
             alpha0: number;
             /** Beta0 */
-            beta0: number;
+            beta0?: number | null;
             /** Effective From */
             effective_from?: string | null;
             /** Kappa0 */
@@ -2500,7 +2569,7 @@ export interface components {
          * QuarantineReason
          * @enum {string}
          */
-        QuarantineReason: "out_of_bounds" | "unit_mismatch" | "suspicious_timestamp" | "mapping_failure";
+        QuarantineReason: "out_of_bounds" | "unit_mismatch" | "suspicious_timestamp" | "mapping_failure" | "model_evaluation_failure";
         /** QuarantineResult */
         QuarantineResult: {
             audit_entry: components["schemas"]["AuditEntryOut"];
@@ -2511,7 +2580,6 @@ export interface components {
              * Status
              * @default quarantined
              * @constant
-             * @enum {string}
              */
             status: "quarantined";
         };
@@ -2536,12 +2604,56 @@ export interface components {
          * Role
          * @enum {string}
          */
-        Role: "qc_analyst" | "supervisor" | "qa_manager" | "admin" | "auditor" | "data_steward";
+        Role: "qc_analyst" | "supervisor" | "qa_manager" | "admin" | "auditor" | "data_steward" | "stakeholder";
         /**
          * SignalSeverity
          * @enum {string}
          */
         SignalSeverity: "action" | "warn";
+        /**
+         * StreamCatalogOut
+         * @description Active, display-only stream fields safe for stakeholder workflows.
+         */
+        StreamCatalogOut: {
+            /** Action Limit Sd */
+            action_limit_sd: number;
+            /** Analyte */
+            analyte: string;
+            /** Bayes Hold Consecutive */
+            bayes_hold_consecutive?: number | null;
+            /** Bayes Hold Prob Threshold */
+            bayes_hold_prob_threshold?: number | null;
+            /** Bayes Warn Consecutive */
+            bayes_warn_consecutive?: number | null;
+            /** Bayes Warn Prob Threshold */
+            bayes_warn_prob_threshold?: number | null;
+            /** Control Material Lot */
+            control_material_lot: string;
+            /** Instrument */
+            instrument: string;
+            /** Max Value */
+            max_value?: number | null;
+            /** Method */
+            method: string;
+            /** Min Value */
+            min_value?: number | null;
+            /** Qc Level */
+            qc_level: string;
+            /** Risk Threshold Hold */
+            risk_threshold_hold: number;
+            /** Risk Threshold Warn */
+            risk_threshold_warn: number;
+            /** Sigma */
+            sigma: number;
+            /** Stream Id */
+            stream_id: string;
+            /** Target Value */
+            target_value: number;
+            /** Units */
+            units: string;
+            /** Warning Limit Sd */
+            warning_limit_sd: number;
+        };
         /** StreamChartOut */
         StreamChartOut: {
             /** Alerts */
@@ -2945,6 +3057,10 @@ export interface components {
         };
         /** ValidationError */
         ValidationError: {
+            /** Context */
+            ctx?: Record<string, never>;
+            /** Input */
+            input?: unknown;
             /** Location */
             loc: (string | number)[];
             /** Message */
@@ -2963,7 +3079,17 @@ export type $defs = Record<string, never>;
 export interface operations {
     list_alerts_alerts_get: {
         parameters: {
-            query?: never;
+            query?: {
+                limit?: number;
+                offset?: number;
+                status?: components["schemas"]["AlertStatus"] | null;
+                stream?: string | null;
+                severity?: string | null;
+                disposition?: string | null;
+                assigned_to?: string | null;
+                from?: string | null;
+                to?: string | null;
+            };
             header?: {
                 "X-API-Key"?: string | null;
             };
@@ -2979,6 +3105,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AlertOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_alert_alerts__alert_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                alert_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlertOut"];
                 };
             };
             /** @description Validation Error */
@@ -3137,7 +3296,13 @@ export interface operations {
     };
     list_audit_audit_get: {
         parameters: {
-            query?: never;
+            query?: {
+                limit?: number;
+                offset?: number;
+                action?: string | null;
+                entity_type?: string | null;
+                actor_role?: components["schemas"]["Role"] | null;
+            };
             header?: {
                 "X-API-Key"?: string | null;
             };
@@ -3213,6 +3378,39 @@ export interface operations {
                 "application/json": components["schemas"]["CapaIn"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CapaOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_capa_capas__capa_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                capa_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -3444,6 +3642,28 @@ export interface operations {
             };
         };
     };
+    healthz_healthz_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+        };
+    };
     list_instruments_instruments_get: {
         parameters: {
             query?: {
@@ -3600,6 +3820,39 @@ export interface operations {
                 "application/json": components["schemas"]["InvestigationIn"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvestigationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_investigation_investigations__investigation_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                investigation_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -4825,6 +5078,26 @@ export interface operations {
             };
         };
     };
+    readyz_readyz_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
     report_summary_reports_summary_get: {
         parameters: {
             query?: never;
@@ -4843,6 +5116,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReportSummaryOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_stream_catalog_stream_catalog_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StreamCatalogOut"][];
                 };
             };
             /** @description Validation Error */
@@ -4997,6 +5301,7 @@ export interface operations {
             query?: {
                 site?: string | null;
                 lab_bench?: string | null;
+                include_scheduled?: boolean;
             };
             header?: {
                 "X-API-Key"?: string | null;

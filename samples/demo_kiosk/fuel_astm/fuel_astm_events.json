@@ -402,8 +402,8 @@
     "metadata": {
       "family": "fuel_astm",
       "fixture": "demo-kiosk",
-      "note": "precision failure review",
-      "scenario": "r4s_precision"
+      "note": "alternating variability review",
+      "scenario": "alternating_variability"
     },
     "method_id": "ASTM D4294",
     "stream_id": "demo-fuel_astm-sindie-fuel-03-crude-sulfur",
@@ -894,8 +894,8 @@
     "metadata": {
       "family": "fuel_astm",
       "fixture": "demo-kiosk",
-      "note": "precision failure review",
-      "scenario": "r4s_precision"
+      "note": "alternating variability review",
+      "scenario": "alternating_variability"
     },
     "method_id": "ASTM D1500",
     "stream_id": "demo-fuel_astm-colorscope-fuel-07-haze-index",

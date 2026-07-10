@@ -13,6 +13,23 @@ const API_BASE =
 const API_KEY_STORAGE = "bayesianqc_api_key";
 const AUTH_MODE = import.meta.env.VITE_AUTH_MODE || "api-key";
 
+export class ApiError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
+export type PageResult<T> = {
+  items: T[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
 export function usesEdgeAuth(): boolean {
   return AUTH_MODE === "edge-basic";
 }
@@ -48,6 +65,14 @@ async function request<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
+  const { data } = await requestWithResponse<T>(path, options);
+  return data;
+}
+
+async function requestWithResponse<T>(
+  path: string,
+  options: RequestInit = {}
+): Promise<{ data: T; response: Response }> {
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: buildHeaders(options.headers),
@@ -71,28 +96,46 @@ async function request<T>(
         // Keep raw text when it isn't JSON.
       }
     }
-    throw new Error(message || `Request failed with ${response.status}`);
+    throw new ApiError(message || `Request failed with ${response.status}`, response.status);
   }
   const contentType = response.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {
-    return response.json() as Promise<T>;
+    return { data: await response.json() as T, response };
   }
-  return response.text() as unknown as T;
+  return { data: await response.text() as unknown as T, response };
+}
+
+function positiveInteger(value: string | null, fallback: number): number {
+  if (value === null || value.trim() === "") {
+    return fallback;
+  }
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+async function getPage<T>(path: string): Promise<PageResult<T>> {
+  const { data, response } = await requestWithResponse<T[]>(path);
+  const url = new URL(path, "http://local.invalid");
+  const offset = positiveInteger(url.searchParams.get("offset"), 0);
+  const limit = positiveInteger(url.searchParams.get("limit"), data.length);
+  const total = positiveInteger(response.headers.get("X-Total-Count"), offset + data.length);
+  return { items: data, total, limit, offset };
 }
 
 export const api = {
   get: <T>(path: string) => request<T>(path),
+  getPage,
   post: <T>(path: string, body?: unknown, headers?: HeadersInit) =>
     request<T>(path, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...(headers || {}) },
-      body: body ? JSON.stringify(body) : undefined,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
     }),
   patch: <T>(path: string, body?: unknown, headers?: HeadersInit) =>
     request<T>(path, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", ...(headers || {}) },
-      body: body ? JSON.stringify(body) : undefined,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
     }),
   upload: <T>(path: string, formData: FormData, headers?: HeadersInit) =>
     request<T>(path, {

@@ -52,7 +52,8 @@ def test_demo_kiosk_generated_fixtures_are_current_and_balanced() -> None:
     assert len({tuple(pattern[:13]) for pattern in first_panel_patterns}) >= 10
     assert any(max(abs(value) for value in pattern) < 0.5 for pattern in first_panel_patterns)
     assert any("low Bayesian confidence" in comment for comment in comments)
-    assert any("R-4s precision failure" in comment for comment in comments)
+    assert any("alternating high/low variability" in comment for comment in comments)
+    assert not any("R-4s" in comment for comment in comments)
 
 
 def test_demo_kiosk_check_detects_generated_drift(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -118,18 +119,27 @@ def test_demo_kiosk_loader_seeds_actions_and_sentinel_chart() -> None:
 
 
 def test_demo_kiosk_routes_and_layouts_are_registered() -> None:
-    router_text = (ROOT / "frontend" / "src" / "router" / "index.ts").read_text(encoding="utf-8")
+    router_root = ROOT / "frontend" / "src" / "router"
+    router_text = "\n".join(
+        (router_root / name).read_text(encoding="utf-8")
+        for name in ("index.ts", "appRoutes.ts", "kioskRoutes.ts")
+    )
     layout_text = (ROOT / "frontend" / "src" / "components" / "AppLayout.vue").read_text(encoding="utf-8")
     panels_text = (ROOT / "frontend" / "src" / "pages" / "kioskPanels.ts").read_text(encoding="utf-8")
     kiosk_text = (ROOT / "frontend" / "src" / "pages" / "ChartKiosk.vue").read_text(encoding="utf-8")
-    chart_text = (ROOT / "frontend" / "src" / "pages" / "ChartView.vue").read_text(encoding="utf-8")
+    pages_root = ROOT / "frontend" / "src" / "pages"
+    chart_view_text = (pages_root / "ChartView.vue").read_text(encoding="utf-8")
+    chart_text = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in sorted([pages_root / "ChartView.vue", pages_root / "ChartPointDialog.vue", *pages_root.glob("chart*.ts")])
+    )
     comments_text = (ROOT / "frontend" / "src" / "components" / "QCCommentThread.vue").read_text(encoding="utf-8")
     axis_text = (ROOT / "frontend" / "src" / "pages" / "chartAxisOptions.ts").read_text(encoding="utf-8")
     tile_text = (ROOT / "frontend" / "src" / "pages" / "KioskChartTile.vue").read_text(encoding="utf-8")
     runtime_text = (ROOT / "frontend" / "src" / "pages" / "kioskRuntime.ts").read_text(encoding="utf-8")
     layouts = json.loads(LAYOUT_FILE.read_text(encoding="utf-8"))
     for route in ["/kiosk/demo", "/kiosk/fuel", "/kiosk/medical", "/kiosk/pharma", "/kiosk/steel"]:
-        assert f'path: "{route}"' in router_text
+        assert f'kioskRoute("{route}"' in router_text
         assert f'index="{route}"' in layout_text
     assert 'path: "kiosks"' in router_text
     assert 'index="/kiosks"' in layout_text
@@ -147,14 +157,14 @@ def test_demo_kiosk_routes_and_layouts_are_registered() -> None:
     assert "QC Point Detail" in chart_text
     assert 'appendTo: "body"' in chart_text
     assert "max-width: min(360px" in chart_text
-    assert "BAYESIAN_RISK_MEANING" not in chart_text
+    assert "BAYESIAN_RISK_MEANING" not in chart_view_text
     assert "P warn/action" in chart_text
     assert "formatBrokenAxisTick" in axis_text
     assert "buildBrokenOutlierYAxis" in chart_text
     assert "showTimelineMarkerLabels" in chart_text
     assert 'boundaryGap: ["4%", "4%"]' in chart_text
-    assert 'right: isKiosk.value ? "5%" : "12%"' in chart_text
+    assert 'right: isKiosk ? "6%" : "8%"' in chart_text
     assert "Comments are unavailable from the current API." in comments_text
-    assert "showSymbol: isKiosk.value" in chart_text
+    assert "showSymbol: isKiosk" in chart_text
     assert 'queryValue(value) === "single"' in runtime_text
     assert "return 6" in runtime_text

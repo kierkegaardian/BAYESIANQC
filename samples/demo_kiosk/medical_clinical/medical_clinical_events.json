@@ -402,8 +402,8 @@
     "metadata": {
       "family": "medical_clinical",
       "fixture": "demo-kiosk",
-      "note": "precision failure review",
-      "scenario": "r4s_precision"
+      "note": "alternating variability review",
+      "scenario": "alternating_variability"
     },
     "method_id": "CBC",
     "stream_id": "demo-medical_clinical-hemeflow-xn-20-hemoglobin",
@@ -894,8 +894,8 @@
     "metadata": {
       "family": "medical_clinical",
       "fixture": "demo-kiosk",
-      "note": "precision failure review",
-      "scenario": "r4s_precision"
+      "note": "alternating variability review",
+      "scenario": "alternating_variability"
     },
     "method_id": "Urinalysis",
     "stream_id": "demo-medical_clinical-uriscan-u500-specific-gravity",

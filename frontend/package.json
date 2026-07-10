@@ -7,21 +7,34 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "vue-tsc --noEmit",
     "check": "npm run typecheck && npm run build",
     "gen:api": "../.venv/bin/python ../scripts/generate_openapi_json.py --out ../openapi.json && openapi-typescript ../openapi.json -o src/api/schema.ts"
   },
   "dependencies": {
-    "echarts": "^5.5.0",
-    "element-plus": "^2.7.8",
+    "echarts": "6.1.0",
+    "element-plus": "2.14.2",
     "vue": "^3.4.34",
     "vue-router": "^4.4.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^5.1.2",
-    "openapi-typescript": "^7.6.1",
+    "@vitejs/plugin-vue": "6.0.7",
+    "@vue/test-utils": "2.4.11",
+    "happy-dom": "20.10.6",
+    "openapi-typescript": "7.13.0",
     "typescript": "^5.5.4",
-    "vite": "^5.4.11",
+    "vite": "8.1.4",
+    "vitest": "4.1.10",
     "vue-tsc": "^2.0.28"
+  },
+  "overrides": {
+    "fast-uri": "3.1.2",
+    "js-yaml": "4.3.0",
+    "minimatch@^5": "5.1.8",
+    "minimatch@^9": "9.0.7",
+    "lodash": "4.18.1",
+    "postcss": "8.5.16"
   }
 }

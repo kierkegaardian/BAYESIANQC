@@ -1,0 +1,37 @@
+.chart-toolbar { margin-bottom: 16px; }
+.stream-select { max-width: 260px; width: 100%; }
+.chart-error { margin-bottom: 12px; }
+.chart-panel-header {
+  align-items: center;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin: -4px 0 12px;
+  min-width: 0;
+  padding-bottom: 12px;
+}
+.chart-panel-header h3 { font-size: 18px; line-height: 1.2; margin: 0 0 4px; }
+.chart-card { margin-bottom: 16px; }
+.chart-card:last-child { margin-bottom: 0; }
+.chart-page--kiosk { background: #111827; height: 100%; padding: 0; }
+.chart-card--kiosk { border: none; border-radius: 0; }
+.chart-card--kiosk :deep(.el-card__body) { padding: 8px 12px; }
+.risk-rail { border-top: 1px solid #e5e7eb; margin-top: 8px; padding-top: 8px; }
+.risk-rail-header {
+  align-items: center;
+  color: #475569;
+  display: flex;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+.risk-rail-header span:last-child { color: #64748b; font-weight: 500; text-align: right; }
+.risk-rail--standalone { border-top: 0; margin-top: 0; padding-top: 0; }
+.risk-rail--kiosk { border-color: #334155; }
+@media (max-width: 760px) {
+  .chart-panel-header, .risk-rail-header { align-items: stretch; flex-direction: column; }
+  .risk-rail-header span:last-child { text-align: left; }
+}

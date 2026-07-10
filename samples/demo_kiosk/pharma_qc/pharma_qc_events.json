@@ -402,8 +402,8 @@
     "metadata": {
       "family": "pharma_qc",
       "fixture": "demo-kiosk",
-      "note": "precision failure review",
-      "scenario": "r4s_precision"
+      "note": "alternating variability review",
+      "scenario": "alternating_variability"
     },
     "method_id": "Dissolution",
     "stream_id": "demo-pharma_qc-dissolution-dt-03-dissolution-30-min",
@@ -894,8 +894,8 @@
     "metadata": {
       "family": "pharma_qc",
       "fixture": "demo-kiosk",
-      "note": "precision failure review",
-      "scenario": "r4s_precision"
+      "note": "alternating variability review",
+      "scenario": "alternating_variability"
     },
     "method_id": "TOC",
     "stream_id": "demo-pharma_qc-toc-clean-07-toc-rinse",

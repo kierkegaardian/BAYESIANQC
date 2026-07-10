@@ -27,13 +27,20 @@ export function formatBrokenAxisTick(value: string | number): string {
   });
 }
 
+export const formatChartAxisTick = formatBrokenAxisTick;
+
 export function buildBrokenOutlierYAxis(
   range: BrokenAxisRange | null | undefined,
-  isKiosk: boolean
+  isKiosk: boolean,
+  isTileKiosk = false
 ): echarts.YAXisComponentOption {
   return {
     type: "value",
-    name: "",
+    name: isTileKiosk ? "Outlier panel" : isKiosk ? "Axis break · outliers" : "Outlier panel (axis break)",
+    nameLocation: isTileKiosk ? "end" : "middle",
+    nameRotate: isTileKiosk ? 0 : 90,
+    nameGap: isTileKiosk ? 3 : 38,
+    nameTextStyle: isTileKiosk ? { fontSize: 9, align: "left" } : undefined,
     min: range?.min,
     max: range?.max,
     splitNumber: isKiosk ? 2 : 3,
@@ -51,7 +58,9 @@ export function buildBrokenMainYAxis(
 ): echarts.YAXisComponentOption {
   return {
     ...yAxis,
-    name: "",
+    name: isKiosk ? "Control range" : "Control range (axis break)",
+    nameLocation: "middle",
+    nameGap: 42,
     splitNumber: isKiosk ? 3 : 4,
     axisLabel: {
       hideOverlap: true,

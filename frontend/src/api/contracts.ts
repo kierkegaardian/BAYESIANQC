@@ -95,6 +95,7 @@ export type StreamChartOutEvaluated = StreamChartOut & {
   records: QCRecordChartOutEvaluated[];
   alerts: AlertOutWithQc[];
 };
+export type StreamCatalogOut = components["schemas"]["StreamCatalogOut"];
 export type StreamConfigIn = components["schemas"]["StreamConfigIn"];
 export type StreamConfigOut = components["schemas"]["StreamConfigOut"];
 export type StreamSetupApplyOut = components["schemas"]["StreamSetupApplyOut"];
