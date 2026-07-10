@@ -237,5 +237,5 @@ def quarantine_ingestion(
         user.api_key_id,
         commit=False,
     )
-    session.commit()
+    session.flush()
     return result

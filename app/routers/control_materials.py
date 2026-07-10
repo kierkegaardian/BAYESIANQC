@@ -8,7 +8,7 @@ from sqlmodel import Session, col, select
 from app.db import get_session
 from app.db_models import ControlMaterial
 from app.models import Permission
-from app.rbac import UserContext, require_permission
+from app.rbac import UserContext, require_operator_read, require_permission
 from app.services.stream_setup_assets import control_material_out
 from app.storage import record_audit
 from app.stream_setup_models import ControlMaterialIn, ControlMaterialOut
@@ -19,7 +19,7 @@ router = APIRouter(prefix="/control-materials", tags=["control-materials"])
 @router.get("", response_model=list[ControlMaterialOut])
 def list_control_materials(
     active: Optional[bool] = None,
-    user: UserContext = Depends(require_permission(Permission.READ)),
+    user: UserContext = Depends(require_operator_read),
     session: Session = Depends(get_session),
 ) -> list[ControlMaterialOut]:
     del user

@@ -25,6 +25,7 @@ class AlertSummary(BaseModel):
     total: int = Field(ge=0)
     open: int = Field(ge=0)
     acknowledged: int = Field(ge=0)
+    closed: int = Field(default=0, ge=0)
 
 
 class InvestigationSummary(BaseModel):

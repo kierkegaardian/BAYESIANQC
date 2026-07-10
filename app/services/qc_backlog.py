@@ -270,4 +270,4 @@ def note_backlog_quarantine(session: Session, item_id: int, quarantine_id: int, 
         reason="QC run attempt was quarantined",
         commit=False,
     )
-    session.commit()
+    session.flush()

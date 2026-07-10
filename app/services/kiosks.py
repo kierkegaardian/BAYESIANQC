@@ -64,7 +64,7 @@ def get_kiosk(session: Session, slug: str) -> KioskLayout:
 def ensure_stream_exists(session: Session, stream_id: str) -> None:
     exists = session.exec(select(StreamConfig.stream_id).where(StreamConfig.stream_id == stream_id).limit(1)).first()
     if exists is None:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Stream is not configured")
+        raise HTTPException(status_code=422, detail="Stream is not configured")
 
 
 def create_kiosk(session: Session, payload: KioskLayoutIn, user: UserContext) -> KioskLayoutOut:

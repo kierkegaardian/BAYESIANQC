@@ -4,6 +4,7 @@ import argparse
 import json
 import math
 import os
+import sys
 from collections.abc import Sequence
 from contextlib import contextmanager
 from pathlib import Path
@@ -16,12 +17,14 @@ from sqlalchemy import create_engine, func, inspect, text
 from sqlalchemy.engine import Engine
 from sqlmodel import SQLModel, Session, col, select
 
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
 import app.db_models  # noqa: F401
 from app.bayesian import _update_posterior
 from app.db_models import PosteriorState, PriorConfig, QCRecord
 from app.timeutils import as_utc
 
-ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_POSTGRES_URL = "postgresql+psycopg://bayesianqc:bayesianqc@127.0.0.1:54329/bayesianqc"
 _POSTERIOR_TOLERANCE = 1e-9
 _DISPOSABLE_TARGET_MARKERS = ("disposable", "rehearsal", "test")

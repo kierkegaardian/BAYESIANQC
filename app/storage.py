@@ -12,14 +12,10 @@ from app.db_models import (
     ApiKey,
     Analyte,
     AuditEntry,
-    Capa,
-    CapaLink,
     DEFAULT_RULE_SET,
     EnterpriseSite,
     IngestionReceipt,
     Instrument,
-    Investigation,
-    InvestigationAlertLink,
     Method,
     PriorConfig,
     QCEvent,
@@ -38,6 +34,9 @@ from app.stats import sample_mean_sd
 
 def utcnow() -> datetime:
     return datetime.now(timezone.utc)
+
+
+_SEED_EFFECTIVE_FROM = datetime(2020, 1, 1, tzinfo=timezone.utc)
 
 
 def _seed_local_dev_key_enabled() -> bool:
@@ -134,6 +133,7 @@ def seed_defaults(session: Session) -> None:
             bayes_warn_consecutive=1,
             bayes_hold_prob_threshold=0.8,
             bayes_hold_consecutive=2,
+            effective_from=_SEED_EFFECTIVE_FROM,
             created_by="seed",
         )
         session.add(stream)
@@ -147,6 +147,7 @@ def seed_defaults(session: Session) -> None:
             kappa0=1.0,
             alpha0=2.0,
             beta0=0.25**2,
+            effective_from=_SEED_EFFECTIVE_FROM,
             created_by="seed",
         )
         session.add(prior)
@@ -244,17 +245,10 @@ def create_stream_config(
 
 
 def get_active_stream_config(session: Session, stream_id: str, at_time: datetime) -> Optional[StreamConfig]:
-    config = session.exec(
+    return session.exec(
         select(StreamConfig)
         .where(StreamConfig.stream_id == stream_id, StreamConfig.effective_from <= at_time)
         .order_by(col(StreamConfig.effective_from).desc(), col(StreamConfig.version).desc())
-    ).first()
-    if config:
-        return config
-    return session.exec(
-        select(StreamConfig)
-        .where(StreamConfig.stream_id == stream_id)
-        .order_by(col(StreamConfig.effective_from).asc(), col(StreamConfig.version).asc())
     ).first()
 
 
@@ -276,6 +270,8 @@ def create_prior_config(
     *,
     commit: bool = True,
 ) -> PriorConfig:
+    if payload.beta0 is None:
+        raise ValueError("beta0 must be derived before persisting a prior")
     current_version = session.exec(
         select(PriorConfig.version)
         .where(PriorConfig.stream_id == stream_id)
@@ -302,17 +298,10 @@ def create_prior_config(
 
 
 def get_active_prior(session: Session, stream_id: str, at_time: datetime) -> Optional[PriorConfig]:
-    prior = session.exec(
+    return session.exec(
         select(PriorConfig)
         .where(PriorConfig.stream_id == stream_id, PriorConfig.effective_from <= at_time)
         .order_by(col(PriorConfig.effective_from).desc(), col(PriorConfig.version).desc())
-    ).first()
-    if prior:
-        return prior
-    return session.exec(
-        select(PriorConfig)
-        .where(PriorConfig.stream_id == stream_id)
-        .order_by(col(PriorConfig.effective_from).asc(), col(PriorConfig.version).asc())
     ).first()
 
 
@@ -378,7 +367,7 @@ def store_receipt(
     stream_id: Optional[str],
     api_key_id: Optional[int],
     *,
-    commit: bool = True,
+    commit: bool = False,
 ) -> None:
     if not key:
         return
@@ -390,10 +379,7 @@ def store_receipt(
         api_key_id=api_key_id,
     )
     session.add(receipt)
-    if commit:
-        session.commit()
-    else:
-        session.flush()
+    session.flush()
 
 
 def record_audit(
@@ -408,7 +394,7 @@ def record_audit(
     *,
     actor_role: Optional[Role] = None,
     api_key_id: Optional[int] = None,
-    commit: bool = True,
+    commit: bool = False,
 ) -> AuditEntry:
     if actor_role is None:
         role_value = actor.split(":key-", 1)[0]
@@ -432,73 +418,20 @@ def record_audit(
         reason=reason,
     )
     session.add(entry)
-    if commit:
-        session.commit()
-    else:
-        session.flush()
+    session.flush()
     session.refresh(entry)
     return entry
 
 
 def create_event(session: Session, event: QCEvent) -> QCEvent:
     session.add(event)
-    session.commit()
+    session.flush()
     session.refresh(event)
     return event
 
 
-def create_alert(session: Session, alert: AlertRecord, *, commit: bool = True) -> AlertRecord:
+def create_alert(session: Session, alert: AlertRecord) -> AlertRecord:
     session.add(alert)
-    if commit:
-        session.commit()
-    else:
-        session.flush()
+    session.flush()
     session.refresh(alert)
     return alert
-
-
-def update_alert(session: Session, alert: AlertRecord) -> AlertRecord:
-    session.add(alert)
-    session.commit()
-    session.refresh(alert)
-    return alert
-
-
-def create_investigation(session: Session, investigation: Investigation, alert_id: Optional[int]) -> Investigation:
-    session.add(investigation)
-    session.commit()
-    session.refresh(investigation)
-    if alert_id is not None:
-        if investigation.id is None:
-            raise RuntimeError("Investigation missing id")
-        session.add(InvestigationAlertLink(investigation_id=investigation.id, alert_id=alert_id))
-        session.commit()
-    return investigation
-
-
-def update_investigation(session: Session, investigation: Investigation) -> Investigation:
-    investigation.updated_at = utcnow()
-    session.add(investigation)
-    session.commit()
-    session.refresh(investigation)
-    return investigation
-
-
-def create_capa(session: Session, capa: Capa, alert_id: Optional[int], investigation_id: Optional[int]) -> Capa:
-    session.add(capa)
-    session.commit()
-    session.refresh(capa)
-    if alert_id is not None or investigation_id is not None:
-        if capa.id is None:
-            raise RuntimeError("CAPA missing id")
-        session.add(CapaLink(capa_id=capa.id, alert_id=alert_id, investigation_id=investigation_id))
-        session.commit()
-    return capa
-
-
-def update_capa(session: Session, capa: Capa) -> Capa:
-    capa.updated_at = utcnow()
-    session.add(capa)
-    session.commit()
-    session.refresh(capa)
-    return capa

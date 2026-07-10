@@ -8,7 +8,7 @@ from sqlmodel import Session, select
 from app.db import get_session
 from app.db_models import EnterpriseSite, LabArea
 from app.models import EnterpriseSiteIn, EnterpriseSiteOut, EnterpriseSiteUpdate, LabAreaIn, LabAreaOut, LabAreaUpdate, Permission
-from app.rbac import UserContext, require_permission
+from app.rbac import UserContext, require_operator_read, require_permission
 from app.services.locations import (
     accessible_lab_areas,
     accessible_sites,
@@ -37,7 +37,7 @@ def _site_code_conflict(session: Session, code: Optional[str], *, exclude_id: Op
 @router.get("/enterprise-sites", response_model=list[EnterpriseSiteOut])
 def list_enterprise_sites(
     active: Optional[bool] = None,
-    user: UserContext = Depends(require_permission(Permission.READ)),
+    user: UserContext = Depends(require_operator_read),
     session: Session = Depends(get_session),
 ) -> list[EnterpriseSiteOut]:
     return [site_out(row) for row in accessible_sites(session, user, active=active)]
@@ -120,7 +120,7 @@ def update_enterprise_site(
 def list_lab_areas(
     site_id: Optional[int] = None,
     active: Optional[bool] = None,
-    user: UserContext = Depends(require_permission(Permission.READ)),
+    user: UserContext = Depends(require_operator_read),
     session: Session = Depends(get_session),
 ) -> list[LabAreaOut]:
     return [lab_area_out(session, row) for row in accessible_lab_areas(session, user, site_id=site_id, active=active)]

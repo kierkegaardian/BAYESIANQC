@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 from sqlmodel import Session, col, select
 
 from app.db_models import ControlMaterial, KioskLayout, KioskPanel, PriorConfig, StreamConfig
+from app.math.nig import beta_from_expected_sigma, validate_nig_parameters
 from app.models import PriorConfigIn, PriorConfigOut, StreamConfigIn, StreamConfigOut
 from app.rbac import UserContext
 from app.services.kiosks import kiosk_layout_out
@@ -89,12 +90,25 @@ def _stream_payload(setup: StreamSetupIn, material_id: int | None) -> StreamConf
 
 
 def _prior_payload(setup: StreamSetupIn) -> PriorConfigIn:
+    mu0 = setup.prior_mu0 if setup.prior_mu0 is not None else setup.target_value
+    beta0 = (
+        setup.prior_beta0
+        if setup.prior_beta0 is not None
+        else beta_from_expected_sigma(setup.prior_alpha0, setup.sigma)
+    )
+    mu0, kappa0, alpha0, beta0 = validate_nig_parameters(
+        mu0,
+        setup.prior_kappa0,
+        setup.prior_alpha0,
+        beta0,
+        require_finite_variance_mean=True,
+    )
     return PriorConfigIn(
         stream_id=setup.stream_id,
-        mu0=setup.prior_mu0 if setup.prior_mu0 is not None else setup.target_value,
-        kappa0=setup.prior_kappa0,
-        alpha0=setup.prior_alpha0,
-        beta0=setup.prior_beta0 if setup.prior_beta0 is not None else setup.sigma**2,
+        mu0=mu0,
+        kappa0=kappa0,
+        alpha0=alpha0,
+        beta0=beta0,
         effective_from=setup.prior_effective_from or setup.effective_from,
     )
 
@@ -263,7 +277,7 @@ def apply_stream_setups(session: Session, payload: StreamSetupBatchIn, user: Use
     preview = preview_stream_setups(session, payload, user)
     invalid = [row for row in preview.rows if not row.valid]
     if invalid:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=[row.model_dump() for row in invalid])
+        raise HTTPException(status_code=422, detail=[row.model_dump() for row in invalid])
     applied: list[StreamSetupApplyRow] = []
     try:
         for row_number, setup in enumerate(payload.rows, start=1):

@@ -2,14 +2,25 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from typing import Optional
+from datetime import datetime, timezone
+from typing import Any, Optional
 
 from fastapi import HTTPException
-from sqlalchemy import and_, false, or_
+from sqlalchemy import and_, false, or_, true
 from sqlalchemy.sql.elements import ColumnElement
 from sqlmodel import Session, col, select
 
-from app.db_models import AccessGrant, AlertRecord, KioskLayout, KioskPanel, QCBacklogItem, QCRecord, StreamConfig
+from app.db_models import (
+    AccessGrant,
+    AlertRecord,
+    Capa,
+    Investigation,
+    KioskLayout,
+    KioskPanel,
+    QCBacklogItem,
+    QCRecord,
+    StreamConfig,
+)
 from app.models import EffectiveScopeOut, Role
 from app.rbac import UserContext
 
@@ -129,7 +140,10 @@ def backlog_scope_predicate(scope: AccessScope) -> ColumnElement[bool]:
 def _latest_stream_context(session: Session, stream_id: str) -> tuple[Optional[str], Optional[str]] | None:
     row = session.exec(
         select(StreamConfig)
-        .where(StreamConfig.stream_id == stream_id)
+        .where(
+            StreamConfig.stream_id == stream_id,
+            StreamConfig.effective_from <= datetime.now(timezone.utc),
+        )
         .order_by(col(StreamConfig.effective_from).desc(), col(StreamConfig.version).desc())
         .limit(1)
     ).first()
@@ -208,6 +222,56 @@ def require_alert_access(session: Session, user: UserContext, alert_id: str, *, 
         raise HTTPException(status_code=404, detail="Alert not found")
     require_stream_access(session, user, alert.stream_id, hide=hide)
     return alert
+
+
+def stream_id_scope_predicate(
+    session: Session,
+    user: UserContext,
+    stream_column: Any,
+) -> ColumnElement[bool]:
+    """Build a SQL predicate for a table whose scope is represented by stream_id."""
+    scope = effective_scope(session, user)
+    if scope.unrestricted:
+        return true()
+    allowed_streams = select(StreamConfig.stream_id).where(stream_scope_predicate(scope)).distinct()
+    return stream_column.in_(allowed_streams)
+
+
+def workflow_stream_scope_predicate(
+    session: Session,
+    user: UserContext,
+    stream_column: Any,
+) -> ColumnElement[bool]:
+    """Scope workflow rows while reserving unlinked legacy rows for admins."""
+    scope = effective_scope(session, user)
+    scoped = stream_id_scope_predicate(session, user, stream_column)
+    if user.role == Role.ADMIN and scope.unrestricted:
+        return or_(stream_column.is_(None), scoped)
+    return and_(stream_column.is_not(None), scoped)
+
+
+def workflow_stream_is_accessible(session: Session, user: UserContext, stream_id: Optional[str]) -> bool:
+    if stream_id is None:
+        return user.role == Role.ADMIN and effective_scope(session, user).unrestricted
+    return stream_is_accessible(session, user, stream_id)
+
+
+def require_investigation_access(
+    session: Session,
+    user: UserContext,
+    investigation_id: int,
+) -> Investigation:
+    investigation = session.exec(select(Investigation).where(Investigation.id == investigation_id)).first()
+    if investigation is None or not workflow_stream_is_accessible(session, user, investigation.stream_id):
+        raise HTTPException(status_code=404, detail="Investigation not found")
+    return investigation
+
+
+def require_capa_access(session: Session, user: UserContext, capa_id: int) -> Capa:
+    capa = session.exec(select(Capa).where(Capa.id == capa_id)).first()
+    if capa is None or not workflow_stream_is_accessible(session, user, capa.stream_id):
+        raise HTTPException(status_code=404, detail="CAPA not found")
+    return capa
 
 
 def require_comment_target_access(

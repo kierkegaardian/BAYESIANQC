@@ -5,7 +5,7 @@ from sqlmodel import Session
 
 from app.db import get_session
 from app.models import Permission
-from app.rbac import UserContext, require_permission
+from app.rbac import UserContext, require_operator_read, require_permission
 from app.services.stream_setup_workbook import parse_workbook, workbook_template_bytes
 from app.services.stream_setups import apply_stream_setups, preview_stream_setups
 from app.stream_setup_models import StreamSetupApplyOut, StreamSetupBatchIn, StreamSetupPreviewOut
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/stream-setups", tags=["stream-setups"])
 @router.post("/preview", response_model=StreamSetupPreviewOut)
 def preview_datastream_setup(
     payload: StreamSetupBatchIn,
-    user: UserContext = Depends(require_permission(Permission.READ)),
+    user: UserContext = Depends(require_operator_read),
     session: Session = Depends(get_session),
 ) -> StreamSetupPreviewOut:
     return preview_stream_setups(session, payload, user)
@@ -33,7 +33,7 @@ def apply_datastream_setup(
 
 @router.get("/template.xlsx")
 def download_datastream_template(
-    user: UserContext = Depends(require_permission(Permission.READ)),
+    user: UserContext = Depends(require_operator_read),
 ) -> Response:
     del user
     return Response(
@@ -46,7 +46,7 @@ def download_datastream_template(
 @router.post("/import/preview", response_model=StreamSetupPreviewOut)
 async def preview_datastream_import(
     file: UploadFile = File(...),
-    user: UserContext = Depends(require_permission(Permission.READ)),
+    user: UserContext = Depends(require_operator_read),
     session: Session = Depends(get_session),
 ) -> StreamSetupPreviewOut:
     if not file.filename or not file.filename.lower().endswith(".xlsx"):

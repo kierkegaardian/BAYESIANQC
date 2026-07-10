@@ -12,32 +12,17 @@ from typing import Any, NoReturn, Optional
 from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, Response, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, col, select
 
-from app.api_models import (
-    AlertSummary,
-    CapaSummary,
-    CsvIngestResult,
-    CsvRowError,
-    InvestigationSummary,
-    LotSegmentOut,
-    QCRecordChartOut,
-    ReportSummaryOut,
-    StreamChartOut,
-)
+from app.api_models import CsvIngestResult, CsvRowError, LotSegmentOut, QCRecordChartOut, StreamChartOut
 from app.db import get_engine, get_session, init_db
 from app.db_models import (
     AlertRecord,
     Analyte,
-    AuditEntry,
-    Capa,
-    CapaLink,
     Instrument,
-    Investigation,
-    InvestigationAlertLink,
     Method,
     PriorConfig,
     QCEvent,
@@ -46,28 +31,20 @@ from app.db_models import (
     StreamConfig,
 )
 from app.domain import Disposition
+from app.error_handlers import install_error_handlers
 from app.evaluations import reprocess_stream_evaluations
+from app.math.nig import beta_from_expected_sigma
 from app.models import (
     AnalyteIn,
     AnalyteOut,
     AnalyteUpdate,
-    AlertOut,
-    AlertStatus,
-    AlertUpdate,
-    AuditEntryOut,
     BayesianRisk,
-    CapaIn,
-    CapaOut,
-    CapaStatus,
     CurrentUserOut,
     EventType,
     IngestionResult,
     InstrumentIn,
     InstrumentOut,
     InstrumentUpdate,
-    InvestigationIn,
-    InvestigationOut,
-    InvestigationStatus,
     MethodIn,
     MethodOut,
     MethodUpdate,
@@ -87,44 +64,42 @@ from app.models import (
     StreamConfigIn,
     StreamConfigOut,
 )
-from app.rbac import ROLE_PERMISSIONS, UserContext, require_permission
+from app.rbac import ROLE_PERMISSIONS, UserContext, require_operator_read, require_permission
 from app.routers.control_materials import router as control_materials_router
+from app.routers.health import router as health_router
 from app.routers.imports import router as imports_router
 from app.routers.kiosks import router as kiosks_router
 from app.routers.locations import router as locations_router
 from app.routers.qc_backlog import router as qc_backlog_router
 from app.routers.qc_comments import router as qc_comments_router
 from app.routers.stream_setups import router as stream_setups_router
+from app.routers.stream_catalog import router as stream_catalog_router
 from app.routers.tests import router as tests_router
-from app.services.ingestion import audit_out as _audit_out
-from app.services.ingestion import alert_out as _alert_out
+from app.routers.workflow_reporting import router as workflow_reporting_router
+from app.routers.workflows import router as workflows_router
 from app.services.ingestion import process_ingestion
+from app.services.ingestion_support import alert_out as _alert_out
 from app.services.access_scopes import (
     effective_scope,
-    require_alert_access,
     require_record_access,
     require_stream_access,
     require_stream_context_access,
     scope_summary_for_me,
-    stream_is_accessible,
     stream_context_is_accessible,
+    stream_id_scope_predicate,
     stream_scope_predicate,
 )
 from app.services.locations import area_is_allowed, get_lab_area, get_site
 from app.services.locks import stream_write_lock
 from app.services.quarantine import quarantine_out
 from app.storage import (
-    create_capa,
     create_event,
-    create_investigation,
     create_prior_config,
     create_stream_config,
+    get_active_stream_config,
     list_stream_configs,
     record_audit,
     seed_defaults,
-    update_alert,
-    update_capa,
-    update_investigation,
 )
 
 
@@ -136,7 +111,15 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     yield
 
 
-app = FastAPI(title="Bayesian QC Prototype", version="0.2.0", docs_url=None, redoc_url=None, lifespan=lifespan)
+app = FastAPI(
+    title="Bayesian QC Prototype",
+    version="0.2.0",
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
+    lifespan=lifespan,
+)
+install_error_handlers(app)
 
 cors_origins = [
     origin.strip()
@@ -160,15 +143,20 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Total-Count"],
 )
 app.include_router(control_materials_router)
+app.include_router(health_router)
 app.include_router(imports_router)
 app.include_router(kiosks_router)
 app.include_router(locations_router)
 app.include_router(qc_backlog_router)
 app.include_router(qc_comments_router)
 app.include_router(stream_setups_router)
+app.include_router(stream_catalog_router)
 app.include_router(tests_router)
+app.include_router(workflows_router)
+app.include_router(workflow_reporting_router)
 
 
 def _help_button(content: str) -> str:
@@ -237,7 +225,7 @@ def _inject_help(html: str, content: str) -> str:
 
 
 @app.get("/", include_in_schema=False)
-async def root_page():
+async def root_page(_: UserContext = Depends(require_operator_read)):
     content = (
         "This is the BayesianQC API landing page. Use the links below to open the "
         "interactive docs and remember to send an X-API-Key header. Local demos can seed local-dev-key "
@@ -266,35 +254,36 @@ async def root_page():
 
 
 @app.get("/docs", include_in_schema=False)
-async def custom_docs():
+async def custom_docs(_: UserContext = Depends(require_operator_read)):
     content = (
         "Use Swagger UI to explore endpoints and send requests. Click a route, choose "
         "'Try it out', and add the X-API-Key header before executing."
     )
-    openapi_url = app.openapi_url
-    if openapi_url is None:
-        raise RuntimeError("OpenAPI URL is not configured")
     html = get_swagger_ui_html(
-        openapi_url=openapi_url,
+        openapi_url="/openapi.json",
         title="BayesianQC API Docs",
-    ).body.decode("utf-8")
-    return HTMLResponse(_inject_help(html, content))
+    )
+    body = bytes(html.body).decode("utf-8")
+    return HTMLResponse(_inject_help(body, content))
 
 
 @app.get("/redoc", include_in_schema=False)
-async def custom_redoc():
+async def custom_redoc(_: UserContext = Depends(require_operator_read)):
     content = (
         "Use this page for read-only reference of schemas, endpoints, and models. "
         "All API calls still require X-API-Key when sent from your client."
     )
-    openapi_url = app.openapi_url
-    if openapi_url is None:
-        raise RuntimeError("OpenAPI URL is not configured")
     html = get_redoc_html(
-        openapi_url=openapi_url,
+        openapi_url="/openapi.json",
         title="BayesianQC API Reference",
-    ).body.decode("utf-8")
-    return HTMLResponse(_inject_help(html, content))
+    )
+    body = bytes(html.body).decode("utf-8")
+    return HTMLResponse(_inject_help(body, content))
+
+
+@app.get("/openapi.json", include_in_schema=False)
+async def custom_openapi(_: UserContext = Depends(require_operator_read)) -> JSONResponse:
+    return JSONResponse(app.openapi())
 
 
 @app.get("/me", response_model=CurrentUserOut)
@@ -427,82 +416,6 @@ def _qc_record_resolution_out(record: QCRecord) -> QCRecordResolutionOut:
     )
 
 
-def _investigation_out(investigation: Investigation, alert_id: Optional[str] = None) -> InvestigationOut:
-    if investigation.id is None:
-        raise RuntimeError("Investigation missing id")
-    return InvestigationOut(
-        id=investigation.id,
-        status=investigation.status,
-        problem_statement=investigation.problem_statement,
-        suspected_cause=investigation.suspected_cause,
-        containment=investigation.containment,
-        data_reviewed=investigation.data_reviewed,
-        outcome=investigation.outcome,
-        decision=investigation.decision,
-        created_at=investigation.created_at,
-        updated_at=investigation.updated_at,
-        created_by=investigation.created_by,
-        alert_id=alert_id,
-    )
-
-
-def _capa_out(capa: Capa, alert_id: Optional[str] = None, investigation_id: Optional[int] = None) -> CapaOut:
-    if capa.id is None:
-        raise RuntimeError("CAPA missing id")
-    return CapaOut(
-        id=capa.id,
-        status=capa.status,
-        root_cause_category=capa.root_cause_category,
-        corrective_actions=capa.corrective_actions,
-        preventive_actions=capa.preventive_actions,
-        owners=capa.owners,
-        due_at=capa.due_at,
-        verification_plan=capa.verification_plan,
-        effectiveness_criteria=capa.effectiveness_criteria,
-        created_at=capa.created_at,
-        updated_at=capa.updated_at,
-        created_by=capa.created_by,
-        alert_id=alert_id,
-        investigation_id=investigation_id,
-    )
-
-
-def _investigation_alert_id(session: Session, investigation_id: int) -> Optional[str]:
-    link = session.exec(
-        select(InvestigationAlertLink).where(InvestigationAlertLink.investigation_id == investigation_id)
-    ).first()
-    if not link:
-        return None
-    alert = session.exec(select(AlertRecord).where(AlertRecord.id == link.alert_id)).first()
-    return alert.alert_id if alert else None
-
-
-def _capa_links(session: Session, capa_id: int) -> tuple[Optional[str], Optional[int]]:
-    link = session.exec(select(CapaLink).where(CapaLink.capa_id == capa_id)).first()
-    if not link:
-        return None, None
-    alert_id = None
-    if link.alert_id:
-        alert = session.exec(select(AlertRecord).where(AlertRecord.id == link.alert_id)).first()
-        alert_id = alert.alert_id if alert else None
-    return alert_id, link.investigation_id
-
-
-def validate_capa_fields(payload: CapaIn) -> None:
-    if payload.root_cause_category is None:
-        raise HTTPException(status_code=422, detail="root_cause_category is required for CAPA approval")
-    if not payload.corrective_actions:
-        raise HTTPException(status_code=422, detail="corrective_actions are required for CAPA approval")
-    if not payload.preventive_actions:
-        raise HTTPException(status_code=422, detail="preventive_actions are required for CAPA approval")
-    if not payload.owners:
-        raise HTTPException(status_code=422, detail="owners are required for CAPA approval")
-    if payload.due_at is None:
-        raise HTTPException(status_code=422, detail="due_at is required for CAPA approval")
-    if payload.verification_plan is None:
-        raise HTTPException(status_code=422, detail="verification_plan is required for CAPA approval")
-
-
 def require_reason(value: Optional[str], detail: str) -> str:
     reason = value.strip() if value else ""
     if not reason:
@@ -523,11 +436,14 @@ def list_qc_quarantine(
 ) -> list[QCRecordQuarantineOut]:
     query = (
         select(QCRecordQuarantine)
-        .where(QCRecordQuarantine.status == status_filter)
+        .where(
+            QCRecordQuarantine.status == status_filter,
+            stream_id_scope_predicate(session, user, col(QCRecordQuarantine.stream_id)),
+        )
         .order_by(col(QCRecordQuarantine.created_at).desc())
         .limit(limit)
     )
-    rows = [row for row in session.exec(query).all() if stream_is_accessible(session, user, row.stream_id)]
+    rows = session.exec(query).all()
     return [quarantine_out(row) for row in rows]
 
 
@@ -615,7 +531,7 @@ def ingest_qc_records_csv(
 def resolve_qc_record(
     record_id: int,
     payload: QCRecordResolutionIn,
-    user: UserContext = Depends(require_permission(Permission.APPROVE)),
+    user: UserContext = Depends(require_permission(Permission.RESOLVE_QC)),
     session: Session = Depends(get_session),
 ):
     record = require_record_access(session, user, record_id)
@@ -652,7 +568,14 @@ def resolve_qc_record(
                 reason=reason,
                 commit=False,
             )
-            reprocess_stream_evaluations(session, record.stream_id, commit=False)
+            reprocess_stream_evaluations(
+                session,
+                record.stream_id,
+                commit=False,
+                actor=user.actor,
+                actor_role=user.role,
+                api_key_id=user.api_key_id,
+            )
             session.commit()
             session.refresh(record)
             return _qc_record_resolution_out(record)
@@ -668,7 +591,7 @@ def list_instruments(
     lab_area_id: Optional[int] = None,
     site: Optional[str] = None,
     lab_bench: Optional[str] = None,
-    user: UserContext = Depends(require_permission(Permission.READ)),
+    user: UserContext = Depends(require_operator_read),
     session: Session = Depends(get_session),
 ):
     query = select(Instrument).order_by(col(Instrument.name).asc())
@@ -701,8 +624,7 @@ def create_instrument(
     _require_instrument_context_access(session, user, data)
     instrument = Instrument(**data, created_by=user.actor)
     session.add(instrument)
-    session.commit()
-    session.refresh(instrument)
+    session.flush()
     record_audit(
         session,
         actor=user.actor,
@@ -713,6 +635,8 @@ def create_instrument(
         after=instrument.model_dump(mode="json"),
         reason=None,
     )
+    session.commit()
+    session.refresh(instrument)
     return _instrument_out(instrument)
 
 
@@ -732,8 +656,7 @@ def update_instrument(
     for field, value in data.items():
         setattr(instrument, field, value)
     session.add(instrument)
-    session.commit()
-    session.refresh(instrument)
+    session.flush()
     record_audit(
         session,
         actor=user.actor,
@@ -744,6 +667,8 @@ def update_instrument(
         after=instrument.model_dump(mode="json"),
         reason=None,
     )
+    session.commit()
+    session.refresh(instrument)
     return _instrument_out(instrument)
 
 
@@ -751,7 +676,7 @@ def update_instrument(
 def list_methods(
     instrument_id: Optional[int] = None,
     active: Optional[bool] = None,
-    user: UserContext = Depends(require_permission(Permission.READ)),
+    user: UserContext = Depends(require_operator_read),
     session: Session = Depends(get_session),
 ):
     query = select(Method).order_by(col(Method.name).asc())
@@ -774,8 +699,7 @@ def create_method(
         raise HTTPException(status_code=404, detail="Instrument not found")
     method = Method(**payload.model_dump(), created_by=user.actor)
     session.add(method)
-    session.commit()
-    session.refresh(method)
+    session.flush()
     record_audit(
         session,
         actor=user.actor,
@@ -786,6 +710,8 @@ def create_method(
         after=method.model_dump(mode="json"),
         reason=None,
     )
+    session.commit()
+    session.refresh(method)
     return _method_out(method)
 
 
@@ -807,8 +733,7 @@ def update_method(
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(method, field, value)
     session.add(method)
-    session.commit()
-    session.refresh(method)
+    session.flush()
     record_audit(
         session,
         actor=user.actor,
@@ -819,6 +744,8 @@ def update_method(
         after=method.model_dump(mode="json"),
         reason=None,
     )
+    session.commit()
+    session.refresh(method)
     return _method_out(method)
 
 
@@ -826,7 +753,7 @@ def update_method(
 def list_analytes(
     method_id: Optional[int] = None,
     active: Optional[bool] = None,
-    user: UserContext = Depends(require_permission(Permission.READ)),
+    user: UserContext = Depends(require_operator_read),
     session: Session = Depends(get_session),
 ):
     query = select(Analyte).order_by(col(Analyte.name).asc())
@@ -849,8 +776,7 @@ def create_analyte(
         raise HTTPException(status_code=404, detail="Method not found")
     analyte = Analyte(**payload.model_dump(), created_by=user.actor)
     session.add(analyte)
-    session.commit()
-    session.refresh(analyte)
+    session.flush()
     record_audit(
         session,
         actor=user.actor,
@@ -861,6 +787,8 @@ def create_analyte(
         after=analyte.model_dump(mode="json"),
         reason=None,
     )
+    session.commit()
+    session.refresh(analyte)
     return _analyte_out(analyte)
 
 
@@ -882,8 +810,7 @@ def update_analyte(
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(analyte, field, value)
     session.add(analyte)
-    session.commit()
-    session.refresh(analyte)
+    session.flush()
     record_audit(
         session,
         actor=user.actor,
@@ -894,6 +821,8 @@ def update_analyte(
         after=analyte.model_dump(mode="json"),
         reason=None,
     )
+    session.commit()
+    session.refresh(analyte)
     return _analyte_out(analyte)
 
 
@@ -901,11 +830,14 @@ def update_analyte(
 def list_streams(
     site: Optional[str] = None,
     lab_bench: Optional[str] = None,
-    user: UserContext = Depends(require_permission(Permission.READ)),
+    include_scheduled: bool = Query(default=False),
+    user: UserContext = Depends(require_operator_read),
     session: Session = Depends(get_session),
 ):
     scope = effective_scope(session, user)
     query = select(StreamConfig).where(stream_scope_predicate(scope))
+    if not include_scheduled:
+        query = query.where(StreamConfig.effective_from <= datetime.now(timezone.utc))
     if site:
         query = query.where(StreamConfig.site == site)
     if lab_bench:
@@ -927,7 +859,7 @@ def list_streams(
 @app.get("/streams/{stream_id}/configs", response_model=list[StreamConfigOut])
 def list_stream_versions(
     stream_id: str,
-    user: UserContext = Depends(require_permission(Permission.READ)),
+    user: UserContext = Depends(require_operator_read),
     session: Session = Depends(get_session),
 ):
     require_stream_access(session, user, stream_id)
@@ -1009,7 +941,14 @@ def create_stream_version(
                 .limit(1)
             ).first()
             if latest_ts is not None and config.effective_from <= latest_ts:
-                reprocess_stream_evaluations(session, stream_id, commit=False)
+                reprocess_stream_evaluations(
+                    session,
+                    stream_id,
+                    commit=False,
+                    actor=user.actor,
+                    actor_role=user.role,
+                    api_key_id=user.api_key_id,
+                )
             session.commit()
             session.refresh(config)
             return _stream_out(config)
@@ -1030,6 +969,17 @@ def create_prior(
 ):
     require_stream_access(session, user, stream_id, hide=False)
     payload = payload.model_copy(update={"stream_id": stream_id})
+    if payload.beta0 is None:
+        effective_from = payload.effective_from or datetime.now(timezone.utc)
+        stream_config = get_active_stream_config(session, stream_id, effective_from)
+        if stream_config is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="beta0 cannot be derived without an effective stream sigma",
+            )
+        payload = payload.model_copy(
+            update={"beta0": beta_from_expected_sigma(payload.alpha0, stream_config.sigma)}
+        )
     with stream_write_lock(session, stream_id):
         try:
             config = create_prior_config(session, stream_id, payload, user.actor, commit=False)
@@ -1051,7 +1001,14 @@ def create_prior(
                 .limit(1)
             ).first()
             if latest_ts is not None and config.effective_from <= latest_ts:
-                reprocess_stream_evaluations(session, stream_id, commit=False)
+                reprocess_stream_evaluations(
+                    session,
+                    stream_id,
+                    commit=False,
+                    actor=user.actor,
+                    actor_role=user.role,
+                    api_key_id=user.api_key_id,
+                )
             session.commit()
             session.refresh(config)
             return _prior_out(config)
@@ -1066,7 +1023,7 @@ def create_prior(
 @app.get("/streams/{stream_id}/priors", response_model=list[PriorConfigOut])
 def list_priors(
     stream_id: str,
-    user: UserContext = Depends(require_permission(Permission.READ)),
+    user: UserContext = Depends(require_operator_read),
     session: Session = Depends(get_session),
 ):
     require_stream_access(session, user, stream_id)
@@ -1086,29 +1043,36 @@ def ingest_event(
 ):
     if payload.stream_id is not None:
         require_stream_access(session, user, payload.stream_id, hide=False)
-    event = create_event(
-        session,
-        QCEvent(
-            stream_id=payload.stream_id,
-            event_type=payload.event_type,
-            timestamp=payload.timestamp,
-            instrument_id=payload.instrument_id,
-            analyte=payload.analyte,
-            method_id=payload.method_id,
-            event_metadata=payload.metadata,
-            created_by=user.actor,
-        ),
-    )
-    record_audit(
-        session,
-        actor=user.actor,
-        action="ingest_event",
-        entity_type="qc_event",
-        entity_id=str(event.id),
-        before=None,
-        after=event.model_dump(mode="json"),
-        reason=None,
-    )
+    try:
+        event = create_event(
+            session,
+            QCEvent(
+                stream_id=payload.stream_id,
+                event_type=payload.event_type,
+                timestamp=payload.timestamp,
+                instrument_id=payload.instrument_id,
+                analyte=payload.analyte,
+                method_id=payload.method_id,
+                event_metadata=payload.metadata,
+                created_by=user.actor,
+            ),
+        )
+        record_audit(
+            session,
+            actor=user.actor,
+            action="ingest_event",
+            entity_type="qc_event",
+            entity_id=str(event.id),
+            before=None,
+            after=event.model_dump(mode="json"),
+            reason=None,
+            commit=False,
+        )
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    session.refresh(event)
     return _event_out(event)
 
 
@@ -1117,7 +1081,7 @@ def list_events(
     stream_id: Optional[str] = None,
     event_type: Optional[EventType] = None,
     limit: int = 200,
-    user: UserContext = Depends(require_permission(Permission.READ)),
+    user: UserContext = Depends(require_operator_read),
     session: Session = Depends(get_session),
 ):
     query = select(QCEvent).order_by(col(QCEvent.timestamp).desc())
@@ -1126,300 +1090,9 @@ def list_events(
         query = query.where(QCEvent.stream_id == stream_id)
     if event_type:
         query = query.where(QCEvent.event_type == event_type)
-    events = [event for event in session.exec(query.limit(limit)).all() if stream_is_accessible(session, user, event.stream_id)]
+    query = query.where(stream_id_scope_predicate(session, user, col(QCEvent.stream_id)))
+    events = session.exec(query.limit(limit)).all()
     return [_event_out(event) for event in events]
-
-
-@app.get("/alerts", response_model=list[AlertOut])
-def list_alerts(
-    user: UserContext = Depends(require_permission(Permission.READ)),
-    session: Session = Depends(get_session),
-):
-    rows = session.exec(
-        select(AlertRecord, QCRecord.timestamp)
-        .join(QCRecord, col(QCRecord.id) == col(AlertRecord.qc_record_id), isouter=True)
-        .order_by(col(AlertRecord.created_at).desc())
-    ).all()
-    return [
-        _alert_out(alert, qc_record_timestamp=qc_timestamp)
-        for alert, qc_timestamp in rows
-        if stream_is_accessible(session, user, alert.stream_id)
-    ]
-
-
-@app.patch("/alerts/{alert_id}", response_model=AlertOut)
-def update_alert_status(
-    alert_id: str,
-    payload: AlertUpdate,
-    user: UserContext = Depends(require_permission(Permission.APPROVE)),
-    session: Session = Depends(get_session),
-):
-    alert = require_alert_access(session, user, alert_id)
-    before = alert.model_dump(mode="json")
-    alert_changed = False
-    if payload.status is not None and payload.status != alert.status:
-        alert.status = payload.status
-        alert_changed = True
-        if payload.status in {AlertStatus.ACKNOWLEDGED, AlertStatus.CLOSED}:
-            alert.acknowledged_by = user.actor
-            alert.acknowledged_at = datetime.now(timezone.utc)
-        elif payload.status == AlertStatus.OPEN:
-            alert.acknowledged_by = None
-            alert.acknowledged_at = None
-    if payload.assigned_to is not None and payload.assigned_to != alert.assigned_to:
-        alert.assigned_to = payload.assigned_to
-        alert_changed = True
-    if payload.due_at is not None and payload.due_at != alert.due_at:
-        alert.due_at = payload.due_at
-        alert_changed = True
-    reason = require_reason(payload.reason, "reason is required when updating an alert") if alert_changed else payload.reason
-    alert = update_alert(session, alert)
-    record_audit(
-        session,
-        actor=user.actor,
-        action="update_alert",
-        entity_type="alert",
-        entity_id=alert.alert_id,
-        before=before,
-        after=alert.model_dump(mode="json"),
-        reason=reason,
-    )
-    return _alert_out(alert)
-
-
-@app.get("/investigations", response_model=list[InvestigationOut])
-def list_investigations(
-    status_filter: Optional[InvestigationStatus] = None,
-    user: UserContext = Depends(require_permission(Permission.READ)),
-    session: Session = Depends(get_session),
-):
-    query = select(Investigation).order_by(col(Investigation.created_at).desc())
-    if status_filter:
-        query = query.where(Investigation.status == status_filter)
-    investigations = session.exec(query).all()
-    results = []
-    for investigation in investigations:
-        if investigation.id is None:
-            raise RuntimeError("Investigation missing id")
-        alert_id = _investigation_alert_id(session, investigation.id)
-        results.append(_investigation_out(investigation, alert_id=alert_id))
-    return results
-
-
-@app.post("/investigations", response_model=InvestigationOut)
-def create_investigation_record(
-    payload: InvestigationIn,
-    user: UserContext = Depends(require_permission(Permission.APPROVE)),
-    session: Session = Depends(get_session),
-):
-    alert_id = None
-    alert_id_str = None
-    if payload.alert_id:
-        alert = session.exec(select(AlertRecord).where(AlertRecord.alert_id == payload.alert_id)).first()
-        if not alert:
-            raise HTTPException(status_code=404, detail="Alert not found")
-        alert_id = alert.id
-        alert_id_str = alert.alert_id
-    investigation = create_investigation(
-        session,
-        Investigation(
-            problem_statement=payload.problem_statement,
-            suspected_cause=payload.suspected_cause,
-            containment=payload.containment,
-            data_reviewed=payload.data_reviewed,
-            outcome=payload.outcome,
-            decision=payload.decision,
-            status=payload.status or InvestigationStatus.OPEN,
-            created_by=user.actor,
-        ),
-        alert_id=alert_id,
-    )
-    record_audit(
-        session,
-        actor=user.actor,
-        action="create_investigation",
-        entity_type="investigation",
-        entity_id=str(investigation.id),
-        before=None,
-        after=investigation.model_dump(mode="json"),
-        reason=None,
-    )
-    return _investigation_out(investigation, alert_id=alert_id_str)
-
-
-@app.patch("/investigations/{investigation_id}", response_model=InvestigationOut)
-def update_investigation_record(
-    investigation_id: int,
-    payload: InvestigationIn,
-    user: UserContext = Depends(require_permission(Permission.APPROVE)),
-    session: Session = Depends(get_session),
-):
-    investigation = session.exec(select(Investigation).where(Investigation.id == investigation_id)).first()
-    if not investigation:
-        raise HTTPException(status_code=404, detail="Investigation not found")
-    before = investigation.model_dump(mode="json")
-    updates = payload.model_dump(exclude_unset=True, exclude={"alert_id", "reason"})
-    reason = require_reason(payload.reason, "reason is required when updating an investigation") if updates else payload.reason
-    for field, value in updates.items():
-        setattr(investigation, field, value)
-    investigation = update_investigation(session, investigation)
-    record_audit(
-        session,
-        actor=user.actor,
-        action="update_investigation",
-        entity_type="investigation",
-        entity_id=str(investigation.id),
-        before=before,
-        after=investigation.model_dump(mode="json"),
-        reason=reason,
-    )
-    if investigation.id is None:
-        raise RuntimeError("Investigation missing id")
-    alert_id_str = _investigation_alert_id(session, investigation.id)
-    return _investigation_out(investigation, alert_id=alert_id_str)
-
-
-@app.post("/capas", response_model=CapaOut)
-def create_capa_record(
-    payload: CapaIn,
-    user: UserContext = Depends(require_permission(Permission.APPROVE)),
-    session: Session = Depends(get_session),
-):
-    if payload.status and payload.status != CapaStatus.DRAFT:
-        validate_capa_fields(payload)
-    alert_id = None
-    alert_id_str = None
-    if payload.alert_id:
-        alert = session.exec(select(AlertRecord).where(AlertRecord.alert_id == payload.alert_id)).first()
-        if not alert:
-            raise HTTPException(status_code=404, detail="Alert not found")
-        alert_id = alert.id
-        alert_id_str = alert.alert_id
-    investigation_id = payload.investigation_id
-    if investigation_id:
-        existing = session.exec(select(Investigation).where(Investigation.id == investigation_id)).first()
-        if not existing:
-            raise HTTPException(status_code=404, detail="Investigation not found")
-    capa = create_capa(
-        session,
-        Capa(
-            status=payload.status or CapaStatus.DRAFT,
-            root_cause_category=payload.root_cause_category,
-            corrective_actions=payload.corrective_actions,
-            preventive_actions=payload.preventive_actions,
-            owners=payload.owners,
-            due_at=payload.due_at,
-            verification_plan=payload.verification_plan,
-            effectiveness_criteria=payload.effectiveness_criteria,
-            created_by=user.actor,
-        ),
-        alert_id=alert_id,
-        investigation_id=investigation_id,
-    )
-    record_audit(
-        session,
-        actor=user.actor,
-        action="create_capa",
-        entity_type="capa",
-        entity_id=str(capa.id),
-        before=None,
-        after=capa.model_dump(mode="json"),
-        reason=None,
-    )
-    return _capa_out(capa, alert_id=alert_id_str, investigation_id=investigation_id)
-
-
-@app.patch("/capas/{capa_id}", response_model=CapaOut)
-def update_capa_record(
-    capa_id: int,
-    payload: CapaIn,
-    user: UserContext = Depends(require_permission(Permission.APPROVE)),
-    session: Session = Depends(get_session),
-):
-    capa = session.exec(select(Capa).where(Capa.id == capa_id)).first()
-    if not capa:
-        raise HTTPException(status_code=404, detail="CAPA not found")
-    before = capa.model_dump(mode="json")
-    updates = payload.model_dump(exclude_unset=True, exclude={"alert_id", "investigation_id", "reason"})
-    reason = require_reason(payload.reason, "reason is required when updating a CAPA") if updates else payload.reason
-    for field, value in updates.items():
-        setattr(capa, field, value)
-    merged = capa.model_dump()
-    if merged.get("status") != CapaStatus.DRAFT:
-        payload_data = {key: merged.get(key) for key in CapaIn.model_fields.keys()}
-        validate_capa_fields(CapaIn(**payload_data))
-    capa = update_capa(session, capa)
-    record_audit(
-        session,
-        actor=user.actor,
-        action="update_capa",
-        entity_type="capa",
-        entity_id=str(capa.id),
-        before=before,
-        after=capa.model_dump(mode="json"),
-        reason=reason,
-    )
-    if capa.id is None:
-        raise RuntimeError("CAPA missing id")
-    alert_id_str, investigation_id = _capa_links(session, capa.id)
-    return _capa_out(capa, alert_id=alert_id_str, investigation_id=investigation_id)
-
-
-@app.get("/capas", response_model=list[CapaOut])
-def list_capas(
-    status_filter: Optional[CapaStatus] = None,
-    user: UserContext = Depends(require_permission(Permission.READ)),
-    session: Session = Depends(get_session),
-):
-    query = select(Capa).order_by(col(Capa.created_at).desc())
-    if status_filter:
-        query = query.where(Capa.status == status_filter)
-    capas = session.exec(query).all()
-    results = []
-    for capa in capas:
-        if capa.id is None:
-            raise RuntimeError("CAPA missing id")
-        alert_id, investigation_id = _capa_links(session, capa.id)
-        results.append(_capa_out(capa, alert_id=alert_id, investigation_id=investigation_id))
-    return results
-
-
-@app.get("/audit", response_model=list[AuditEntryOut])
-def list_audit(
-    user: UserContext = Depends(require_permission(Permission.READ)),
-    session: Session = Depends(get_session),
-):
-    scope = effective_scope(session, user)
-    query = select(AuditEntry).order_by(col(AuditEntry.timestamp).desc())
-    if not scope.unrestricted:
-        query = query.where(AuditEntry.api_key_id == user.api_key_id)
-    entries = session.exec(query).all()
-    return [_audit_out(entry) for entry in entries]
-
-
-@app.get("/reports/summary", response_model=ReportSummaryOut)
-def report_summary(
-    user: UserContext = Depends(require_permission(Permission.READ)),
-    session: Session = Depends(get_session),
-) -> ReportSummaryOut:
-    alert_rows = session.exec(select(AlertRecord)).all()
-    investigation_rows = session.exec(select(Investigation)).all()
-    capa_rows = session.exec(select(Capa)).all()
-    return ReportSummaryOut(
-        alerts=AlertSummary(
-            total=len(alert_rows),
-            open=len([a for a in alert_rows if a.status == AlertStatus.OPEN]),
-            acknowledged=len([a for a in alert_rows if a.status == AlertStatus.ACKNOWLEDGED]),
-        ),
-        investigations=InvestigationSummary(
-            total=len(investigation_rows),
-            open=len([i for i in investigation_rows if i.status != InvestigationStatus.CLOSED]),
-        ),
-        capas=CapaSummary(
-            total=len(capa_rows),
-            open=len([c for c in capa_rows if c.status not in {CapaStatus.CLOSED, CapaStatus.DRAFT}]),
-        ),
-    )
 
 
 @app.get("/streams/{stream_id}/chart", response_model=StreamChartOut)

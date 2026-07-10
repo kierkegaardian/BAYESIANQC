@@ -27,7 +27,7 @@ def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
-DEFAULT_RULE_SET = {"rules": ["1-3s", "2-2s", "R-4s", "4-1s", "10x"]}
+DEFAULT_RULE_SET = {"rules": ["1-3s", "2-2s", "4-1s", "10x"]}
 
 
 class ApiKey(SQLModel, table=True):
@@ -394,7 +394,10 @@ class AlertRecord(SQLModel, table=True):
 
 
 class Investigation(SQLModel, table=True):
+    __table_args__ = (Index("ix_investigation_stream_created", "stream_id", "created_at"),)
+
     id: Optional[int] = Field(default=None, primary_key=True)
+    stream_id: Optional[str] = Field(default=None, index=True)
     status: InvestigationStatus = Field(
         default=InvestigationStatus.OPEN, sa_column=Column(SAEnum(InvestigationStatus))
     )
@@ -410,13 +413,20 @@ class Investigation(SQLModel, table=True):
 
 
 class InvestigationAlertLink(SQLModel, table=True):
+    __table_args__ = (
+        UniqueConstraint("investigation_id", "alert_id", name="uq_investigationalertlink_pair"),
+    )
+
     id: Optional[int] = Field(default=None, primary_key=True)
-    investigation_id: int = Field(index=True)
-    alert_id: int = Field(index=True)
+    investigation_id: int = Field(index=True, foreign_key="investigation.id", ondelete="CASCADE")
+    alert_id: int = Field(index=True, foreign_key="alertrecord.id", ondelete="RESTRICT")
 
 
 class Capa(SQLModel, table=True):
+    __table_args__ = (Index("ix_capa_stream_created", "stream_id", "created_at"),)
+
     id: Optional[int] = Field(default=None, primary_key=True)
+    stream_id: Optional[str] = Field(default=None, index=True)
     status: CapaStatus = Field(default=CapaStatus.DRAFT, sa_column=Column(SAEnum(CapaStatus)))
     root_cause_category: Optional[str] = None
     corrective_actions: Optional[list[dict[str, Any]]] = Field(default=None, sa_column=Column(JSON))
@@ -431,10 +441,17 @@ class Capa(SQLModel, table=True):
 
 
 class CapaLink(SQLModel, table=True):
+    __table_args__ = (UniqueConstraint("capa_id", name="uq_capalink_capa"),)
+
     id: Optional[int] = Field(default=None, primary_key=True)
-    capa_id: int = Field(index=True)
-    alert_id: Optional[int] = Field(default=None, index=True)
-    investigation_id: Optional[int] = Field(default=None, index=True)
+    capa_id: int = Field(index=True, foreign_key="capa.id", ondelete="CASCADE")
+    alert_id: Optional[int] = Field(default=None, index=True, foreign_key="alertrecord.id", ondelete="RESTRICT")
+    investigation_id: Optional[int] = Field(
+        default=None,
+        index=True,
+        foreign_key="investigation.id",
+        ondelete="RESTRICT",
+    )
 
 
 class AuditEntry(SQLModel, table=True):

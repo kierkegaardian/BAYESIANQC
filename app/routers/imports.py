@@ -21,7 +21,7 @@ from app.import_models import (
     ParserProfileUpdate,
 )
 from app.models import Permission
-from app.rbac import UserContext, require_permission
+from app.rbac import UserContext, require_operator_read, require_permission
 from app.services.import_apply import apply_ready_rows
 from app.services.import_outputs import batch_detail, get_batch, list_batches, row_out
 from app.services.import_profiles import create_profile, list_profiles, update_profile
@@ -34,7 +34,7 @@ router = APIRouter(tags=["qc-imports"])
 @router.get("/qc/import-profiles", response_model=list[ParserProfileOut])
 def list_import_profiles(
     status: Optional[ParserProfileStatus] = None,
-    user: UserContext = Depends(require_permission(Permission.READ)),
+    user: UserContext = Depends(require_operator_read),
     session: Session = Depends(get_session),
 ) -> list[ParserProfileOut]:
     del user
@@ -99,7 +99,7 @@ def upload_import(
 def list_import_batches(
     status: Optional[ImportBatchStatus] = None,
     limit: int = Query(default=100, ge=1, le=500),
-    user: UserContext = Depends(require_permission(Permission.READ)),
+    user: UserContext = Depends(require_operator_read),
     session: Session = Depends(get_session),
 ) -> list[ImportBatchOut]:
     return list_batches(session, status, limit, user)
@@ -108,7 +108,7 @@ def list_import_batches(
 @router.get("/qc/imports/{batch_id}", response_model=ImportBatchDetailOut)
 def get_import_batch(
     batch_id: int,
-    user: UserContext = Depends(require_permission(Permission.READ)),
+    user: UserContext = Depends(require_operator_read),
     session: Session = Depends(get_session),
 ) -> ImportBatchDetailOut:
     return batch_detail(session, get_batch(session, batch_id), user)

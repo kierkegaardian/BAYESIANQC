@@ -41,7 +41,7 @@ def list_qc_comments(
 @router.post("", response_model=QCCommentOut)
 def create_qc_comment(
     payload: QCCommentIn,
-    user: UserContext = Depends(require_permission(Permission.INGEST_QC)),
+    user: UserContext = Depends(require_permission(Permission.COMMENT_QC)),
     session: Session = Depends(get_session),
 ) -> QCCommentOut:
     return create_comment(session, payload, user)

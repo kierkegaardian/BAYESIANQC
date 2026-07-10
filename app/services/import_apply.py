@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
+from fastapi import HTTPException, status
 from sqlmodel import Session, select
 
 from app.import_db_models import ImportBatch, ImportRow, InstrumentRun
@@ -96,7 +97,16 @@ def _apply_one(session: Session, batch: ImportBatch, row: ImportRow, user: UserC
     row.parsed_fields = fields
     session.add(row)
     session.flush()
-    result = process_ingestion(_payload_from_row(fields), session, user, row.idempotency_key)
+    try:
+        result = process_ingestion(_payload_from_row(fields), session, user, row.idempotency_key)
+    except HTTPException as exc:
+        if exc.status_code != status.HTTP_409_CONFLICT or exc.detail != "possible_duplicate_requires_review":
+            raise
+        row.status = ImportRowStatus.NEEDS_REVIEW
+        row.errors = [*row.errors, "possible_duplicate_requires_review"]
+        session.add(row)
+        session.flush()
+        return
     if isinstance(result, IngestionResult):
         row.status = ImportRowStatus.APPLIED
         row.qc_record_id = result.qc.id

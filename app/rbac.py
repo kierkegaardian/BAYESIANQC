@@ -13,9 +13,29 @@ from app.security import api_key_hash_needs_migration, api_key_lookup_hash, hash
 
 
 ROLE_PERMISSIONS: Dict[Role, List[Permission]] = {
-    Role.QC_ANALYST: [Permission.READ, Permission.INGEST_QC],
-    Role.SUPERVISOR: [Permission.READ, Permission.INGEST_QC, Permission.APPROVE, Permission.MANAGE_IMPORTS],
-    Role.QA_MANAGER: [Permission.READ, Permission.INGEST_QC, Permission.APPROVE, Permission.OVERRIDE],
+    Role.QC_ANALYST: [Permission.READ, Permission.INGEST_QC, Permission.COMMENT_QC],
+    Role.SUPERVISOR: [
+        Permission.READ,
+        Permission.INGEST_QC,
+        Permission.APPROVE,
+        Permission.MANAGE_IMPORTS,
+        Permission.COMMENT_QC,
+        Permission.RESOLVE_QC,
+        Permission.MANAGE_ALERTS,
+        Permission.MANAGE_INVESTIGATIONS,
+        Permission.MANAGE_CAPAS,
+    ],
+    Role.QA_MANAGER: [
+        Permission.READ,
+        Permission.INGEST_QC,
+        Permission.APPROVE,
+        Permission.OVERRIDE,
+        Permission.COMMENT_QC,
+        Permission.RESOLVE_QC,
+        Permission.MANAGE_ALERTS,
+        Permission.MANAGE_INVESTIGATIONS,
+        Permission.MANAGE_CAPAS,
+    ],
     Role.ADMIN: [
         Permission.READ,
         Permission.INGEST_QC,
@@ -23,9 +43,22 @@ ROLE_PERMISSIONS: Dict[Role, List[Permission]] = {
         Permission.OVERRIDE,
         Permission.EDIT_CONFIG,
         Permission.MANAGE_IMPORTS,
+        Permission.COMMENT_QC,
+        Permission.RESOLVE_QC,
+        Permission.MANAGE_ALERTS,
+        Permission.MANAGE_INVESTIGATIONS,
+        Permission.MANAGE_CAPAS,
     ],
     Role.AUDITOR: [Permission.READ],
     Role.DATA_STEWARD: [Permission.READ, Permission.EDIT_CONFIG],
+    Role.STAKEHOLDER: [
+        Permission.READ,
+        Permission.COMMENT_QC,
+        Permission.RESOLVE_QC,
+        Permission.MANAGE_ALERTS,
+        Permission.MANAGE_INVESTIGATIONS,
+        Permission.MANAGE_CAPAS,
+    ],
 }
 
 
@@ -84,3 +117,12 @@ def require_permission(permission: Permission):
         return user
 
     return dependency
+
+
+def require_operator_read(
+    user: UserContext = Depends(require_permission(Permission.READ)),
+) -> UserContext:
+    """Keep the shared stakeholder identity off operator/configuration read surfaces."""
+    if user.role == Role.STAKEHOLDER:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Stakeholder surface does not allow this route")
+    return user

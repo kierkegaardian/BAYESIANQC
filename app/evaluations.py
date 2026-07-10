@@ -10,7 +10,8 @@ from app.bayesian import update_posterior_and_infer_risk
 from app.db_models import PosteriorState, PriorConfig, QCRecord, StreamConfig
 from app.domain import Disposition, SignalSeverity
 from app.frequentist import evaluate_rules_for_values
-from app.models import BayesianRisk
+from app.models import BayesianRisk, BayesianRiskStatus, BayesianRiskUnavailableReason, Role
+from app.services.alert_reconciliation import reconcile_stream_alerts
 from app.stats import sample_mean_sd
 from app.timeutils import as_utc
 
@@ -31,7 +32,15 @@ def _baseline_target_sigma(records: Sequence[QCRecord], config: StreamConfig) ->
     return config.target_value, config.sigma
 
 
-def reprocess_stream_evaluations(session: Session, stream_id: str, *, commit: bool = True) -> None:
+def reprocess_stream_evaluations(
+    session: Session,
+    stream_id: str,
+    *,
+    commit: bool = True,
+    actor: str = "system:reprocess",
+    actor_role: Optional[Role] = None,
+    api_key_id: Optional[int] = None,
+) -> None:
     """
     Recompute and persist per-record evaluations for a stream.
 
@@ -49,6 +58,13 @@ def reprocess_stream_evaluations(session: Session, stream_id: str, *, commit: bo
         state = session.exec(select(PosteriorState).where(PosteriorState.stream_id == stream_id)).first()
         if state:
             session.delete(state)
+        reconcile_stream_alerts(
+            session,
+            stream_id,
+            actor=actor,
+            actor_role=actor_role,
+            api_key_id=api_key_id,
+        )
         if commit:
             session.commit()
         else:
@@ -75,6 +91,13 @@ def reprocess_stream_evaluations(session: Session, stream_id: str, *, commit: bo
         state = session.exec(select(PosteriorState).where(PosteriorState.stream_id == stream_id)).first()
         if state:
             session.delete(state)
+        reconcile_stream_alerts(
+            session,
+            stream_id,
+            actor=actor,
+            actor_role=actor_role,
+            api_key_id=api_key_id,
+        )
         if commit:
             session.commit()
         else:
@@ -91,6 +114,7 @@ def reprocess_stream_evaluations(session: Session, stream_id: str, *, commit: bo
     recent_included_values: deque[float] = deque(maxlen=9)
     pending_included_values: list[float] = []
     pending_timestamp: Optional[datetime] = None
+    rule_config_id: Optional[int] = None
 
     # Bayesian chain (only advanced on include_in_stats records).
     started_bayes = False
@@ -113,9 +137,21 @@ def reprocess_stream_evaluations(session: Session, stream_id: str, *, commit: bo
             pending_included_values.clear()
             pending_timestamp = record.timestamp
 
+        if record_ts < as_utc(configs[0].effective_from):
+            record.signals = None
+            record.bayesian_risk = None
+            record.disposition = None
+            session.add(record)
+            continue
+
         while config_idx + 1 < len(configs) and as_utc(configs[config_idx + 1].effective_from) <= record_ts:
             config_idx += 1
         config_at_time = configs[config_idx]
+
+        if rule_config_id != config_at_time.id:
+            recent_included_values.clear()
+            pending_included_values.clear()
+            rule_config_id = config_at_time.id
 
         target, sigma = (
             baseline_by_config_id.get(config_at_time.id, (config_at_time.target_value, config_at_time.sigma))
@@ -136,8 +172,11 @@ def reprocess_stream_evaluations(session: Session, stream_id: str, *, commit: bo
         risk: Optional[BayesianRisk]
         if not record.include_in_stats:
             risk = None
-        elif not priors:
-            risk = BayesianRisk(probability_outside_limits=0.0, risk_score=0)
+        elif not priors or record_ts < as_utc(priors[0].effective_from):
+            risk = BayesianRisk(
+                status=BayesianRiskStatus.UNAVAILABLE,
+                unavailable_reason=BayesianRiskUnavailableReason.MISSING_EFFECTIVE_PRIOR,
+            )
         else:
             if not started_bayes:
                 while prior_idx + 1 < len(priors) and as_utc(priors[prior_idx + 1].effective_from) <= record_ts:
@@ -199,7 +238,13 @@ def reprocess_stream_evaluations(session: Session, stream_id: str, *, commit: bo
             if any(s.severity == SignalSeverity.ACTION for s in signals)
             else (
                 Disposition.HOLD_FOR_REVIEW.value
-                if (risk and risk.hold_streak >= (config_at_time.bayes_hold_consecutive or 1))
+                if (
+                    risk
+                    and (
+                        risk.status == BayesianRiskStatus.UNAVAILABLE
+                        or risk.hold_streak >= (config_at_time.bayes_hold_consecutive or 1)
+                    )
+                )
                 else (
                     Disposition.MONITOR.value
                     if (signals or (risk and risk.warn_streak >= (config_at_time.bayes_warn_consecutive or 1)))
@@ -220,6 +265,13 @@ def reprocess_stream_evaluations(session: Session, stream_id: str, *, commit: bo
     if not priors or not started_bayes or current_prior is None or last_included_timestamp is None:
         if state:
             session.delete(state)
+        reconcile_stream_alerts(
+            session,
+            stream_id,
+            actor=actor,
+            actor_role=actor_role,
+            api_key_id=api_key_id,
+        )
         if commit:
             session.commit()
         else:
@@ -253,6 +305,13 @@ def reprocess_stream_evaluations(session: Session, stream_id: str, *, commit: bo
             hold_streak=hold_streak,
         )
         session.add(state)
+    reconcile_stream_alerts(
+        session,
+        stream_id,
+        actor=actor,
+        actor_role=actor_role,
+        api_key_id=api_key_id,
+    )
     if commit:
         session.commit()
     else:

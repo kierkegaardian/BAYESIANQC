@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
@@ -49,17 +49,17 @@ def _location_labels(session: Session, setup: StreamSetupIn) -> tuple[Optional[i
     if setup.lab_area_id is not None:
         area = session.get(LabArea, setup.lab_area_id)
         if area is None:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="lab_area_id not found")
+            raise HTTPException(status_code=422, detail="lab_area_id not found")
         if setup.site_id is not None and setup.site_id != area.site_id:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="lab_area_id does not belong to site_id")
+            raise HTTPException(status_code=422, detail="lab_area_id does not belong to site_id")
         site = session.get(EnterpriseSite, area.site_id)
         if site is None:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="site_id not found")
+            raise HTTPException(status_code=422, detail="site_id not found")
         return site.id, area.id, site.name, area.name
     if setup.site_id is not None:
         site = session.get(EnterpriseSite, setup.site_id)
         if site is None:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="site_id not found")
+            raise HTTPException(status_code=422, detail="site_id not found")
         return site.id, None, site.name, setup.lab_bench
     return None, None, setup.site, setup.lab_bench
 
@@ -75,7 +75,7 @@ def canonicalize_setup(session: Session, setup: StreamSetupIn) -> StreamSetupIn:
     if setup.instrument_id is not None:
         instrument = session.get(Instrument, setup.instrument_id)
         if instrument is None:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="instrument_id not found")
+            raise HTTPException(status_code=422, detail="instrument_id not found")
         updates.update(
             {
                 "instrument_name": instrument.name,
@@ -90,21 +90,21 @@ def canonicalize_setup(session: Session, setup: StreamSetupIn) -> StreamSetupIn:
     if setup.method_id is not None:
         method = session.get(Method, setup.method_id)
         if method is None:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="method_id not found")
+            raise HTTPException(status_code=422, detail="method_id not found")
         if setup.instrument_id is not None and method.instrument_id != setup.instrument_id:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="method_id does not belong to instrument_id")
+            raise HTTPException(status_code=422, detail="method_id does not belong to instrument_id")
         updates.update({"method_name": method.name, "method_technique": method.technique})
     if setup.analyte_id is not None:
         analyte = session.get(Analyte, setup.analyte_id)
         if analyte is None:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="analyte_id not found")
+            raise HTTPException(status_code=422, detail="analyte_id not found")
         if setup.method_id is not None and analyte.method_id != setup.method_id:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="analyte_id does not belong to method_id")
+            raise HTTPException(status_code=422, detail="analyte_id does not belong to method_id")
         updates.update({"parameter_name": analyte.name, "units": analyte.units or setup.units})
     if setup.control_material_id is not None:
         material = session.get(ControlMaterial, setup.control_material_id)
         if material is None:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="control_material_id not found")
+            raise HTTPException(status_code=422, detail="control_material_id not found")
         updates.update(
             {
                 "material_name": material.name,

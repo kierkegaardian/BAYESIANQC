@@ -8,7 +8,12 @@ from sqlmodel import Session, col, select
 from app.db_models import AlertRecord, QCComment, QCRecord
 from app.models import QCCommentIn, QCCommentOut, QCCommentTargetType
 from app.rbac import UserContext
-from app.services.access_scopes import require_alert_access, require_comment_target_access, require_record_access, stream_is_accessible
+from app.services.access_scopes import (
+    require_alert_access,
+    require_comment_target_access,
+    require_record_access,
+    stream_id_scope_predicate,
+)
 from app.storage import record_audit
 
 
@@ -115,23 +120,27 @@ def create_comment(session: Session, payload: QCCommentIn, user: UserContext) ->
         actor_role=user.role,
         api_key_id=user.api_key_id,
     )
-    session.add(comment)
-    session.flush()
-    out = comment_out(comment)
-    record_audit(
-        session=session,
-        actor=user.actor,
-        actor_role=user.role,
-        api_key_id=user.api_key_id,
-        action="create_qc_comment",
-        entity_type="qc_comment",
-        entity_id=str(out.id),
-        before=None,
-        after=out.model_dump(mode="json"),
-        reason=out.body,
-        commit=False,
-    )
-    session.commit()
+    try:
+        session.add(comment)
+        session.flush()
+        out = comment_out(comment)
+        record_audit(
+            session=session,
+            actor=user.actor,
+            actor_role=user.role,
+            api_key_id=user.api_key_id,
+            action="create_qc_comment",
+            entity_type="qc_comment",
+            entity_id=str(out.id),
+            before=None,
+            after=out.model_dump(mode="json"),
+            reason=out.body,
+            commit=False,
+        )
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
     session.refresh(comment)
     return comment_out(comment)
 
@@ -169,9 +178,8 @@ def list_comments(
         query = query.where(QCComment.alert_id == alert_id)
     if run_id is not None:
         query = query.where(QCComment.run_id == run_id)
-    rows = [
-        row
-        for row in session.exec(query.order_by(col(QCComment.created_at).asc(), col(QCComment.id).asc()).limit(limit)).all()
-        if stream_is_accessible(session, user, row.stream_id)
-    ]
+    query = query.where(stream_id_scope_predicate(session, user, col(QCComment.stream_id)))
+    rows = session.exec(
+        query.order_by(col(QCComment.created_at).asc(), col(QCComment.id).asc()).limit(limit)
+    ).all()
     return [comment_out(row) for row in rows]

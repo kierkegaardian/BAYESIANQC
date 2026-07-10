@@ -241,14 +241,38 @@ def test_alembic_upgrade_head_creates_current_schema(disposable_postgres_url: st
     parser_profile_indexes = inspector.get_indexes("parserprofile")
     assert _index_columns(parser_profile_indexes, "ix_parserprofile_status_type") == ["status", "profile_type"]
 
+    investigation_columns = {column["name"] for column in inspector.get_columns("investigation")}
+    capa_columns = {column["name"] for column in inspector.get_columns("capa")}
+    assert "stream_id" in investigation_columns
+    assert "stream_id" in capa_columns
+    assert _index_columns(inspector.get_indexes("investigation"), "ix_investigation_stream_created") == [
+        "stream_id",
+        "created_at",
+    ]
+    assert _index_columns(inspector.get_indexes("capa"), "ix_capa_stream_created") == ["stream_id", "created_at"]
+    investigation_link_fks = {
+        tuple(foreign_key["constrained_columns"]): foreign_key["referred_table"]
+        for foreign_key in inspector.get_foreign_keys("investigationalertlink")
+    }
+    capa_link_fks = {
+        tuple(foreign_key["constrained_columns"]): foreign_key["referred_table"]
+        for foreign_key in inspector.get_foreign_keys("capalink")
+    }
+    assert investigation_link_fks == {("investigation_id",): "investigation", ("alert_id",): "alertrecord"}
+    assert capa_link_fks == {
+        ("capa_id",): "capa",
+        ("alert_id",): "alertrecord",
+        ("investigation_id",): "investigation",
+    }
+
     with engine.connect() as connection:
         version = connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-    assert version == "20260704_0007"
+    assert version == "20260709_0009"
 
 
 def test_rehearsal_revision_head_tracks_alembic_head() -> None:
     expected = ScriptDirectory.from_config(_alembic_config(app_db.DEFAULT_DB_URL)).get_current_head()
-    assert rehearsal.revision_head() == expected == "20260704_0007"
+    assert rehearsal.revision_head() == expected == "20260709_0009"
 
 
 def test_init_db_delegates_to_alembic(monkeypatch) -> None:
