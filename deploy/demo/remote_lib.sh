@@ -233,7 +233,8 @@ private_smoke() {
 }
 
 backup_snapshot() {
-  local release="$1" label="$2" target="$REMOTE_ROOT/backups/$label"
+  local release="$1" label="$2" target
+  target="$REMOTE_ROOT/backups/$label"
   mkdir -p "$target"
   compose "$release" exec -T postgres pg_dump -U bayesianqc -Fc bayesianqc > "$target/database.dump"
   tar -C "$REMOTE_ROOT/import-archive" -czf "$target/import-archive.tar.gz" .
