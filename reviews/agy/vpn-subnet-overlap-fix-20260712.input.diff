@@ -1,0 +1,45 @@
+diff --git a/deploy/demo/docker-compose.yml b/deploy/demo/docker-compose.yml
+index 98ed221..c4ddc43 100644
+--- a/deploy/demo/docker-compose.yml
++++ b/deploy/demo/docker-compose.yml
+@@ -115,6 +115,15 @@ services:
+ networks:
+   db_internal:
+     internal: true
++    ipam:
++      config:
++        - subnet: 172.31.251.0/24
+   app_internal:
+     internal: true
++    ipam:
++      config:
++        - subnet: 172.31.252.0/24
+   tunnel_egress:
++    ipam:
++      config:
++        - subnet: 172.31.253.0/24
+diff --git a/tests/test_deployment_shell.py b/tests/test_deployment_shell.py
+index 51dab64..461fc49 100644
+--- a/tests/test_deployment_shell.py
++++ b/tests/test_deployment_shell.py
+@@ -1,6 +1,8 @@
+ from __future__ import annotations
+
++import re
+ import subprocess
++from ipaddress import ip_network
+ from pathlib import Path
+
+ ROOT = Path(__file__).resolve().parents[1]
+@@ -40,3 +42,11 @@ def test_status_and_post_load_smoke_contracts_are_stable() -> None:
+ def test_retry_uses_locally_available_pinned_runtime_images() -> None:
+     remote = (ROOT / "deploy/demo/remote.sh").read_text(encoding="utf-8")
+     assert 'pull --policy missing postgres caddy cloudflared' in remote
++
++
++def test_demo_networks_do_not_overlap_roadtrip_vpn() -> None:
++    compose = (ROOT / "deploy/demo/docker-compose.yml").read_text(encoding="utf-8")
++    subnets = [ip_network(value) for value in re.findall(r"subnet:\s*(\S+)", compose)]
++
++    assert len(subnets) == 3
++    assert all(not subnet.overlaps(ip_network("172.22.0.0/24")) for subnet in subnets)

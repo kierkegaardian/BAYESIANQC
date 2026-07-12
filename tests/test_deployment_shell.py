@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import re
 import subprocess
+from ipaddress import ip_network
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,3 +42,11 @@ def test_status_and_post_load_smoke_contracts_are_stable() -> None:
 def test_retry_uses_locally_available_pinned_runtime_images() -> None:
     remote = (ROOT / "deploy/demo/remote.sh").read_text(encoding="utf-8")
     assert 'pull --policy missing postgres caddy cloudflared' in remote
+
+
+def test_demo_networks_do_not_overlap_roadtrip_vpn() -> None:
+    compose = (ROOT / "deploy/demo/docker-compose.yml").read_text(encoding="utf-8")
+    subnets = [ip_network(value) for value in re.findall(r"subnet:\s*(\S+)", compose)]
+
+    assert len(subnets) == 3
+    assert all(not subnet.overlaps(ip_network("172.22.0.0/16")) for subnet in subnets)
