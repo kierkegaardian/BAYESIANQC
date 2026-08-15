@@ -49,8 +49,9 @@ This Software Requirements Specification (SRS) captures functional and non-funct
 
 ### 6.3 Rule Evaluation (Signals)
 - **REQ-FREQ-20**: Evaluate rule sets per incoming QC point and generate signals (violations) with rule ID and evidence.
-- **REQ-FREQ-21**: Support common multirule schemes (e.g., 1-3s, 2-2s, R-4s, 4-1s, 10x) and allow custom rule definitions.
+- **REQ-FREQ-21**: Support individual-result 1-3s, 2-2s, 4-1s, and 10x prototype rules. A standards-aligned within-run R-4s rule remains deferred until multi-control run context is implemented; legacy sequential R-4s is labelled nonstandard.
 - **REQ-FREQ-22**: Support rule evaluation across multiple QC levels for the same analyte/instrument if configured.
+- **REQ-FREQ-23**: Freeze the centerline, sample SD, and included-result count when a fixed-baseline stream-config version is established; later record replay must not redefine that version's limits.
 - **REQ-FREQ-23**: Classify signals by severity (info/warn/action) based on rule type and local policy.
 
 ## 7. Bayesian Modeling Layer (REQ-BAYES)

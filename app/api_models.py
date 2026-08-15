@@ -3,9 +3,10 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, FiniteFloat
 
 from app.domain import Disposition
+from app.evaluation_models import EvaluationProvenanceOut
 from app.models import AlertOut, BayesianRisk, FrequentistSignal, IngestionResult, QCEventOut, QuarantineResult
 
 
@@ -53,7 +54,7 @@ class LotSegmentOut(BaseModel):
 class QCRecordChartOut(BaseModel):
     id: int
     timestamp: datetime
-    result_value: float
+    result_value: FiniteFloat
     control_material_lot: str
     include_in_stats: bool
     resolved_reason: Optional[str] = None
@@ -61,6 +62,7 @@ class QCRecordChartOut(BaseModel):
     signals: Optional[list[FrequentistSignal]] = None
     bayesian_risk: Optional[BayesianRisk] = None
     disposition: Optional[Disposition] = None
+    evaluation: Optional[EvaluationProvenanceOut] = None
 
 
 class StreamChartOut(BaseModel):

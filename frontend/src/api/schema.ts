@@ -733,6 +733,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/streams/{stream_id}/evaluation-reprocess/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply Evaluation Reprocess */
+        post: operations["apply_evaluation_reprocess_streams__stream_id__evaluation_reprocess_apply_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/streams/{stream_id}/evaluation-reprocess/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Evaluation Reprocess */
+        post: operations["preview_evaluation_reprocess_streams__stream_id__evaluation_reprocess_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/streams/{stream_id}/priors": {
         parameters: {
             query?: never;
@@ -755,6 +789,11 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AlertEvaluationStatus
+         * @enum {string}
+         */
+        AlertEvaluationStatus: "current" | "confirmed" | "superseded" | "legacy_unverified";
         /** AlertOut */
         AlertOut: {
             /**
@@ -774,17 +813,26 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Current Evaluation Id */
+            current_evaluation_id?: number | null;
             disposition: components["schemas"]["Disposition"];
             /** Due At */
             due_at?: string | null;
+            evaluation?: components["schemas"]["EvaluationProvenanceOut"] | null;
+            /** @default legacy_unverified */
+            evaluation_status: components["schemas"]["AlertEvaluationStatus"];
             /** Id */
             id: string;
             /** Qc Record Id */
             qc_record_id?: number | null;
             /** Qc Record Timestamp */
             qc_record_timestamp?: string | null;
+            /** Replacement Alert Id */
+            replacement_alert_id?: string | null;
             /** Signals */
             signals: components["schemas"]["FrequentistSignal"][];
+            /** Source Evaluation Id */
+            source_evaluation_id?: number | null;
             status?: components["schemas"]["AlertStatus"] | null;
             /** Stream Id */
             stream_id: string;
@@ -930,6 +978,11 @@ export interface components {
              */
             warn_streak: number;
         };
+        /**
+         * BayesianThresholdMode
+         * @enum {string}
+         */
+        BayesianThresholdMode: "explicit_probabilities" | "legacy_action_risk_score" | "mixed_legacy";
         /** Body_ingest_qc_records_csv_qc_records_csv_post */
         Body_ingest_qc_records_csv_qc_records_csv_post: {
             /**
@@ -1098,6 +1151,11 @@ export interface components {
             /** Transfer Id */
             transfer_id: string;
         };
+        /**
+         * ControlLimitSource
+         * @enum {string}
+         */
+        ControlLimitSource: "configured" | "fixed_baseline";
         /** ControlMaterialIn */
         ControlMaterialIn: {
             /**
@@ -1203,6 +1261,111 @@ export interface components {
          * @enum {string}
          */
         EntrySource: "automated" | "manual";
+        /** EvaluationProvenanceOut */
+        EvaluationProvenanceOut: {
+            /** Bayesian Method */
+            bayesian_method: string;
+            /** Engine Version */
+            engine_version: string;
+            /**
+             * Evaluated At
+             * Format: date-time
+             */
+            evaluated_at: string;
+            /** Evaluation Id */
+            evaluation_id: number;
+            /** Frequentist Method */
+            frequentist_method: string;
+            limits: components["schemas"]["ResolvedControlLimits"];
+            /** Prior Config Id */
+            prior_config_id?: number | null;
+            /** Prior Config Version */
+            prior_config_version?: number | null;
+            /** Risk Semantics */
+            risk_semantics: string;
+            /** Run Id */
+            run_id: string;
+            /** Stream Config Id */
+            stream_config_id: number;
+            /** Stream Config Version */
+            stream_config_version: number;
+            threshold_mode: components["schemas"]["BayesianThresholdMode"];
+        };
+        /** EvaluationRecordDiffOut */
+        EvaluationRecordDiffOut: {
+            /** New Disposition */
+            new_disposition: string;
+            /** New Risk Score */
+            new_risk_score: number;
+            /** New Rule Ids */
+            new_rule_ids?: string[];
+            /** Old Disposition */
+            old_disposition?: string | null;
+            /** Old Risk Score */
+            old_risk_score?: number | null;
+            /** Old Rule Ids */
+            old_rule_ids?: string[];
+            /** Record Id */
+            record_id: number;
+            /**
+             * Timestamp
+             * Format: date-time
+             */
+            timestamp: string;
+        };
+        /** EvaluationReprocessApplyIn */
+        EvaluationReprocessApplyIn: {
+            /** Preview Fingerprint */
+            preview_fingerprint: string;
+            /** Reason */
+            reason: string;
+        };
+        /** EvaluationReprocessApplyOut */
+        EvaluationReprocessApplyOut: {
+            /** Alerts Confirmed */
+            alerts_confirmed: number;
+            /** Alerts Created */
+            alerts_created: number;
+            /** Alerts Superseded */
+            alerts_superseded: number;
+            /** Engine Version */
+            engine_version: string;
+            /** Records Changed */
+            records_changed: number;
+            /** Records Evaluated */
+            records_evaluated: number;
+            /** Run Id */
+            run_id: string;
+            /** Stream Id */
+            stream_id: string;
+        };
+        /** EvaluationReprocessPreviewOut */
+        EvaluationReprocessPreviewOut: {
+            /** Alerts Confirmed */
+            alerts_confirmed: number;
+            /** Alerts Superseded */
+            alerts_superseded: number;
+            /** Alerts To Create */
+            alerts_to_create: number;
+            /** Changes */
+            changes: components["schemas"]["EvaluationRecordDiffOut"][];
+            /** Engine Version */
+            engine_version: string;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Preview Fingerprint */
+            preview_fingerprint: string;
+            /** Records Changed */
+            records_changed: number;
+            /** Records Scanned */
+            records_scanned: number;
+            /** Stream Id */
+            stream_id: string;
+            /** Truncated */
+            truncated: boolean;
+        };
         /**
          * EventType
          * @enum {string}
@@ -1214,6 +1377,8 @@ export interface components {
             evidence: string;
             /** Rule */
             rule: string;
+            /** Rule Variant */
+            rule_variant?: string | null;
             severity: components["schemas"]["SignalSeverity"];
         };
         /** HTTPValidationError */
@@ -1872,7 +2037,7 @@ export interface components {
             /** Alpha0 */
             alpha0: number;
             /** Beta0 */
-            beta0: number;
+            beta0?: number | null;
             /** Effective From */
             effective_from?: string | null;
             /** Kappa0 */
@@ -1900,6 +2065,11 @@ export interface components {
              * Format: date-time
              */
             effective_from: string;
+            /**
+             * Evaluation Reprocess Required
+             * @default false
+             */
+            evaluation_reprocess_required: boolean;
             /** Kappa0 */
             kappa0: number;
             /** Mu0 */
@@ -2135,6 +2305,7 @@ export interface components {
             /** Control Material Lot */
             control_material_lot: string;
             disposition?: components["schemas"]["Disposition"] | null;
+            evaluation?: components["schemas"]["EvaluationProvenanceOut"] | null;
             /** Id */
             id: number;
             /** Include In Stats */
@@ -2197,6 +2368,7 @@ export interface components {
         QCRecordOut: {
             bayesian_risk: components["schemas"]["BayesianRisk"];
             disposition: components["schemas"]["Disposition"];
+            evaluation?: components["schemas"]["EvaluationProvenanceOut"] | null;
             /** Id */
             id?: number | null;
             record: components["schemas"]["QCRecordIn"];
@@ -2317,6 +2489,32 @@ export interface components {
             capas: components["schemas"]["CapaSummary"];
             investigations: components["schemas"]["InvestigationSummary"];
         };
+        /** ResolvedControlLimits */
+        ResolvedControlLimits: {
+            /** Action Limit Sd */
+            action_limit_sd: number;
+            /** Action Lower */
+            action_lower: number;
+            /** Action Upper */
+            action_upper: number;
+            /** Baseline Count */
+            baseline_count?: number | null;
+            /** Baseline End */
+            baseline_end?: string | null;
+            /** Baseline Start */
+            baseline_start?: string | null;
+            /** Centerline */
+            centerline: number;
+            /** Sigma */
+            sigma: number;
+            source: components["schemas"]["ControlLimitSource"];
+            /** Warning Limit Sd */
+            warning_limit_sd: number;
+            /** Warning Lower */
+            warning_lower: number;
+            /** Warning Upper */
+            warning_upper: number;
+        };
         /**
          * Role
          * @enum {string}
@@ -2361,6 +2559,8 @@ export interface components {
             bayes_warn_consecutive?: number | null;
             /** Bayes Warn Prob Threshold */
             bayes_warn_prob_threshold?: number | null;
+            /** @default configured */
+            control_limit_source: components["schemas"]["ControlLimitSource"];
             /** Control Material Id */
             control_material_id?: number | null;
             /** Control Material Lot */
@@ -2405,7 +2605,7 @@ export interface components {
             target_value: number;
             /** Unit Conversions */
             unit_conversions?: {
-                [key: string]: components["schemas"]["JsonValue"];
+                [key: string]: number | components["schemas"]["UnitConversionSpec"];
             } | null;
             /** Units */
             units: string;
@@ -2438,6 +2638,8 @@ export interface components {
             bayes_warn_consecutive?: number | null;
             /** Bayes Warn Prob Threshold */
             bayes_warn_prob_threshold?: number | null;
+            /** @default configured */
+            control_limit_source: components["schemas"]["ControlLimitSource"];
             /** Control Material Id */
             control_material_id?: number | null;
             /** Control Material Lot */
@@ -2454,6 +2656,11 @@ export interface components {
              * Format: date-time
              */
             effective_from: string;
+            /**
+             * Evaluation Reprocess Required
+             * @default false
+             */
+            evaluation_reprocess_required: boolean;
             /** Instrument */
             instrument: string;
             /** Lab Bench */
@@ -2492,7 +2699,7 @@ export interface components {
             target_value: number;
             /** Unit Conversions */
             unit_conversions?: {
-                [key: string]: components["schemas"]["JsonValue"];
+                [key: string]: number | components["schemas"]["UnitConversionSpec"];
             } | null;
             /** Units */
             units: string;
@@ -2548,6 +2755,10 @@ export interface components {
              * @default 3
              */
             action_limit_sd: number;
+            /** Baseline End */
+            baseline_end?: string | null;
+            /** Baseline Start */
+            baseline_start?: string | null;
             /**
              * Bayes Hold Consecutive
              * @default 2
@@ -2570,6 +2781,8 @@ export interface components {
             bayes_warn_prob_threshold: number | null;
             /** Config Reason */
             config_reason?: string | null;
+            /** @default configured */
+            control_limit_source: components["schemas"]["ControlLimitSource"];
             /** Control Material Lot */
             control_material_lot: string;
             /** Effective From */
@@ -2686,6 +2899,19 @@ export interface components {
             stream_id: string;
             /** Valid */
             valid: boolean;
+        };
+        /** UnitConversionSpec */
+        UnitConversionSpec: {
+            /**
+             * Factor
+             * @default 1
+             */
+            factor: number;
+            /**
+             * Offset
+             * @default 0
+             */
+            offset: number;
         };
         /** ValidationError */
         ValidationError: {
@@ -4685,6 +4911,79 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StreamConfigOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    apply_evaluation_reprocess_streams__stream_id__evaluation_reprocess_apply_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                stream_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvaluationReprocessApplyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationReprocessApplyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_evaluation_reprocess_streams__stream_id__evaluation_reprocess_preview_post: {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+            };
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                stream_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationReprocessPreviewOut"];
                 };
             };
             /** @description Validation Error */

@@ -3,7 +3,7 @@
     <div v-if="!isKiosk" class="page-header">
       <div>
         <h2>QC Charts</h2>
-        <div class="muted">Visualize QC results, alerts, and events.</div>
+        <div class="muted">Individual-result Westgard-like rules with supplemental Bayesian next-result risk.</div>
       </div>
       <el-button @click="loadChart">Refresh</el-button>
     </div>
@@ -31,6 +31,9 @@
         inactive-text="Linear"
       />
       <el-button type="primary" @click="loadChart">Load</el-button>
+      <el-button v-if="canAdminReprocess" @click="previewEvaluationReprocess">
+        Preview recalculation
+      </el-button>
     </div>
 
     <el-card :class="['chart-card', { 'chart-card--kiosk': isKiosk }]">
@@ -42,6 +45,26 @@
         <ChartRiskBadge :summary="latestRiskSummary" />
       </div>
 
+      <el-alert
+        v-if="legacyProvenanceCount > 0"
+        type="warning"
+        :closable="false"
+        show-icon
+        :title="`${legacyProvenanceCount} record(s): provenance unavailable; historical limits are not inferred`"
+        style="margin-bottom: 12px"
+      />
+      <el-alert
+        v-if="legacyR4sSignalCount > 0"
+        type="warning"
+        :closable="false"
+        show-icon
+        :title="`${legacyR4sSignalCount} signal(s) use the nonstandard legacy sequential R-4s variant`"
+        style="margin-bottom: 12px"
+      />
+      <div v-if="fixedBaselineLabels.length" class="muted" style="margin-bottom: 8px">
+        Fixed baseline: {{ fixedBaselineLabels.join("; ") }}
+      </div>
+
       <div v-show="chartMode !== 'risk'" ref="resultsChartRef" :style="resultsChartStyle"></div>
 
       <div
@@ -49,7 +72,7 @@
         :class="{ 'risk-rail--standalone': chartMode === 'risk', 'risk-rail--kiosk': isKiosk }"
       >
         <div v-if="!isKiosk" class="risk-rail-header">
-          <span>Bayesian risk</span>
+          <span>Bayesian next-result risk</span>
           <span>{{ latestRiskSummary?.detailLabel ?? "No risk history" }}</span>
         </div>
         <div ref="riskChartRef" :style="riskChartStyle"></div>
@@ -68,7 +91,8 @@
         <div><span>Result</span><strong>{{ selectedPoint.value[1] ?? "outlier" }}</strong></div>
         <div><span>Disposition</span><strong>{{ selectedPoint.disposition ?? "-" }}</strong></div>
         <div><span>Signals</span><strong>{{ selectedPointSignalLabel }}</strong></div>
-        <div><span>Bayesian risk</span><strong>{{ selectedPointRiskLabel }}</strong></div>
+        <div><span>Bayesian next-result risk</span><strong>{{ selectedPointRiskLabel }}</strong></div>
+        <div><span>Threshold mode</span><strong>{{ selectedPoint.evaluation?.threshold_mode ?? "legacy unavailable" }}</strong></div>
       </div>
       <QCCommentThread
         v-if="selectedPoint"
@@ -94,6 +118,47 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="reprocessDialogOpen" title="Historical Evaluation Reconciliation" width="min(900px, calc(100vw - 32px))">
+      <div v-if="evaluationPreview">
+        <el-alert
+          type="warning"
+          :closable="false"
+          title="Preview only: no record evaluations or alerts have been changed."
+          style="margin-bottom: 12px"
+        />
+        <div class="reprocess-summary">
+          <div><span>Records changed</span><strong>{{ evaluationPreview.records_changed }} / {{ evaluationPreview.records_scanned }}</strong></div>
+          <div><span>Alerts confirmed</span><strong>{{ evaluationPreview.alerts_confirmed }}</strong></div>
+          <div><span>Alerts superseded</span><strong>{{ evaluationPreview.alerts_superseded }}</strong></div>
+          <div><span>New alerts</span><strong>{{ evaluationPreview.alerts_to_create }}</strong></div>
+        </div>
+        <el-table :data="evaluationPreview.changes" stripe max-height="340">
+          <el-table-column prop="record_id" label="Record" width="90" />
+          <el-table-column prop="timestamp" label="Timestamp" min-width="180" />
+          <el-table-column prop="old_disposition" label="Old" width="140" />
+          <el-table-column prop="new_disposition" label="New" width="140" />
+          <el-table-column label="Alert / rule effect" min-width="220">
+            <template #default="{ row }">
+              {{ row.old_rule_ids.join(", ") || "none" }} → {{ row.new_rule_ids.join(", ") || "none" }}
+            </template>
+          </el-table-column>
+        </el-table>
+        <el-form-item label="Required reason" style="margin-top: 16px">
+          <el-input v-model="reprocessReason" type="textarea" :rows="2" />
+        </el-form-item>
+      </div>
+      <template #footer>
+        <el-button @click="reprocessDialogOpen = false">Cancel</el-button>
+        <el-button
+          type="danger"
+          :disabled="!evaluationPreview || !reprocessReason.trim()"
+          @click="applyEvaluationReprocess"
+        >
+          Apply immutable recalculation
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -109,7 +174,7 @@ import type {
 } from "echarts";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { api } from "../api/client";
-import { canApprove } from "../api/session";
+import { canApprove, sessionUser } from "../api/session";
 import ChartRiskBadge from "./ChartRiskBadge.vue";
 import QCCommentThread from "../components/QCCommentThread.vue";
 import {
@@ -122,10 +187,17 @@ import {
   buildBrokenOutlierYAxis,
   buildOutlierAxis,
 } from "./chartAxisOptions";
+import {
+  buildControlLimitSteps,
+} from "./chartControlLimits";
 import type {
   AlertOutWithQc,
   BayesianRisk,
   Disposition,
+  EvaluationProvenanceOut,
+  EvaluationReprocessApplyIn,
+  EvaluationReprocessApplyOut,
+  EvaluationReprocessPreviewOut,
   FrequentistSignal,
   LotSegmentOut,
   QCEventOut,
@@ -196,6 +268,7 @@ type ChartPoint = {
   disposition?: Disposition | null;
   signals?: FrequentistSignal[] | null;
   bayesian_risk?: BayesianRisk | null;
+  evaluation?: EvaluationProvenanceOut | null;
   itemStyle?: { color?: string };
 };
 
@@ -261,19 +334,30 @@ const endDate = ref<Date | null>(null);
 const useLogScale = ref(false);
 const suppressLogReload = ref(false);
 const latestRiskSummary = ref<ChartRiskSummary | null>(null);
+const legacyProvenanceCount = ref(0);
+const legacyR4sSignalCount = ref(0);
+const fixedBaselineLabels = ref<string[]>([]);
 const commentDialogOpen = ref(false);
+const reprocessDialogOpen = ref(false);
+const evaluationPreview = ref<EvaluationReprocessPreviewOut | null>(null);
+const reprocessReason = ref("");
 const selectedPoint = ref<ChartPoint | null>(null);
+const canAdminReprocess = computed(() => sessionUser.value?.role === "admin");
 const currentStreamLabel = computed(() => streamId.value || "Select stream");
 const chartSubtitle = computed(() =>
   chartMode.value === "risk"
-    ? "Bayesian predictive exceedance probabilities with alert markers."
-    : "Results with Bayesian risk aligned to the same time window."
+    ? "Bayesian next-result exceedance probabilities with alert markers."
+    : "Results with provenance-backed limits and next-result risk aligned to the same window."
 );
 const pointDialogTitle = computed(() => (isKiosk.value ? "QC Point Detail" : "QC Point Comments"));
 const pointDialogWidth = computed(() => (isKiosk.value ? "min(760px, calc(100vw - 32px))" : "560px"));
 const selectedPointSignalLabel = computed(() => {
   const signals = selectedPoint.value?.signals;
-  return signals?.length ? signals.map((signal) => signal.rule).join(", ") : "none";
+  return signals?.length
+    ? signals
+        .map((signal) => signal.rule_variant ? `${signal.rule} (${signal.rule_variant})` : signal.rule)
+        .join(", ")
+    : "none";
 });
 const selectedPointRiskLabel = computed(() => {
   const risk = selectedPoint.value?.bayesian_risk;
@@ -387,6 +471,40 @@ async function loadStreams() {
   }
 }
 
+async function previewEvaluationReprocess(): Promise<void> {
+  if (!streamId.value || !canAdminReprocess.value) return;
+  try {
+    evaluationPreview.value = await api.post<EvaluationReprocessPreviewOut>(
+      `/streams/${streamId.value}/evaluation-reprocess/preview?limit=100`,
+      {}
+    );
+    reprocessReason.value = "";
+    reprocessDialogOpen.value = true;
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : "Evaluation preview failed");
+  }
+}
+
+async function applyEvaluationReprocess(): Promise<void> {
+  if (!streamId.value || !evaluationPreview.value || !reprocessReason.value.trim()) return;
+  const payload: EvaluationReprocessApplyIn = {
+    preview_fingerprint: evaluationPreview.value.preview_fingerprint,
+    reason: reprocessReason.value.trim(),
+  };
+  try {
+    const result = await api.post<EvaluationReprocessApplyOut>(
+      `/streams/${streamId.value}/evaluation-reprocess/apply`,
+      payload
+    );
+    ElMessage.success(`Recalculated ${result.records_evaluated} records in run ${result.run_id}`);
+    reprocessDialogOpen.value = false;
+    evaluationPreview.value = null;
+    await loadChart();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : "Evaluation apply failed");
+  }
+}
+
 async function updateResolution(
   recordId: number,
   includeInStats: boolean,
@@ -488,97 +606,72 @@ function attachResultsChartHandlers() {
   });
 }
 
-function buildControlSeries(stream: StreamConfigOut | undefined) {
-  if (!stream) {
-    return null;
+function limitLine(
+  name: string,
+  data: Array<[string, number | null]>,
+  color: string,
+  type: "solid" | "dashed" | "dotted" = "dashed"
+): LineSeriesOption {
+  return {
+    name,
+    type: "line",
+    data,
+    step: "end",
+    connectNulls: false,
+    showSymbol: false,
+    silent: true,
+    lineStyle: { color, type, width: name === "Applied centerline" ? 1.5 : 1 },
+    tooltip: { show: false },
+    emphasis: { disabled: true },
+  };
+}
+
+function buildControlSeries(records: QCRecordChartOut[]) {
+  const steps = buildControlLimitSteps(records);
+  if (steps.minValue === undefined || steps.maxValue === undefined) {
+    return { controlSeries: [], yAxis: { type: "value", name: "Result" } as echarts.YAXisComponentOption, ...steps };
   }
-  const mean = Number(stream.target_value);
-  const sigma = Number(stream.sigma);
-  if (!Number.isFinite(mean) || !Number.isFinite(sigma) || sigma <= 0) {
-    return null;
+  const markAreaData: MarkAreaComponentOption["data"] = [];
+  for (const segment of steps.segments) {
+    for (const [lower, upper, color] of [
+      [segment.limits.action_lower, segment.limits.action_upper, "rgba(239, 68, 68, 0.08)"],
+      [segment.limits.warning_lower, segment.limits.warning_upper, "rgba(234, 179, 8, 0.10)"],
+      [segment.limits.centerline - segment.limits.sigma, segment.limits.centerline + segment.limits.sigma, "rgba(34, 197, 94, 0.12)"],
+    ] as const) {
+      markAreaData.push([
+        { xAxis: segment.start, yAxis: lower, itemStyle: { color } },
+        { xAxis: segment.end, yAxis: upper },
+      ]);
+    }
   }
-  const warningSd = Number.isFinite(Number(stream.warning_limit_sd))
-    ? Number(stream.warning_limit_sd)
-    : 2;
-  const actionSd = Number.isFinite(Number(stream.action_limit_sd))
-    ? Number(stream.action_limit_sd)
-    : 3;
-
-  const actionDelta = actionSd * sigma;
-
-  const markAreaData: MarkAreaComponentOption["data"] = [
-    [
-      {
-        yAxis: mean - actionSd * sigma,
-        itemStyle: { color: "rgba(239, 68, 68, 0.08)" },
-      },
-      { yAxis: mean + actionSd * sigma },
-    ],
-    [
-      {
-        yAxis: mean - warningSd * sigma,
-        itemStyle: { color: "rgba(234, 179, 8, 0.1)" },
-      },
-      { yAxis: mean + warningSd * sigma },
-    ],
-    [
-      {
-        yAxis: mean - sigma,
-        itemStyle: { color: "rgba(34, 197, 94, 0.12)" },
-      },
-      { yAxis: mean + sigma },
-    ],
-  ];
-
-  const markLineData: MarkLineComponentOption["data"] = [
-    {
-      yAxis: mean,
-      lineStyle: { color: "#0f172a", width: 1.5 },
-      label: { formatter: "Mean", color: "#0f172a" },
-    },
-    {
-      yAxis: mean + warningSd * sigma,
-      lineStyle: { color: "#f59e0b", type: "dashed" },
-      label: { formatter: `+${warningSd} SD`, color: "#f59e0b" },
-    },
-    {
-      yAxis: mean - warningSd * sigma,
-      lineStyle: { color: "#f59e0b", type: "dashed" },
-      label: { formatter: `-${warningSd} SD`, color: "#f59e0b" },
-    },
-    {
-      yAxis: mean + actionSd * sigma,
-      lineStyle: { color: "#ef4444", type: "dashed" },
-      label: { formatter: `+${actionSd} SD`, color: "#ef4444" },
-    },
-    {
-      yAxis: mean - actionSd * sigma,
-      lineStyle: { color: "#ef4444", type: "dashed" },
-      label: { formatter: `-${actionSd} SD`, color: "#ef4444" },
-    },
-  ];
-
-  const controlSeries: LineSeriesOption = {
-    name: "Control Limits",
+  const bandSeries: LineSeriesOption = {
+    name: "Applied control bands",
     type: "line",
     data: [],
     showSymbol: false,
     lineStyle: { opacity: 0 },
     silent: true,
     markArea: { silent: true, data: markAreaData },
-    markLine: { silent: true, symbol: "none", data: markLineData },
     tooltip: { show: false },
     emphasis: { disabled: true },
   };
-
-  const yAxis: echarts.YAXisComponentOption = {
-    type: "value",
-    name: "Result",
-    min: mean - actionDelta,
-    max: mean + actionDelta,
+  return {
+    ...steps,
+    controlSeries: [
+      bandSeries,
+      limitLine("Applied action lower", steps.actionLower, "#ef4444"),
+      limitLine("Applied action upper", steps.actionUpper, "#ef4444"),
+      limitLine("Applied warning lower", steps.warningLower, "#f59e0b"),
+      limitLine("Applied warning upper", steps.warningUpper, "#f59e0b"),
+      limitLine("Applied centerline", steps.centerline, "#0f172a", "solid"),
+    ],
+    yAxis: {
+      type: "value",
+      name: "Result",
+      min: steps.minValue,
+      max: steps.maxValue,
+    } as echarts.YAXisComponentOption,
   };
-
-  return { controlSeries, yAxis, minValue: mean - actionDelta, maxValue: mean + actionDelta };
 }
 
 function buildParams() {
@@ -636,7 +729,13 @@ async function loadChart() {
   latestRiskSummary.value = riskSummary;
   emit("risk-summary", riskSummary);
 
-  const controlConfig = buildControlSeries(stream);
+  const controlConfig = buildControlSeries(records);
+  legacyProvenanceCount.value = controlConfig.legacyRecordIds.length;
+  legacyR4sSignalCount.value = records.reduce(
+    (count, record) => count + (record.signals ?? []).filter((signal) => Boolean(signal.rule_variant)).length,
+    0
+  );
+  fixedBaselineLabels.value = controlConfig.fixedBaselineLabels;
   const limitMin = controlConfig?.minValue;
   const limitMax = controlConfig?.maxValue;
   const logScaleAllowed =
@@ -672,6 +771,7 @@ async function loadChart() {
     disposition: record.disposition ?? null,
     signals: record.signals ?? null,
     bayesian_risk: record.bayesian_risk ?? null,
+    evaluation: record.evaluation ?? null,
     itemStyle:
       record.include_in_stats === false
         ? { color: "#94a3b8" }
@@ -983,9 +1083,9 @@ async function loadChart() {
     }
   }
 
-  if (controlConfig?.controlSeries) {
-    controlConfig.controlSeries.xAxisIndex = mainAxisIndex;
-    controlConfig.controlSeries.yAxisIndex = mainAxisIndex;
+  for (const controlSeries of controlConfig.controlSeries) {
+    controlSeries.xAxisIndex = mainAxisIndex;
+    controlSeries.yAxisIndex = mainAxisIndex;
   }
 
   posteriorMeanSeries.xAxisIndex = mainAxisIndex;
@@ -1003,7 +1103,7 @@ async function loadChart() {
   resultSeries.yAxisIndex = mainAxisIndex;
 
   const series: echarts.SeriesOption[] = [
-    ...(controlConfig?.controlSeries ? [controlConfig.controlSeries] : []),
+    ...controlConfig.controlSeries,
     predictiveLowerSeries,
     predictiveUpperSeries,
     credibleLowerSeries,
@@ -1069,6 +1169,7 @@ async function loadChart() {
         const disposition = recordItem.data.disposition;
         const signals = recordItem.data.signals;
         const risk = recordItem.data.bayesian_risk;
+        const evaluation = recordItem.data.evaluation;
         const parts: string[] = [];
         if (timestamp) {
           parts.push(`<div class="qc-chart-tooltip__time">${new Date(timestamp).toLocaleString()}</div>`);
@@ -1080,29 +1181,29 @@ async function loadChart() {
           parts.push(tooltipLine("Disposition", disposition));
         }
         if (signals && signals.length) {
-          const summary = signals.map((signal) => signal.rule).join(", ");
+          const summary = signals
+            .map((signal) => signal.rule_variant ? `${signal.rule} (${signal.rule_variant})` : signal.rule)
+            .join(", ");
           parts.push(tooltipLine("Signals", summary));
         }
         if (risk) {
           const riskScore = Number.isFinite(Number(risk.risk_score)) ? Number(risk.risk_score).toFixed(0) : "-";
           const pWarn = Math.max(0, Math.min(1, Number(risk.probability_outside_warning)));
           const pAction = Math.max(0, Math.min(1, Number(risk.probability_outside_limits)));
-          parts.push(tooltipLine("Risk", `${riskScore}/100`));
-          parts.push(tooltipLine("P warn/action", `${(pWarn * 100).toFixed(1)}% / ${(pAction * 100).toFixed(1)}%`));
+          parts.push(tooltipLine("Next-result risk", `${riskScore}/100`));
+          parts.push(tooltipLine("P(next outside warn/action)", `${(pWarn * 100).toFixed(1)}% / ${(pAction * 100).toFixed(1)}%`));
           if (risk.posterior_mean !== null && risk.posterior_mean !== undefined) {
             parts.push(tooltipLine("Posterior mean", Number(risk.posterior_mean).toFixed(4)));
           }
-          const warnReq =
-            stream?.bayes_warn_consecutive !== null && stream?.bayes_warn_consecutive !== undefined
-              ? Number(stream.bayes_warn_consecutive)
-              : 1;
-          const holdReq =
-            stream?.bayes_hold_consecutive !== null && stream?.bayes_hold_consecutive !== undefined
-              ? Number(stream.bayes_hold_consecutive)
-              : 1;
           const warnStreak = Number.isFinite(Number(risk.warn_streak)) ? Number(risk.warn_streak) : 0;
           const holdStreak = Number.isFinite(Number(risk.hold_streak)) ? Number(risk.hold_streak) : 0;
-          parts.push(tooltipLine("Streaks", `warn ${warnStreak}/${warnReq}, hold ${holdStreak}/${holdReq}`));
+          parts.push(tooltipLine("Streaks", `warn ${warnStreak}, hold ${holdStreak}`));
+        }
+        if (evaluation) {
+          parts.push(tooltipLine("Threshold mode", evaluation.threshold_mode));
+          parts.push(tooltipLine("Limit source", evaluation.limits.source));
+        } else {
+          parts.push(tooltipLine("Limits", "provenance unavailable"));
         }
         if (lot) {
           parts.push(tooltipLine("Lot", lot));
@@ -1136,7 +1237,7 @@ async function loadChart() {
   ];
 
   const actionSeries: LineSeriesOption = {
-    name: "P(outside action)",
+    name: "P(next outside action)",
     type: "line",
     data: actionProbabilityPoints,
     showSymbol: false,
@@ -1167,7 +1268,7 @@ async function loadChart() {
   }
 
   const warnSeries: LineSeriesOption = {
-    name: "P(outside warn)",
+    name: "P(next outside warning)",
     type: "line",
     data: warnProbabilityPoints,
     showSymbol: false,
@@ -1206,7 +1307,7 @@ async function loadChart() {
     },
     yAxis: {
       type: "value",
-      name: chartMode.value === "risk" ? "Predictive exceedance (%)" : "Risk (%)",
+      name: chartMode.value === "risk" ? "Next-result exceedance (%)" : "Next-result risk (%)",
       min: 0,
       max: 100,
       splitNumber: chartMode.value === "risk" ? 5 : 3,
@@ -1243,7 +1344,7 @@ async function loadChart() {
           })
           .filter((line): line is string => Boolean(line));
         const helpLines = lines.length
-          ? [tooltipLine("Basis", "current chart timestamp")]
+          ? [tooltipLine("Basis", "post-update next observation")]
           : [];
         return [`<div class="qc-chart-tooltip__time">${ts}</div>`, ...lines.map((line) => `<div>${line}</div>`), ...helpLines].join("");
       },
@@ -1380,6 +1481,26 @@ onBeforeUnmount(() => {
 
 .risk-rail--kiosk {
   border-color: #334155;
+}
+
+.reprocess-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.reprocess-summary div {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+}
+
+.reprocess-summary span {
+  color: #64748b;
+  font-size: 12px;
 }
 
 .point-comment-context {

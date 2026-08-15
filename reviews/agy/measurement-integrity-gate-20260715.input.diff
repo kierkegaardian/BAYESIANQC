@@ -1,0 +1,1366 @@
+diff --git a/app/api_models.py b/app/api_models.py
+index d041365..306ffdf 100644
+--- a/app/api_models.py
++++ b/app/api_models.py
+@@ -3,7 +3,7 @@ from __future__ import annotations
+ from datetime import datetime
+ from typing import Optional
+ 
+-from pydantic import BaseModel, Field
++from pydantic import BaseModel, Field, FiniteFloat
+ 
+ from app.domain import Disposition
+ from app.models import AlertOut, BayesianRisk, FrequentistSignal, IngestionResult, QCEventOut, QuarantineResult
+@@ -53,7 +53,7 @@ class LotSegmentOut(BaseModel):
+ class QCRecordChartOut(BaseModel):
+     id: int
+     timestamp: datetime
+-    result_value: float
++    result_value: FiniteFloat
+     control_material_lot: str
+     include_in_stats: bool
+     resolved_reason: Optional[str] = None
+diff --git a/app/bayesian.py b/app/bayesian.py
+index 614cc26..52446f6 100644
+--- a/app/bayesian.py
++++ b/app/bayesian.py
+@@ -2,154 +2,23 @@ from __future__ import annotations
+ 
+ import math
+ from datetime import datetime
+-from functools import lru_cache
+ from typing import Optional
+ 
+ from sqlmodel import Session, col, select
+ 
+ from app.db_models import PosteriorState, PriorConfig, QCRecord, StreamConfig
++from app.math.student_t import student_t_interval_quantile, student_t_probability_outside_bounds
+ from app.models import BayesianRisk
+ from app.storage import get_active_prior
+ from app.timeutils import as_utc
+ 
+-_NORMAL_APPROX_DF_THRESHOLD = 30.0
+ _DEFAULT_INTERVAL_LEVEL = 0.95
+-# Normal(0,1) quantile for 0.975 (two-sided 95% interval).
+-_DEFAULT_NORMAL_Q_975 = 1.959963984540054
+ 
+ 
+ def _clamp01(value: float) -> float:
+     return max(0.0, min(1.0, value))
+ 
+ 
+-def _normal_cdf(x: float, mean: float, std: float) -> float:
+-    if std <= 0:
+-        return 0.5
+-    return 0.5 * (1 + math.erf((x - mean) / (std * math.sqrt(2))))
+-
+-
+-def _beta_continued_fraction(a: float, b: float, x: float) -> float:
+-    max_iterations = 200
+-    epsilon = 3e-12
+-    fpmin = 1e-300
+-
+-    qab = a + b
+-    qap = a + 1.0
+-    qam = a - 1.0
+-
+-    c = 1.0
+-    d = 1.0 - (qab * x / qap)
+-    if abs(d) < fpmin:
+-        d = fpmin
+-    d = 1.0 / d
+-    h = d
+-
+-    for m in range(1, max_iterations + 1):
+-        m2 = 2 * m
+-        aa = m * (b - m) * x / ((qam + m2) * (a + m2))
+-        d = 1.0 + aa * d
+-        if abs(d) < fpmin:
+-            d = fpmin
+-        c = 1.0 + aa / c
+-        if abs(c) < fpmin:
+-            c = fpmin
+-        d = 1.0 / d
+-        h *= d * c
+-
+-        aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2))
+-        d = 1.0 + aa * d
+-        if abs(d) < fpmin:
+-            d = fpmin
+-        c = 1.0 + aa / c
+-        if abs(c) < fpmin:
+-            c = fpmin
+-        d = 1.0 / d
+-        delta = d * c
+-        h *= delta
+-        if abs(delta - 1.0) < epsilon:
+-            break
+-    return h
+-
+-
+-def _regularized_incomplete_beta(a: float, b: float, x: float) -> float:
+-    if x <= 0:
+-        return 0.0
+-    if x >= 1:
+-        return 1.0
+-
+-    log_bt = (
+-        math.lgamma(a + b)
+-        - math.lgamma(a)
+-        - math.lgamma(b)
+-        + a * math.log(x)
+-        + b * math.log(1.0 - x)
+-    )
+-    bt = math.exp(log_bt)
+-
+-    if x < (a + 1.0) / (a + b + 2.0):
+-        return bt * _beta_continued_fraction(a, b, x) / a
+-    return 1.0 - bt * _beta_continued_fraction(b, a, 1.0 - x) / b
+-
+-
+-def _student_t_cdf(t_value: float, degrees_of_freedom: float) -> float:
+-    if degrees_of_freedom <= 0:
+-        return 0.5
+-
+-    x = degrees_of_freedom / (degrees_of_freedom + t_value * t_value)
+-    a = degrees_of_freedom / 2.0
+-    b = 0.5
+-    ib = _regularized_incomplete_beta(a, b, x)
+-    if t_value >= 0:
+-        return 1.0 - 0.5 * ib
+-    return 0.5 * ib
+-
+-
+-def _student_t_ppf(probability: float, degrees_of_freedom: float) -> float:
+-    """
+-    Inverse CDF (percent point function) for Student-t.
+-
+-    We only need a handful of quantiles for chart intervals, so a robust bisection
+-    on the existing CDF is sufficient (no SciPy dependency).
+-    """
+-    if degrees_of_freedom <= 0:
+-        return 0.0
+-    p = _clamp01(probability)
+-    if p == 0.5:
+-        return 0.0
+-    if p < 0.5:
+-        return -_student_t_ppf(1.0 - p, degrees_of_freedom)
+-
+-    # Find an upper bracket such that CDF(hi) >= p.
+-    hi = 1.0
+-    while _student_t_cdf(hi, degrees_of_freedom) < p:
+-        hi *= 2.0
+-        if hi > 1e6:
+-            break
+-    lo = 0.0
+-    for _ in range(80):
+-        mid = (lo + hi) / 2.0
+-        if _student_t_cdf(mid, degrees_of_freedom) < p:
+-            lo = mid
+-        else:
+-            hi = mid
+-    return (lo + hi) / 2.0
+-
+-
+-@lru_cache(maxsize=256)
+-def _student_t_interval_quantile(df_key: float) -> float:
+-    alpha = (1.0 + _DEFAULT_INTERVAL_LEVEL) / 2.0
+-    return _student_t_ppf(alpha, df_key)
+-
+-
+-def _interval_quantile(degrees_of_freedom: float) -> float:
+-    if degrees_of_freedom >= _NORMAL_APPROX_DF_THRESHOLD:
+-        return _DEFAULT_NORMAL_Q_975
+-    df_key = round(degrees_of_freedom, 6)
+-    if df_key <= 0:
+-        return 0.0
+-    return _student_t_interval_quantile(df_key)
+-
+-
+ def _update_posterior(
+     mu0: float,
+     kappa0: float,
+@@ -164,23 +33,6 @@ def _update_posterior(
+     return mu_n, kappa_n, alpha_n, beta_n
+ 
+ 
+-def _probability_inside_bounds(
+-    *,
+-    mean: float,
+-    scale: float,
+-    degrees_of_freedom: float,
+-    lower: float,
+-    upper: float,
+-) -> float:
+-    if scale <= 0:
+-        return 0.0
+-    if degrees_of_freedom >= _NORMAL_APPROX_DF_THRESHOLD:
+-        return _normal_cdf(upper, mean, scale) - _normal_cdf(lower, mean, scale)
+-    t_upper = (upper - mean) / scale
+-    t_lower = (lower - mean) / scale
+-    return _student_t_cdf(t_upper, degrees_of_freedom) - _student_t_cdf(t_lower, degrees_of_freedom)
+-
+-
+ def _update_policy_streaks(
+     *,
+     config: StreamConfig,
+@@ -248,26 +100,24 @@ def _risk_from_posterior(
+         action_lower = config.target_value - config.action_limit_sd * config.sigma
+         action_upper = config.target_value + config.action_limit_sd * config.sigma
+ 
+-        warn_inside = _probability_inside_bounds(
++        probability_outside_warning = student_t_probability_outside_bounds(
+             mean=mu_n,
+             scale=predictive_sigma,
+             degrees_of_freedom=df,
+             lower=warn_lower,
+             upper=warn_upper,
+         )
+-        action_inside = _probability_inside_bounds(
++        probability_outside_action = student_t_probability_outside_bounds(
+             mean=mu_n,
+             scale=predictive_sigma,
+             degrees_of_freedom=df,
+             lower=action_lower,
+             upper=action_upper,
+         )
+-        probability_outside_warning = _clamp01(1.0 - warn_inside)
+-        probability_outside_action = _clamp01(1.0 - action_inside)
+ 
+     risk_score = int(min(100, max(0, round(probability_outside_action * 100))))
+ 
+-    q = _interval_quantile(df)
++    q = student_t_interval_quantile(df, _DEFAULT_INTERVAL_LEVEL)
+ 
+     credible_interval = None
+     if mu_scale and q > 0:
+diff --git a/app/main.py b/app/main.py
+index 68119cf..8435758 100644
+--- a/app/main.py
++++ b/app/main.py
+@@ -11,6 +11,7 @@ from typing import NoReturn, Optional
+ 
+ from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, Response, UploadFile, status
+ from fastapi.middleware.cors import CORSMiddleware
++from fastapi.exceptions import RequestValidationError
+ from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
+ from fastapi.responses import HTMLResponse
+ from sqlalchemy import and_, or_
+@@ -28,6 +29,7 @@ from app.api_models import (
+     ReportSummaryOut,
+     StreamChartOut,
+ )
++from app.api_errors import json_safe_request_validation_handler
+ from app.db import get_engine, get_session, init_db
+ from app.db_models import (
+     AlertRecord,
+@@ -47,6 +49,7 @@ from app.db_models import (
+ )
+ from app.domain import Disposition
+ from app.evaluations import reprocess_stream_evaluations
++from app.math.prior import prior_beta_from_sigma
+ from app.models import (
+     AnalyteIn,
+     AnalyteOut,
+@@ -133,6 +136,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+ 
+ 
+ app = FastAPI(title="Bayesian QC Prototype", version="0.2.0", docs_url=None, redoc_url=None, lifespan=lifespan)
++app.add_exception_handler(RequestValidationError, json_safe_request_validation_handler)
+ 
+ cors_origins = [
+     origin.strip()
+@@ -971,6 +975,21 @@ def create_prior(
+     payload = payload.model_copy(update={"stream_id": stream_id})
+     with stream_write_lock(session, stream_id):
+         try:
++            if payload.beta0 is None:
++                effective_at = payload.effective_from or datetime.now(timezone.utc)
++                effective_config = session.exec(
++                    select(StreamConfig)
++                    .where(StreamConfig.stream_id == stream_id, StreamConfig.effective_from <= effective_at)
++                    .order_by(col(StreamConfig.effective_from).desc(), col(StreamConfig.version).desc())
++                ).first()
++                if effective_config is None:
++                    raise HTTPException(
++                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
++                        detail="beta0 is required when no stream configuration is effective at the prior timestamp",
++                    )
++                payload = payload.model_copy(
++                    update={"beta0": prior_beta_from_sigma(payload.alpha0, effective_config.sigma)}
++                )
+             config = create_prior_config(session, stream_id, payload, user.actor, commit=False)
+             record_audit(
+                 session,
+diff --git a/app/models.py b/app/models.py
+index 0753ef3..de68965 100644
+--- a/app/models.py
++++ b/app/models.py
+@@ -5,7 +5,7 @@ from enum import Enum
+ from typing import Literal
+ from typing import List, Optional, Tuple
+ 
+-from pydantic import BaseModel, Field, JsonValue, field_validator, model_validator
++from pydantic import BaseModel, ConfigDict, Field, FiniteFloat, JsonValue, field_validator, model_validator
+ 
+ from app.domain import Disposition, SignalSeverity
+ 
+@@ -102,7 +102,7 @@ class QCCommentTargetType(str, Enum):
+ 
+ class QCRecordIn(BaseModel):
+     stream_id: str
+-    result_value: float
++    result_value: FiniteFloat
+     timestamp: datetime
+     analyte: str
+     qc_level: str
+@@ -119,14 +119,6 @@ class QCRecordIn(BaseModel):
+     comments: Optional[str] = None
+     qc_backlog_item_id: Optional[int] = None
+ 
+-    @field_validator("result_value")
+-    @classmethod
+-    def value_must_be_finite(cls, v: float) -> float:
+-        if v != v or v in (float("inf"), float("-inf")):
+-            raise ValueError("Result must be finite")
+-        return v
+-
+-
+ class FrequentistSignal(BaseModel):
+     rule: str
+     severity: SignalSeverity
+@@ -134,14 +126,14 @@ class FrequentistSignal(BaseModel):
+ 
+ 
+ class BayesianRisk(BaseModel):
+-    probability_outside_limits: float
+-    probability_outside_warning: float = 0.0
++    probability_outside_limits: FiniteFloat
++    probability_outside_warning: FiniteFloat = 0.0
+     risk_score: int
+-    posterior_mean: Optional[float] = None
+-    posterior_sigma: Optional[float] = None
+-    predictive_sigma: Optional[float] = None
+-    credible_interval: Optional[Tuple[float, float]] = None
+-    predictive_interval: Optional[Tuple[float, float]] = None
++    posterior_mean: Optional[FiniteFloat] = None
++    posterior_sigma: Optional[FiniteFloat] = None
++    predictive_sigma: Optional[FiniteFloat] = None
++    credible_interval: Optional[Tuple[FiniteFloat, FiniteFloat]] = None
++    predictive_interval: Optional[Tuple[FiniteFloat, FiniteFloat]] = None
+     warn_streak: int = 0
+     hold_streak: int = 0
+ 
+@@ -163,7 +155,7 @@ class QCRecordResolutionOut(BaseModel):
+     id: int
+     stream_id: str
+     timestamp: datetime
+-    result_value: float
++    result_value: FiniteFloat
+     include_in_stats: bool
+     resolved_at: Optional[datetime] = None
+     resolved_by: Optional[str] = None
+@@ -371,6 +363,16 @@ class QCCommentOut(BaseModel):
+     created_at: datetime
+ 
+ 
++class UnitConversionSpec(BaseModel):
++    model_config = ConfigDict(extra="forbid")
++
++    factor: FiniteFloat = 1.0
++    offset: FiniteFloat = 0.0
++
++
++UnitConversionValue = FiniteFloat | UnitConversionSpec
++
++
+ class StreamConfigBase(BaseModel):
+     stream_id: str
+     analyte: str
+@@ -383,21 +385,21 @@ class StreamConfigBase(BaseModel):
+     control_material_lot: str
+     control_material_id: Optional[int] = None
+     units: str
+-    target_value: float
+-    sigma: float
+-    action_limit_sd: float = 3.0
+-    warning_limit_sd: float = 2.0
+-    min_value: Optional[float] = None
+-    max_value: Optional[float] = None
++    target_value: FiniteFloat
++    sigma: FiniteFloat
++    action_limit_sd: FiniteFloat = 3.0
++    warning_limit_sd: FiniteFloat = 2.0
++    min_value: Optional[FiniteFloat] = None
++    max_value: Optional[FiniteFloat] = None
+     allowed_units: Optional[List[str]] = None
+-    unit_conversions: Optional[dict[str, JsonValue]] = None
++    unit_conversions: Optional[dict[str, UnitConversionValue]] = None
+     baseline_start: Optional[datetime] = None
+     baseline_end: Optional[datetime] = None
+     risk_threshold_warn: int = 50
+     risk_threshold_hold: int = 80
+-    bayes_warn_prob_threshold: Optional[float] = None
++    bayes_warn_prob_threshold: Optional[FiniteFloat] = None
+     bayes_warn_consecutive: Optional[int] = None
+-    bayes_hold_prob_threshold: Optional[float] = None
++    bayes_hold_prob_threshold: Optional[FiniteFloat] = None
+     bayes_hold_consecutive: Optional[int] = None
+     rule_set: Optional[dict[str, JsonValue]] = None
+ 
+@@ -419,6 +421,8 @@ class StreamConfigBase(BaseModel):
+     def validate_limits_and_thresholds(self) -> "StreamConfigBase":
+         if self.action_limit_sd < self.warning_limit_sd:
+             raise ValueError("action_limit_sd must be >= warning_limit_sd")
++        if self.min_value is not None and self.max_value is not None and self.min_value > self.max_value:
++            raise ValueError("min_value must be <= max_value")
+         if not (0 <= self.risk_threshold_warn <= 100):
+             raise ValueError("risk_threshold_warn must be between 0 and 100")
+         if not (0 <= self.risk_threshold_hold <= 100):
+@@ -515,10 +519,9 @@ class AnalyteUpdate(BaseModel):
+ 
+ class PriorConfigBase(BaseModel):
+     stream_id: str
+-    mu0: float
+-    kappa0: float
+-    alpha0: float
+-    beta0: float
++    mu0: FiniteFloat
++    kappa0: FiniteFloat
++    alpha0: FiniteFloat
+ 
+     @field_validator("kappa0")
+     @classmethod
+@@ -534,24 +537,32 @@ class PriorConfigBase(BaseModel):
+             raise ValueError("alpha0 must be > 1")
+         return v
+ 
++class PriorConfigIn(PriorConfigBase):
++    beta0: Optional[FiniteFloat] = None
++    effective_from: Optional[datetime] = None
++
+     @field_validator("beta0")
+     @classmethod
+-    def beta0_must_be_positive(cls, v: float) -> float:
+-        if v <= 0:
++    def beta0_must_be_positive(cls, v: Optional[float]) -> Optional[float]:
++        if v is not None and v <= 0:
+             raise ValueError("beta0 must be > 0")
+         return v
+ 
+ 
+-class PriorConfigIn(PriorConfigBase):
+-    effective_from: Optional[datetime] = None
+-
+-
+ class PriorConfigOut(PriorConfigBase):
++    beta0: FiniteFloat
+     version: int
+     created_at: datetime
+     created_by: str
+     effective_from: datetime
+ 
++    @field_validator("beta0")
++    @classmethod
++    def output_beta0_must_be_positive(cls, v: float) -> float:
++        if v <= 0:
++            raise ValueError("beta0 must be > 0")
++        return v
++
+ 
+ class QCEventIn(BaseModel):
+     event_type: EventType
+diff --git a/app/services/stream_setups.py b/app/services/stream_setups.py
+index bec9634..0f1ae6d 100644
+--- a/app/services/stream_setups.py
++++ b/app/services/stream_setups.py
+@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
+ from sqlmodel import Session, col, select
+ 
+ from app.db_models import ControlMaterial, KioskLayout, KioskPanel, PriorConfig, StreamConfig
++from app.math.prior import prior_beta_from_sigma
+ from app.models import PriorConfigIn, PriorConfigOut, StreamConfigIn, StreamConfigOut
+ from app.rbac import UserContext
+ from app.services.kiosks import kiosk_layout_out
+@@ -92,7 +93,11 @@ def _prior_payload(setup: StreamSetupIn) -> PriorConfigIn:
+         mu0=setup.prior_mu0 if setup.prior_mu0 is not None else setup.target_value,
+         kappa0=setup.prior_kappa0,
+         alpha0=setup.prior_alpha0,
+-        beta0=setup.prior_beta0 if setup.prior_beta0 is not None else setup.sigma**2,
++        beta0=(
++            setup.prior_beta0
++            if setup.prior_beta0 is not None
++            else prior_beta_from_sigma(setup.prior_alpha0, setup.sigma)
++        ),
+         effective_from=setup.prior_effective_from or setup.effective_from,
+     )
+ 
+diff --git a/app/storage.py b/app/storage.py
+index f67a3ba..c97e399 100644
+--- a/app/storage.py
++++ b/app/storage.py
+@@ -30,6 +30,7 @@ from app.models import (
+     PriorConfigIn,
+     Role,
+     StreamConfigIn,
++    UnitConversionSpec,
+ )
+ from app.security import api_key_hash_needs_migration, api_key_lookup_hash, hash_api_key, legacy_sha256_hash, verify_api_key
+ from app.stats import sample_mean_sd
+@@ -204,7 +205,18 @@ def create_stream_config(
+         min_value=payload.min_value,
+         max_value=payload.max_value,
+         allowed_units=payload.allowed_units,
+-        unit_conversions=payload.unit_conversions,
++        unit_conversions=(
++            {
++                source_unit: (
++                    conversion.model_dump(mode="json")
++                    if isinstance(conversion, UnitConversionSpec)
++                    else conversion
++                )
++                for source_unit, conversion in payload.unit_conversions.items()
++            }
++            if payload.unit_conversions is not None
++            else None
++        ),
+         baseline_start=payload.baseline_start,
+         baseline_end=payload.baseline_end,
+         risk_threshold_warn=payload.risk_threshold_warn,
+@@ -260,6 +272,8 @@ def create_prior_config(
+     *,
+     commit: bool = True,
+ ) -> PriorConfig:
++    if payload.beta0 is None:
++        raise ValueError("beta0 must be resolved before creating a prior config")
+     current_version = session.exec(
+         select(PriorConfig.version)
+         .where(PriorConfig.stream_id == stream_id)
+diff --git a/app/stream_setup_models.py b/app/stream_setup_models.py
+index c8d6dfb..593275a 100644
+--- a/app/stream_setup_models.py
++++ b/app/stream_setup_models.py
+@@ -3,7 +3,7 @@ from __future__ import annotations
+ from datetime import datetime
+ from typing import Literal, Optional
+ 
+-from pydantic import BaseModel, Field, field_validator, model_validator
++from pydantic import BaseModel, Field, FiniteFloat, field_validator, model_validator
+ 
+ from app.models import PriorConfigOut, StreamConfigOut
+ 
+@@ -121,24 +121,24 @@ class StreamSetupIn(BaseModel):
+     matrix: Optional[str] = None
+     qc_level: str
+     control_material_lot: str
+-    target_value: float
+-    sigma: float
+-    warning_limit_sd: float = 2.0
+-    action_limit_sd: float = 3.0
+-    min_value: Optional[float] = None
+-    max_value: Optional[float] = None
++    target_value: FiniteFloat
++    sigma: FiniteFloat
++    warning_limit_sd: FiniteFloat = 2.0
++    action_limit_sd: FiniteFloat = 3.0
++    min_value: Optional[FiniteFloat] = None
++    max_value: Optional[FiniteFloat] = None
+     risk_threshold_warn: int = 50
+     risk_threshold_hold: int = 80
+-    bayes_warn_prob_threshold: Optional[float] = 0.25
++    bayes_warn_prob_threshold: Optional[FiniteFloat] = 0.25
+     bayes_warn_consecutive: Optional[int] = 1
+-    bayes_hold_prob_threshold: Optional[float] = 0.8
++    bayes_hold_prob_threshold: Optional[FiniteFloat] = 0.8
+     bayes_hold_consecutive: Optional[int] = 2
+     effective_from: Optional[datetime] = None
+     config_reason: Optional[str] = None
+-    prior_mu0: Optional[float] = None
+-    prior_kappa0: float = 1.0
+-    prior_alpha0: float = 2.0
+-    prior_beta0: Optional[float] = None
++    prior_mu0: Optional[FiniteFloat] = None
++    prior_kappa0: FiniteFloat = 1.0
++    prior_alpha0: FiniteFloat = 2.0
++    prior_beta0: Optional[FiniteFloat] = None
+     prior_effective_from: Optional[datetime] = None
+     kiosk: Optional[StreamSetupKioskAssignment] = None
+ 
+@@ -173,6 +173,14 @@ class StreamSetupIn(BaseModel):
+             raise ValueError("prior_alpha0 must be > 1")
+         return value
+ 
++    @model_validator(mode="after")
++    def statistical_bounds_are_ordered(self) -> "StreamSetupIn":
++        if self.action_limit_sd < self.warning_limit_sd:
++            raise ValueError("action_limit_sd must be >= warning_limit_sd")
++        if self.min_value is not None and self.max_value is not None and self.min_value > self.max_value:
++            raise ValueError("min_value must be <= max_value")
++        return self
++
+ 
+ class StreamSetupBatchIn(BaseModel):
+     rows: list[StreamSetupIn]
+diff --git a/frontend/package.json b/frontend/package.json
+index cb0ce93..e6e2564 100644
+--- a/frontend/package.json
++++ b/frontend/package.json
+@@ -7,8 +7,9 @@
+     "dev": "vite",
+     "build": "vite build",
+     "preview": "vite preview",
++    "test": "vitest run",
+     "typecheck": "vue-tsc --noEmit",
+-    "check": "npm run typecheck && npm run build",
++    "check": "npm run test && npm run typecheck && npm run build",
+     "gen:api": "../.venv/bin/python ../scripts/generate_openapi_json.py --out ../openapi.json && openapi-typescript ../openapi.json -o src/api/schema.ts"
+   },
+   "dependencies": {
+@@ -22,6 +23,7 @@
+     "openapi-typescript": "^7.6.1",
+     "typescript": "^5.5.4",
+     "vite": "^5.4.11",
++    "vitest": "3.2.7",
+     "vue-tsc": "^2.0.28"
+   }
+ }
+diff --git a/frontend/src/pages/DatastreamSetup.vue b/frontend/src/pages/DatastreamSetup.vue
+index dcd092c..6e1c6ca 100644
+--- a/frontend/src/pages/DatastreamSetup.vue
++++ b/frontend/src/pages/DatastreamSetup.vue
+@@ -126,7 +126,7 @@ const importPreview = ref<StreamSetupPreviewOut | null>(null);
+ const selectedImportRows = ref<StreamSetupPreviewRow[]>([]);
+ const kiosks = ref<KioskLayoutOut[]>([]);
+ const generatedId = computed(() => generatedStreamId(draft));
+-const defaultPriorBeta = computed(() => Number((draft.sigma ** 2).toFixed(6)));
++const defaultPriorBeta = computed(() => Number(((draft.prior_alpha0 - 1) * draft.sigma ** 2).toFixed(6)));
+ const selectedImportSetups = computed(() => selectedImportRows.value.map((row) => row.canonical).filter(Boolean) as StreamSetupIn[]);
+ 
+ const PreviewTable = defineComponent({
+diff --git a/frontend/src/pages/Ingestion.vue b/frontend/src/pages/Ingestion.vue
+index c81af9c..238c17e 100644
+--- a/frontend/src/pages/Ingestion.vue
++++ b/frontend/src/pages/Ingestion.vue
+@@ -173,7 +173,7 @@ import type { BayesianRisk, CsvIngestResult, IngestionResult, QCBacklogItemOut,
+ import { canIngestQc } from "../api/session";
+ import QCCommentThread from "../components/QCCommentThread.vue";
+ import { bayesianRiskHelpText } from "./chartRisk";
+-import { buildQcPayload, formatDateTime, formatNumber, formatPercent, latestChartRecord, limitValue, makeBatchRow, matchingLevelStreams, readManualRecent, statusTagType, type ManualBatchRow, type ManualCommonFields, validateManualRow, writeManualRecent } from "./ingestionWorkflow";
++import { buildQcPayload, formatDateTime, formatNumber, formatPercent, latestChartRecord, limitValue, makeBatchRow, matchingLevelStreams, readManualRecent, resetBatchRowForStream, statusTagType, type ManualBatchRow, type ManualCommonFields, validateManualRow, writeManualRecent } from "./ingestionWorkflow";
+ 
+ const route = useRoute();
+ const streams = ref<StreamConfigOut[]>([]);
+@@ -293,10 +293,7 @@ function addMatchingRows(): void {
+ }
+ 
+ function syncRowToStream(row: ManualBatchRow): void {
+-  const stream = streamFor(row);
+-  row.result_value = stream?.target_value ?? null;
+-  row.status = "draft";
+-  row.message = "";
++  resetBatchRowForStream(row);
+ }
+ 
+ function removeRow(id: number): void {
+diff --git a/frontend/src/pages/ingestionWorkflow.ts b/frontend/src/pages/ingestionWorkflow.ts
+index 18aa598..a1a5f6b 100644
+--- a/frontend/src/pages/ingestionWorkflow.ts
++++ b/frontend/src/pages/ingestionWorkflow.ts
+@@ -104,7 +104,7 @@ export function makeBatchRow(stream: StreamConfigOut, id: number, backlogItemId:
+   return {
+     id,
+     stream_id: stream.stream_id,
+-    result_value: stream.target_value,
++    result_value: null,
+     comments: "",
+     status: "draft",
+     message: "",
+@@ -112,6 +112,12 @@ export function makeBatchRow(stream: StreamConfigOut, id: number, backlogItemId:
+   };
+ }
+ 
++export function resetBatchRowForStream(row: ManualBatchRow): void {
++  row.result_value = null;
++  row.status = "draft";
++  row.message = "";
++}
++
+ export function validateManualRow(
+   row: ManualBatchRow,
+   stream: StreamConfigOut | undefined,
+@@ -165,9 +171,12 @@ function optionalText(value: string): string | null {
+ }
+ 
+ export function buildQcPayload(row: ManualBatchRow, stream: StreamConfigOut, common: ManualCommonFields): QCRecordIn {
++  if (row.result_value === null || !Number.isFinite(row.result_value)) {
++    throw new Error("A finite result is required before building a QC payload.");
++  }
+   return {
+     stream_id: stream.stream_id,
+-    result_value: row.result_value ?? stream.target_value,
++    result_value: row.result_value,
+     timestamp: new Date(common.timestamp).toISOString(),
+     analyte: stream.analyte,
+     qc_level: stream.qc_level,
+diff --git a/pyproject.toml b/pyproject.toml
+index f60d1f0..8ee68a6 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -12,6 +12,8 @@ dependencies = [
+   "uvicorn==0.30.3",
+   "alembic==1.13.2",
+   "openpyxl==3.1.5",
++  "scipy==1.16.3; python_version < '3.12'",
++  "scipy==1.18.0; python_version >= '3.12'",
+ ]
+ 
+ [dependency-groups]
+diff --git a/requirements.txt b/requirements.txt
+index 4f0eaba..bd7d40f 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -6,5 +6,7 @@ python-multipart==0.0.9
+ psycopg[binary]==3.2.3
+ alembic==1.13.2
+ openpyxl==3.1.5
++scipy==1.16.3; python_version < "3.12"
++scipy==1.18.0; python_version >= "3.12"
+ pytest==8.2.2
+ httpx==0.27.2
+diff --git a/app/api_errors.py b/app/api_errors.py
+new file mode 100644
+index 0000000..1fec372
+--- /dev/null
++++ b/app/api_errors.py
+@@ -0,0 +1,32 @@
++from __future__ import annotations
++
++import math
++from typing import Any
++
++from fastapi.encoders import jsonable_encoder
++from fastapi.exceptions import RequestValidationError
++from fastapi.responses import JSONResponse
++from starlette.requests import Request
++
++
++def _json_safe(value: Any) -> Any:
++    if isinstance(value, float) and not math.isfinite(value):
++        if math.isnan(value):
++            return "NaN"
++        return "Infinity" if value > 0 else "-Infinity"
++    if isinstance(value, list):
++        return [_json_safe(item) for item in value]
++    if isinstance(value, dict):
++        return {key: _json_safe(item) for key, item in value.items()}
++    return value
++
++
++async def json_safe_request_validation_handler(
++    request: Request,
++    exc: Exception,
++) -> JSONResponse:
++    del request
++    if not isinstance(exc, RequestValidationError):
++        raise exc
++    errors = jsonable_encoder(exc.errors())
++    return JSONResponse(status_code=422, content={"detail": _json_safe(errors)})
+diff --git a/app/math/__init__.py b/app/math/__init__.py
+new file mode 100644
+index 0000000..9e0a787
+--- /dev/null
++++ b/app/math/__init__.py
+@@ -0,0 +1 @@
++"""Pure numerical helpers for BayesianQC statistical calculations."""
+diff --git a/app/math/prior.py b/app/math/prior.py
+new file mode 100644
+index 0000000..d6e2205
+--- /dev/null
++++ b/app/math/prior.py
+@@ -0,0 +1,13 @@
++from __future__ import annotations
++
++import math
++
++
++def prior_beta_from_sigma(alpha0: float, sigma: float) -> float:
++    """Return the NIG beta that gives the requested prior variance."""
++
++    if not math.isfinite(alpha0) or alpha0 <= 1:
++        raise ValueError("alpha0 must be finite and > 1")
++    if not math.isfinite(sigma) or sigma <= 0:
++        raise ValueError("sigma must be finite and > 0")
++    return (alpha0 - 1.0) * sigma**2
+diff --git a/app/math/student_t.py b/app/math/student_t.py
+new file mode 100644
+index 0000000..79c0176
+--- /dev/null
++++ b/app/math/student_t.py
+@@ -0,0 +1,71 @@
++from __future__ import annotations
++
++import math
++
++from scipy.special import stdtr, stdtrit
++
++
++def _finite(name: str, value: float) -> float:
++    if not math.isfinite(value):
++        raise ValueError(f"{name} must be finite")
++    return value
++
++
++def _degrees_of_freedom(value: float) -> float:
++    degrees_of_freedom = _finite("degrees_of_freedom", value)
++    if degrees_of_freedom <= 0:
++        raise ValueError("degrees_of_freedom must be > 0")
++    return degrees_of_freedom
++
++
++def student_t_cdf(t_value: float, degrees_of_freedom: float) -> float:
++    """Return the Student-t cumulative probability for a finite value and df."""
++
++    t = _finite("t_value", t_value)
++    df = _degrees_of_freedom(degrees_of_freedom)
++    return float(stdtr(df, t))
++
++
++def student_t_ppf(probability: float, degrees_of_freedom: float) -> float:
++    """Return the Student-t quantile for a probability strictly between zero and one."""
++
++    p = _finite("probability", probability)
++    if not 0.0 < p < 1.0:
++        raise ValueError("probability must be between 0 and 1")
++    df = _degrees_of_freedom(degrees_of_freedom)
++    return float(stdtrit(df, p))
++
++
++def student_t_interval_quantile(degrees_of_freedom: float, level: float = 0.95) -> float:
++    interval_level = _finite("level", level)
++    if not 0.0 < interval_level < 1.0:
++        raise ValueError("level must be between 0 and 1")
++    probability = (1.0 + interval_level) / 2.0
++    return student_t_ppf(probability, degrees_of_freedom)
++
++
++def student_t_probability_outside_bounds(
++    *,
++    mean: float,
++    scale: float,
++    degrees_of_freedom: float,
++    lower: float,
++    upper: float,
++) -> float:
++    """Return two-sided probability outside bounds without subtracting from one."""
++
++    center = _finite("mean", mean)
++    spread = _finite("scale", scale)
++    if spread <= 0:
++        raise ValueError("scale must be > 0")
++    df = _degrees_of_freedom(degrees_of_freedom)
++    lower_bound = _finite("lower", lower)
++    upper_bound = _finite("upper", upper)
++    if lower_bound > upper_bound:
++        raise ValueError("lower must be <= upper")
++
++    lower_t = (lower_bound - center) / spread
++    upper_t = (upper_bound - center) / spread
++    lower_tail = float(stdtr(df, lower_t))
++    upper_tail = float(stdtr(df, -upper_t))
++    return max(0.0, min(1.0, lower_tail + upper_tail))
+diff --git a/frontend/src/pages/ingestionWorkflow.test.ts b/frontend/src/pages/ingestionWorkflow.test.ts
+new file mode 100644
+index 0000000..4977153
+--- /dev/null
++++ b/frontend/src/pages/ingestionWorkflow.test.ts
+@@ -0,0 +1,74 @@
++import { describe, expect, it } from "vitest";
++import type { StreamConfigOut } from "../api/contracts";
++import {
++  buildQcPayload,
++  makeBatchRow,
++  resetBatchRowForStream,
++  validateManualRow,
++  type ManualCommonFields,
++} from "./ingestionWorkflow";
++
++const stream: StreamConfigOut = {
++  stream_id: "sulfur-l1",
++  analyte: "Sulfur",
++  method: "ASTM D7039",
++  instrument: "Sindie",
++  qc_level: "L1",
++  control_material_lot: "LOT-1",
++  units: "ppm",
++  target_value: 10,
++  sigma: 0.5,
++  warning_limit_sd: 2,
++  action_limit_sd: 3,
++  risk_threshold_warn: 50,
++  risk_threshold_hold: 80,
++  version: 1,
++  effective_from: "2026-07-15T00:00:00Z",
++  created_at: "2026-07-15T00:00:00Z",
++  created_by: "test",
++};
++
++const common: ManualCommonFields = {
++  timestamp: new Date("2026-07-15T01:00:00Z"),
++  run_id: "run-1",
++  entry_source: "manual",
++  comments: "",
++  idempotency_key: "",
++  operator_id: "operator-1",
++  reagent_lot: "R-1",
++  calibration_status: "ok",
++};
++
++describe("manual QC measurement integrity", () => {
++  it("starts every new row blank", () => {
++    expect(makeBatchRow(stream, 1).result_value).toBeNull();
++    expect(makeBatchRow(stream, 2, 42).result_value).toBeNull();
++  });
++
++  it("clears a prior measurement when the stream changes", () => {
++    const row = makeBatchRow(stream, 1);
++    row.result_value = 11.2;
++    row.status = "accepted";
++    row.message = "saved";
++    resetBatchRowForStream(row);
++    expect(row.result_value).toBeNull();
++    expect(row.status).toBe("draft");
++    expect(row.message).toBe("");
++  });
++
++  it("blocks missing and nonfinite results while accepting zero", () => {
++    const row = makeBatchRow(stream, 1);
++    expect(validateManualRow(row, stream, common.timestamp).errors).toContain("Enter a finite result.");
++    row.result_value = Number.NaN;
++    expect(validateManualRow(row, stream, common.timestamp).errors).toContain("Enter a finite result.");
++    row.result_value = 0;
++    expect(validateManualRow(row, stream, common.timestamp).errors).toEqual([]);
++  });
++
++  it("never substitutes the stream target in a payload", () => {
++    const row = makeBatchRow(stream, 1);
++    expect(() => buildQcPayload(row, stream, common)).toThrow("A finite result is required");
++    row.result_value = 0;
++    expect(buildQcPayload(row, stream, common).result_value).toBe(0);
++  });
++});
+diff --git a/tests/test_measurement_integrity_api.py b/tests/test_measurement_integrity_api.py
+new file mode 100644
+index 0000000..58296df
+--- /dev/null
++++ b/tests/test_measurement_integrity_api.py
+@@ -0,0 +1,213 @@
++from __future__ import annotations
++
++import json
++from collections.abc import AsyncIterator
++from datetime import datetime, timedelta, timezone
++
++import httpx
++import pytest
++
++from app.main import app
++
++AUTH_HEADERS = {"X-API-Key": "local-dev-key"}
++JSON_HEADERS = {**AUTH_HEADERS, "Content-Type": "application/json"}
++
++
++@pytest.fixture
++async def client() -> AsyncIterator[httpx.AsyncClient]:
++    transport = httpx.ASGITransport(app=app)
++    async with httpx.AsyncClient(transport=transport, base_url="http://test") as value:
++        yield value
++
++
++def _stream_payload(stream_id: str, **overrides: object) -> dict[str, object]:
++    payload: dict[str, object] = {
++        "stream_id": stream_id,
++        "analyte": "Sulfur",
++        "method": "ASTM D7039",
++        "instrument": "Sindie",
++        "site": "Refinery",
++        "lab_bench": "Bench A",
++        "qc_level": "L1",
++        "control_material_lot": "LOT-1",
++        "units": "ppm",
++        "target_value": 10.0,
++        "sigma": 0.5,
++        "warning_limit_sd": 2.0,
++        "action_limit_sd": 3.0,
++    }
++    payload.update(overrides)
++    return payload
++
++
++def _setup_payload(stream_id: str, **overrides: object) -> dict[str, object]:
++    payload: dict[str, object] = {
++        "stream_id": stream_id,
++        "site": "Refinery",
++        "lab_bench": "Bench A",
++        "instrument_name": "Sindie",
++        "method_name": "ASTM D7039",
++        "parameter_name": "Sulfur",
++        "units": "ppm",
++        "material_name": "Sulfur QC",
++        "qc_level": "L1",
++        "control_material_lot": "LOT-1",
++        "target_value": 10.0,
++        "sigma": 0.5,
++        "warning_limit_sd": 2.0,
++        "action_limit_sd": 3.0,
++        "prior_mu0": 10.0,
++        "prior_kappa0": 1.0,
++        "prior_alpha0": 5.0,
++    }
++    payload.update(overrides)
++    return payload
++
++
++@pytest.mark.anyio
++async def test_direct_prior_derives_omitted_beta_from_effective_stream_config(client: httpx.AsyncClient) -> None:
++    effective_from = datetime.now(timezone.utc) - timedelta(minutes=1)
++    stream = await client.post(
++        "/streams",
++        json=_stream_payload("derived-prior", effective_from=effective_from.isoformat()),
++        headers=AUTH_HEADERS,
++    )
++    assert stream.status_code == 200, stream.text
++
++    prior = await client.post(
++        "/streams/derived-prior/priors",
++        json={
++            "stream_id": "ignored-path-wins",
++            "mu0": 10.0,
++            "kappa0": 1.0,
++            "alpha0": 5.0,
++            "effective_from": effective_from.isoformat(),
++        },
++        headers=AUTH_HEADERS,
++    )
++    assert prior.status_code == 200, prior.text
++    assert prior.json()["beta0"] == pytest.approx(1.0)
++
++
++@pytest.mark.anyio
++async def test_omitted_beta_requires_an_effective_config_but_explicit_beta_is_preserved(
++    client: httpx.AsyncClient,
++) -> None:
++    now = datetime.now(timezone.utc)
++    future = now + timedelta(days=1)
++    stream = await client.post(
++        "/streams",
++        json=_stream_payload("future-config", effective_from=future.isoformat()),
++        headers=AUTH_HEADERS,
++    )
++    assert stream.status_code == 200, stream.text
++
++    omitted = await client.post(
++        "/streams/future-config/priors",
++        json={"stream_id": "future-config", "mu0": 10.0, "kappa0": 1.0, "alpha0": 2.0, "effective_from": now.isoformat()},
++        headers=AUTH_HEADERS,
++    )
++    assert omitted.status_code == 422
++    assert "beta0 is required" in omitted.json()["detail"]
++
++    explicit = await client.post(
++        "/streams/future-config/priors",
++        json={
++            "stream_id": "future-config",
++            "mu0": 10.0,
++            "kappa0": 1.0,
++            "alpha0": 2.0,
++            "beta0": 0.75,
++            "effective_from": now.isoformat(),
++        },
++        headers=AUTH_HEADERS,
++    )
++    assert explicit.status_code == 200, explicit.text
++    assert explicit.json()["beta0"] == pytest.approx(0.75)
++
++
++@pytest.mark.anyio
++async def test_stream_setup_apply_derives_omitted_beta(client: httpx.AsyncClient) -> None:
++    payload = {"rows": [_setup_payload("setup-derived-prior")]}
++    preview = await client.post("/stream-setups/preview", json=payload, headers=AUTH_HEADERS)
++    assert preview.status_code == 200, preview.text
++    assert preview.json()["invalid"] == 0
++
++    applied = await client.post("/stream-setups/apply", json=payload, headers=AUTH_HEADERS)
++    assert applied.status_code == 200, applied.text
++    assert applied.json()["rows"][0]["prior"]["beta0"] == pytest.approx(1.0)
++
++    explicit_payload = {"rows": [_setup_payload("setup-explicit-prior", prior_beta0=0.75)]}
++    explicit_preview = await client.post("/stream-setups/preview", json=explicit_payload, headers=AUTH_HEADERS)
++    assert explicit_preview.status_code == 200, explicit_preview.text
++    explicit_applied = await client.post("/stream-setups/apply", json=explicit_payload, headers=AUTH_HEADERS)
++    assert explicit_applied.status_code == 200, explicit_applied.text
++    assert explicit_applied.json()["rows"][0]["prior"]["beta0"] == pytest.approx(0.75)
++
++
++@pytest.mark.anyio
++async def test_statistical_configuration_failures_return_422(client: httpx.AsyncClient) -> None:
++    for stream_id, overrides in [
++        ("nan-target", {"target_value": float("nan")}),
++        ("positive-infinity-sigma", {"sigma": float("inf")}),
++        ("negative-infinity-limit", {"warning_limit_sd": float("-inf")}),
++        ("zero-sigma", {"sigma": 0.0}),
++        ("negative-sigma", {"sigma": -0.5}),
++    ]:
++        response = await client.post(
++            "/streams",
++            content=json.dumps(_stream_payload(stream_id, **overrides)),
++            headers=JSON_HEADERS,
++        )
++        assert response.status_code == 422, response.text
++
++    bounds_response = await client.post(
++        "/streams",
++        json=_stream_payload("reversed-bounds", min_value=12.0, max_value=11.0),
++        headers=AUTH_HEADERS,
++    )
++    assert bounds_response.status_code == 422
++
++    conversion_response = await client.post(
++        "/streams",
++        json=_stream_payload(
++            "bad-conversion",
++            unit_conversions={"mg/L": {"factor": 1.0, "unexpected": 2.0}},
++        ),
++        headers=AUTH_HEADERS,
++    )
++    assert conversion_response.status_code == 422
++
++
++@pytest.mark.anyio
++async def test_stream_setup_preview_and_apply_reject_invalid_statistics(client: httpx.AsyncClient) -> None:
++    invalid_setups = [
++        _setup_payload("setup-nan", target_value=float("nan")),
++        _setup_payload("setup-infinity", sigma=float("inf")),
++        _setup_payload("setup-zero-scale", sigma=0.0),
++        _setup_payload("setup-negative-kappa", prior_kappa0=-1.0),
++        _setup_payload("setup-reversed-bounds", min_value=12.0, max_value=11.0),
++    ]
++    for index, setup in enumerate(invalid_setups):
++        body = json.dumps({"rows": [setup]})
++        for endpoint in ("preview", "apply"):
++            response = await client.post(
++                f"/stream-setups/{endpoint}",
++                content=body,
++                headers=JSON_HEADERS,
++            )
++            assert response.status_code == 422, f"case {index} {endpoint}: {response.text}"
++
++
++@pytest.mark.anyio
++async def test_valid_unit_conversion_shape_round_trips(client: httpx.AsyncClient) -> None:
++    response = await client.post(
++        "/streams",
++        json=_stream_payload(
++            "typed-conversion",
++            unit_conversions={"mg/L": {"factor": 2.0, "offset": 1.0}, "ug/mL": 0.5},
++        ),
++        headers=AUTH_HEADERS,
++    )
++    assert response.status_code == 200, response.text
++    assert response.json()["unit_conversions"] == {"mg/L": {"factor": 2.0, "offset": 1.0}, "ug/mL": 0.5}
+diff --git a/tests/test_statistical_math.py b/tests/test_statistical_math.py
+new file mode 100644
+index 0000000..f9b9bde
+--- /dev/null
++++ b/tests/test_statistical_math.py
+@@ -0,0 +1,191 @@
++from __future__ import annotations
++
++import math
++from datetime import datetime, timezone
++
++import pytest
++from pydantic import ValidationError
++
++from app.math.prior import prior_beta_from_sigma
++from app.math.student_t import (
++    student_t_cdf,
++    student_t_interval_quantile,
++    student_t_ppf,
++    student_t_probability_outside_bounds,
++)
++from app.models import PriorConfigIn, QCRecordIn, StreamConfigIn
++
++# Independently recorded R pt/qt reference values.
++REFERENCE_VALUES = [
++    (4.0, 0.8130495168499705, -7.173182219782321, 2.776445105197799),
++    (10.0, 0.8295534338489701, -4.143700494046623, 2.2281388519649385),
++    (30.0, 0.8373456922869849, -3.3851848668182165, 2.0422724563012373),
++    (100.0, 0.8401379221079384, -3.173739493738782, 1.9839715184496334),
++]
++
++
++def _stream_payload(**overrides: object) -> dict[str, object]:
++    payload: dict[str, object] = {
++        "stream_id": "finite-stream",
++        "analyte": "Sulfur",
++        "method": "ASTM D7039",
++        "instrument": "Sindie",
++        "qc_level": "L1",
++        "control_material_lot": "LOT-1",
++        "units": "ppm",
++        "target_value": 10.0,
++        "sigma": 0.5,
++        "warning_limit_sd": 2.0,
++        "action_limit_sd": 3.0,
++    }
++    payload.update(overrides)
++    return payload
++
++
++@pytest.mark.parametrize(("df", "cdf_at_one", "q001", "q975"), REFERENCE_VALUES)
++def test_student_t_matches_reference_values(df: float, cdf_at_one: float, q001: float, q975: float) -> None:
++    assert student_t_cdf(1.0, df) == pytest.approx(cdf_at_one, abs=1e-10)
++    assert student_t_cdf(-1.0, df) == pytest.approx(1.0 - cdf_at_one, abs=1e-10)
++    assert student_t_ppf(0.001, df) == pytest.approx(q001, abs=1e-8)
++    assert student_t_ppf(0.975, df) == pytest.approx(q975, abs=1e-8)
++    assert student_t_interval_quantile(df) == pytest.approx(q975, abs=1e-8)
++
++
++@pytest.mark.parametrize("df", [4.0, 10.0, 30.0, 100.0])
++@pytest.mark.parametrize("probability", [1e-6, 0.001, 0.025, 0.5, 0.975, 0.999, 1.0 - 1e-6])
++def test_student_t_cdf_ppf_round_trip(df: float, probability: float) -> None:
++    quantile = student_t_ppf(probability, df)
++    assert student_t_cdf(quantile, df) == pytest.approx(probability, abs=1e-10)
++
++
++@pytest.mark.parametrize("scale", [0.25, 1.0, 10.0])
++def test_df_30_three_scale_tail_is_student_t(scale: float) -> None:
++    outside = student_t_probability_outside_bounds(
++        mean=0.0,
++        scale=scale,
++        degrees_of_freedom=30.0,
++        lower=-3.0 * scale,
++        upper=3.0 * scale,
++    )
++    assert outside == pytest.approx(0.005389964065651934, abs=1e-10)
++
++
++def test_student_t_has_no_df_30_cutover_discontinuity() -> None:
++    below = student_t_probability_outside_bounds(
++        mean=0.0, scale=1.0, degrees_of_freedom=29.999999, lower=-3.0, upper=3.0
++    )
++    at_cutover = student_t_probability_outside_bounds(
++        mean=0.0, scale=1.0, degrees_of_freedom=30.0, lower=-3.0, upper=3.0
++    )
++    above = student_t_probability_outside_bounds(
++        mean=0.0, scale=1.0, degrees_of_freedom=30.000001, lower=-3.0, upper=3.0
++    )
++    assert abs(below - at_cutover) < 1e-9
++    assert abs(above - at_cutover) < 1e-9
++
++
++@pytest.mark.parametrize("df", [4.0, 10.0, 30.0, 100.0])
++def test_warning_probability_is_not_below_action_probability(df: float) -> None:
++    warning = student_t_probability_outside_bounds(
++        mean=0.0, scale=1.0, degrees_of_freedom=df, lower=-2.0, upper=2.0
++    )
++    action = student_t_probability_outside_bounds(
++        mean=0.0, scale=1.0, degrees_of_freedom=df, lower=-3.0, upper=3.0
++    )
++    assert warning >= action
++
++
++@pytest.mark.parametrize(
++    "overrides",
++    [
++        {"target_value": math.nan},
++        {"sigma": math.inf},
++        {"warning_limit_sd": -math.inf},
++        {"action_limit_sd": math.nan},
++        {"bayes_warn_prob_threshold": math.inf},
++        {"bayes_hold_prob_threshold": math.nan},
++        {"min_value": 5.0, "max_value": 4.0},
++    ],
++)
++def test_stream_config_rejects_invalid_statistical_values(overrides: dict[str, object]) -> None:
++    with pytest.raises(ValidationError):
++        StreamConfigIn.model_validate(_stream_payload(**overrides))
++
++
++@pytest.mark.parametrize(
++    "overrides",
++    [
++        {"sigma": 0.0},
++        {"sigma": -0.5},
++        {"warning_limit_sd": 0.0},
++        {"action_limit_sd": -3.0},
++        {"warning_limit_sd": 3.0, "action_limit_sd": 2.0},
++    ],
++)
++def test_stream_config_rejects_nonpositive_or_reversed_scales(overrides: dict[str, object]) -> None:
++    with pytest.raises(ValidationError):
++        StreamConfigIn.model_validate(_stream_payload(**overrides))
++
++
++@pytest.mark.parametrize(
++    "conversion",
++    [math.inf, {"factor": math.nan}, {"offset": math.inf}, {"factor": 1.0, "unexpected": 2.0}],
++)
++def test_stream_config_rejects_invalid_unit_conversions(conversion: object) -> None:
++    with pytest.raises(ValidationError):
++        StreamConfigIn.model_validate(_stream_payload(unit_conversions={"mg/L": conversion}))
++
++
++@pytest.mark.parametrize(
++    "overrides",
++    [
++        {"mu0": math.nan},
++        {"kappa0": math.inf},
++        {"alpha0": -math.inf},
++        {"beta0": math.nan},
++    ],
++)
++def test_prior_rejects_nonfinite_parameters(overrides: dict[str, object]) -> None:
++    payload: dict[str, object] = {"stream_id": "finite-stream", "mu0": 10.0, "kappa0": 1.0, "alpha0": 2.0}
++    payload.update(overrides)
++    with pytest.raises(ValidationError):
++        PriorConfigIn.model_validate(payload)
++
++
++@pytest.mark.parametrize(
++    "overrides",
++    [
++        {"kappa0": 0.0},
++        {"kappa0": -1.0},
++        {"alpha0": 1.0},
++        {"alpha0": 0.0},
++        {"beta0": 0.0},
++        {"beta0": -1.0},
++    ],
++)
++def test_prior_rejects_invalid_scale_parameters(overrides: dict[str, object]) -> None:
++    payload: dict[str, object] = {"stream_id": "finite-stream", "mu0": 10.0, "kappa0": 1.0, "alpha0": 2.0}
++    payload.update(overrides)
++    with pytest.raises(ValidationError):
++        PriorConfigIn.model_validate(payload)
++
++
++def test_prior_beta_may_be_omitted_and_has_variance_preserving_default() -> None:
++    prior = PriorConfigIn(stream_id="finite-stream", mu0=10.0, kappa0=1.0, alpha0=5.0)
++    assert prior.beta0 is None
++    assert prior_beta_from_sigma(prior.alpha0, 0.5) == pytest.approx(1.0)
++
++
++def test_qc_result_must_be_finite() -> None:
++    with pytest.raises(ValidationError):
++        QCRecordIn(
++            stream_id="finite-stream",
++            result_value=math.nan,
++            timestamp=datetime(2026, 7, 15, tzinfo=timezone.utc),
++            analyte="Sulfur",
++            qc_level="L1",
++            instrument_id="Sindie",
++            method_id="ASTM D7039",
++            control_material_lot="LOT-1",
++            units="ppm",
++        )

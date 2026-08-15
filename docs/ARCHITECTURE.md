@@ -12,19 +12,23 @@ Historical Non-Goals
 - Full DDD rewrite.
 - Alembic is part of the active Postgres persistence boundary.
 
-## Current Shape (Problems)
-- Query logic and writes are spread across endpoints (`app/main.py`), “storage” helpers (`app/storage.py`),
-  and math (`app/bayesian.py` commits state).
-- `commit()` calls inside helpers make transaction boundaries unclear, which breaks atomicity for ingestion.
-- `/streams/{stream_id}/chart` was compute-heavy; risk/signal evaluations are now persisted on `QCRecord`,
-  but you still need a clean layering plan to keep it maintainable.
+## Current Shape
+- Legacy query logic and writes remain spread across endpoints (`app/main.py`) and storage helpers
+  (`app/storage.py`), so continued service extraction is still warranted.
+- Statistical computation is pure and typed under `app/math/`; it performs no database writes.
+- Every new evaluation is stored as an immutable `QCRecordEvaluation`. `QCRecord` keeps a current
+  pointer and synchronized JSON read caches for compatibility.
+- `/streams/{stream_id}/chart` is read-mostly and exposes per-record evaluation provenance rather
+  than reconstructing historical limits from the current stream configuration.
 
 ## Current State vs Target State
 Current (today)
 - Endpoints and workflows largely live in `app/main.py`.
 - DB access lives in `app/storage.py` (repo-ish) plus scattered queries in `app/main.py`.
-- Math lives in `app/bayesian.py` and `app/frequentist.py`, but Bayesian state update still persists/commits.
-- Stream reprocessing currently exists as a single module `app/evaluations.py` (batch evaluator + persistence).
+- `app/evaluation_replay.py` and `app/math/evaluation_engine.py` provide the deterministic replay and
+  point-evaluation kernel used by ingestion, inclusion changes, and administrative reprocessing.
+- `app/evaluations.py` coordinates preview/apply while persistence and reconciliation are split into
+  typed services under `app/services/`.
 
 Target (direction)
 - Split into `app/api/` + `app/services/` + `app/repos/` + `app/math/` with transaction boundaries owned by services.
@@ -55,8 +59,10 @@ Suggested modules
 - `app/services/ingestion.py`
   - `ingest_record(...) -> IngestionResult`
   - Guarantees: one transaction per record (CSV ingests can rollback per-row).
-- `app/services/evaluations.py`
-  - `reprocess_stream_evaluations(stream_id)` (already exists as `app/evaluations.py`; move here later)
+- `app/evaluations.py`
+  - `preview_stream_evaluations(stream_id)` and fingerprint-guarded `apply_stream_reprocessing(...)`.
+- `app/services/evaluation_persistence.py`
+  - Append-only evaluation snapshots, compatibility caches, and alert reconciliation.
 - `app/services/alerts.py`
   - “create/close/update alert” policies
 
@@ -87,11 +93,15 @@ Responsibilities
 - Deterministic given inputs (record stream, config, prior, previous state).
 
 Suggested modules
-- `app/math/bayes.py`
+- `app/math/bayesian_nig.py`
   - `update_posterior(prior_state, x) -> posterior_state`
   - `infer_risk(posterior_state, config, streak_state) -> BayesianRisk`
-- `app/math/westgard.py`
+- `app/math/rules.py`
   - `evaluate_rules(value, recent_values, target, sigma, ruleset) -> list[FrequentistSignal]`
+- `app/math/control_limits.py`
+  - Resolve configured or version-frozen fixed-baseline limits once for all evaluation consumers.
+- `app/math/evaluation_engine.py`
+  - Combine rules, Student-t next-result risk, disposition, state, and algorithm provenance.
 
 ### `app/domain/` (Types + Invariants)
 Responsibilities
@@ -117,10 +127,9 @@ Concrete example: QC ingestion
 
 ## Chart Scalability (Read-Mostly)
 Implemented direction
-- Persist per-record evaluations on `QCRecord`:
-  - `signals` (JSON)
-  - `bayesian_risk` (JSON)
-  - `disposition` (string)
+- Persist immutable per-record evaluations in `QCRecordEvaluation`, including applied centerline,
+  sigma, bounds, config/prior IDs and versions, threshold mode, and engine identifiers.
+- Retain `signals`, `bayesian_risk`, and `disposition` on `QCRecord` only as synchronized read caches.
 - Reprocessing is required when historical changes occur:
   - out-of-order ingestion
   - record exclusion/inclusion (`include_in_stats`)
@@ -128,8 +137,10 @@ Implemented direction
 
 Operational policy
 - Keep `/streams/{stream_id}/chart` read-mostly.
-- Reprocess proactively on mutations (resolution/config/prior) and on out-of-order ingestion.
-- Optional: expose an explicit maintenance endpoint later (`POST /streams/{id}/reprocess`) for operators.
+- Replay immediately for out-of-order ingestion and inclusion changes, because those requests carry an
+  audit reason.
+- Backdated config/prior versions require admin preview/apply with a matching state fingerprint and a
+  nonblank reason; future-dated versions remain inactive until their effective time.
 
 ## Postgres Persistence And Legacy Import
 
@@ -165,7 +176,8 @@ Steps
    - row counts per table
    - spot-check streams: recompute `PosteriorState` from `QCRecord` history and compare
    - verify `idempotency_key` uniqueness and alert linkage integrity
-5. Post-import: run a full `reprocess_stream_evaluations` per stream once to ensure cached evaluations align.
+5. Existing imported records remain `legacy_unverified`; an administrator previews and explicitly
+   applies historical evaluation only after reviewing record and alert effects.
 
 ### Concurrency Correctness
 - Fix the `PosteriorState` lost-update race by locking:

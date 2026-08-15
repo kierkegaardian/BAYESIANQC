@@ -4,9 +4,11 @@ from fastapi import HTTPException, status
 from sqlmodel import Session, col, select
 
 from app.db_models import ControlMaterial, KioskLayout, KioskPanel, PriorConfig, StreamConfig
+from app.math.prior import prior_beta_from_sigma
 from app.models import PriorConfigIn, PriorConfigOut, StreamConfigIn, StreamConfigOut
 from app.rbac import UserContext
 from app.services.kiosks import kiosk_layout_out
+from app.services.evaluation_pending import historical_reprocess_required
 from app.services.locks import stream_write_lock
 from app.services.stream_setup_assets import (
     audit_create,
@@ -18,7 +20,12 @@ from app.services.stream_setup_assets import (
     match_method,
     persisted_id,
 )
-from app.storage import create_prior_config, create_stream_config, record_audit
+from app.storage import (
+    create_prior_config,
+    create_stream_config,
+    record_audit,
+    validate_stream_control_limits,
+)
 from app.stream_setup_models import (
     KioskLayoutOut,
     StreamSetupAction,
@@ -31,12 +38,18 @@ from app.stream_setup_models import (
 )
 
 
-def stream_out(row: StreamConfig) -> StreamConfigOut:
-    return StreamConfigOut(**row.model_dump())
+def stream_out(session: Session, row: StreamConfig) -> StreamConfigOut:
+    return StreamConfigOut(
+        **row.model_dump(),
+        evaluation_reprocess_required=historical_reprocess_required(session, row.stream_id),
+    )
 
 
-def prior_out(row: PriorConfig) -> PriorConfigOut:
-    return PriorConfigOut(**row.model_dump())
+def prior_out(session: Session, row: PriorConfig) -> PriorConfigOut:
+    return PriorConfigOut(
+        **row.model_dump(),
+        evaluation_reprocess_required=historical_reprocess_required(session, row.stream_id),
+    )
 
 
 def _latest_stream(session: Session, stream_id: str) -> StreamConfig | None:
@@ -76,6 +89,9 @@ def _stream_payload(setup: StreamSetupIn, material_id: int | None) -> StreamConf
         action_limit_sd=setup.action_limit_sd,
         min_value=setup.min_value,
         max_value=setup.max_value,
+        control_limit_source=setup.control_limit_source,
+        baseline_start=setup.baseline_start,
+        baseline_end=setup.baseline_end,
         risk_threshold_warn=setup.risk_threshold_warn,
         risk_threshold_hold=setup.risk_threshold_hold,
         bayes_warn_prob_threshold=setup.bayes_warn_prob_threshold,
@@ -92,7 +108,11 @@ def _prior_payload(setup: StreamSetupIn) -> PriorConfigIn:
         mu0=setup.prior_mu0 if setup.prior_mu0 is not None else setup.target_value,
         kappa0=setup.prior_kappa0,
         alpha0=setup.prior_alpha0,
-        beta0=setup.prior_beta0 if setup.prior_beta0 is not None else setup.sigma**2,
+        beta0=(
+            setup.prior_beta0
+            if setup.prior_beta0 is not None
+            else prior_beta_from_sigma(setup.prior_alpha0, setup.sigma)
+        ),
         effective_from=setup.prior_effective_from or setup.effective_from,
     )
 
@@ -126,6 +146,10 @@ def _preview_one(session: Session, setup: StreamSetupIn, row_number: int) -> Str
     actions.append(StreamSetupAction(entity="control_material", action="reuse" if material else "create", detail=setup.control_material_lot))
 
     stream_payload = _stream_payload(setup, material.id if material else None)
+    try:
+        validate_stream_control_limits(session, stream_payload)
+    except ValueError as exc:
+        errors.append(str(exc))
     stream = _latest_stream(session, setup.stream_id)
     if stream is None:
         actions.append(StreamSetupAction(entity="stream", action="create", detail=setup.stream_id))
@@ -259,14 +283,17 @@ def apply_stream_setups(session: Session, payload: StreamSetupBatchIn, user: Use
                     StreamSetupApplyRow(
                         row=row_number,
                         stream_id=setup.stream_id,
-                        stream=stream_out(stream),
-                        prior=prior_out(prior),
+                        stream=stream_out(session, stream),
+                        prior=prior_out(session, prior),
                         control_material=control_material_out(material),
                         kiosk=kiosk,
                         actions=preview_actions,
                     )
                 )
         session.commit()
+    except ValueError as exc:
+        session.rollback()
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
     except Exception:
         session.rollback()
         raise

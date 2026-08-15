@@ -119,6 +119,11 @@ from app.import_db_models import (
     InstrumentRun,
     ParserProfile,
 )
+from app.evaluation_db_models import (
+    AlertEvaluationReconciliation,
+    EvaluationRun,
+    QCRecordEvaluation,
+)
 from app.storage import seed_defaults
 
 
@@ -139,6 +144,9 @@ def reset_db():
             QCComment,
             KioskPanel,
             KioskLayout,
+            AlertEvaluationReconciliation,
+            QCRecordEvaluation,
+            EvaluationRun,
             AlertRecord,
             QCRecord,
             QCRecordQuarantine,

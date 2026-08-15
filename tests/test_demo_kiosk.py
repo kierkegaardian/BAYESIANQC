@@ -148,7 +148,7 @@ def test_demo_kiosk_routes_and_layouts_are_registered() -> None:
     assert 'appendTo: "body"' in chart_text
     assert "max-width: min(360px" in chart_text
     assert "BAYESIAN_RISK_MEANING" not in chart_text
-    assert "P warn/action" in chart_text
+    assert "P(next outside warn/action)" in chart_text
     assert "formatBrokenAxisTick" in axis_text
     assert "buildBrokenOutlierYAxis" in chart_text
     assert "showTimelineMarkerLabels" in chart_text

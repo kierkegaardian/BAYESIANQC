@@ -11,6 +11,21 @@
     <el-table :data="alerts" stripe class="full-width">
       <el-table-column type="expand">
         <template #default="{ row }">
+          <div class="alert-evaluation-detail">
+            <div><span>Evaluation status</span><strong>{{ row.evaluation_status }}</strong></div>
+            <div><span>Source evaluation</span><strong>{{ row.source_evaluation_id ?? "legacy unavailable" }}</strong></div>
+            <div><span>Current evaluation</span><strong>{{ row.current_evaluation_id ?? "legacy unavailable" }}</strong></div>
+            <div><span>Replacement alert</span><strong>{{ row.replacement_alert_id ?? "none" }}</strong></div>
+            <div><span>Threshold mode</span><strong>{{ row.evaluation?.threshold_mode ?? "legacy unavailable" }}</strong></div>
+            <div><span>Risk semantics</span><strong>{{ row.evaluation?.risk_semantics ?? "legacy unavailable" }}</strong></div>
+          </div>
+          <el-alert
+            v-if="row.evaluation_status === 'legacy_unverified'"
+            type="warning"
+            :closable="false"
+            title="Evaluation provenance unavailable; historical limits are not inferred."
+            style="margin-bottom: 12px"
+          />
           <div class="comment-panel">
             <QCCommentThread target-type="alert" :target-id="row.id" title="Alert Comments" />
           </div>
@@ -21,7 +36,7 @@
       <el-table-column prop="qc_record_timestamp" label="QC Time" width="180" />
       <el-table-column prop="created_at" label="Created" width="180" />
       <el-table-column prop="disposition" label="Disposition" />
-      <el-table-column label="Risk" width="90">
+      <el-table-column label="Next-result risk" width="130">
         <template #default="{ row }">
           <span>{{ row.bayesian_risk?.risk_score ?? "-" }}</span>
         </template>
@@ -71,7 +86,9 @@ function formatSignalRules(alert: AlertOutWithQc): string {
   if (!alert.signals?.length) {
     return "-";
   }
-  return alert.signals.map((signal) => signal.rule).join(", ");
+  return alert.signals
+    .map((signal) => signal.rule_variant ? `${signal.rule} (${signal.rule_variant})` : signal.rule)
+    .join(", ");
 }
 
 async function loadAlerts() {
@@ -106,3 +123,14 @@ async function saveAlert(row: AlertOutWithQc) {
 
 onMounted(loadAlerts);
 </script>
+
+<style scoped>
+.alert-evaluation-detail {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 16px;
+  margin-bottom: 12px;
+}
+.alert-evaluation-detail div { display: grid; gap: 3px; }
+.alert-evaluation-detail span { color: #64748b; font-size: 12px; }
+</style>

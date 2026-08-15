@@ -109,7 +109,7 @@ Goal: move from demo to a controlled lab pilot under realistic quality-system ex
 Replace hardcoded frequentist rule selection with versioned rule-set configuration. Support enabling/disabling rules, rule severity, window sizes, and built-in schemes.
 
 Feature scope:
-- Current rules: 1-3s, 2-2s, R-4s, 4-1s, 10x.
+- Current new-stream rules: individual-result 1-3s, 2-2s, 4-1s, and 10x. Legacy R-4s configurations retain a visibly labelled nonstandard sequential variant only.
 - Add common trend/run variants such as 7T and 8x.
 - Add a rule-set version to each stream config.
 - Reprocess records when a rule set changes retroactively.

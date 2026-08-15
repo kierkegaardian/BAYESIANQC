@@ -1,9 +1,9 @@
 # BAYESIANQC
 
-This repository captures requirements for a Bayesian-enabled laboratory quality control platform **and** a working prototype API that exercises core ingestion, rule evaluation, Bayesian-style risk scoring, alert creation, and audit logging for manual and automated QC data.
+This repository captures requirements for a Bayesian-enabled laboratory quality control platform **and** a working prototype API that exercises core ingestion, individual-result rule evaluation, Bayesian next-result risk, alert creation, and audit logging for manual and automated QC data.
 
 ## Bayesian justification
-Bayesian priors represent the expected in-control mean/variance for a QC stream. Each incoming QC value updates a persistent posterior state (Normal-Inverse-Gamma update). Using that posterior, the system computes the predictive probability that the next value falls outside configured action limits (target +/- action_limit_sd * sigma), converts it into a 0-100 risk score, and uses it to influence disposition thresholds. In parallel, frequentist Westgard-style rules (1-3s, 2-2s, R-4s, 4-1s, 10x) are evaluated. Notifications are triggered when either rule violations occur or the Bayesian risk score crosses configured warning/hold thresholds.
+Bayesian priors represent the expected in-control mean/variance for a QC stream. Each included QC value updates a persistent Normal-Inverse-Gamma posterior. The system then computes Student-t predictive probabilities that the next value falls outside the same immutable warning/action limits applied to the record. Individual-result Westgard-like rules (1-3s, 2-2s, 4-1s, and 10x) are supplemental prototype rules, not a claim of standards compliance. Legacy streams may retain a clearly labelled nonstandard sequential R-4s variant until administratively reconciled.
 
 ## Quick start
 1. Create a virtual environment and install dependencies:
@@ -21,7 +21,7 @@ Bayesian priors represent the expected in-control mean/variance for a QC stream.
    ```
 3. The app applies Alembic migrations to Postgres on startup.
 4. API calls require an `X-API-Key` header. With `BAYESIANQC_SEED_LOCAL_DEV_KEY=1`, the local admin key is `local-dev-key`; otherwise create keys with `scripts/create_api_key.py`.
-5. Open `http://127.0.0.1:8010/docs` or ingest QC data (manual or automated) against the seeded HbA1c stream using the `/qc/records` endpoint. The API returns frequentist signals (1-3s/2-2s/R-4s/4-1s/10x), Bayesian-style risk, disposition, duplicate detection, and an audit entry. Alerts are created for action/warning states.
+5. Open `http://127.0.0.1:8010/docs` or ingest QC data (manual or automated) against the seeded HbA1c stream using the `/qc/records` endpoint. The API returns individual-result signals, Bayesian next-result risk, disposition, duplicate detection, immutable evaluation provenance, and an audit entry. Alerts are created for action/warning states.
 
 ## Sample payload helper
 Post a fresh timestamped payload against the running API:
@@ -101,7 +101,11 @@ npm run dev
 The UI runs on `http://127.0.0.1:5177` and expects the API at `http://127.0.0.1:8010`.
 Override the API base with `VITE_API_URL` in `frontend/.env.local`.
 Every UI page includes a Help button with page purpose and basic usage notes.
-Chart view now centers on the stream mean, shows color-coded 1/2/3 sigma bands using stream config limits, and uses a broken Y-axis when outliers exceed control limits (with an optional log-scale toggle).
+Chart view renders stepwise historical control bands from each record's immutable evaluation provenance and uses a broken Y-axis when outliers exceed applied control limits. Legacy records with no provenance show a warning and no inferred historical bands.
+
+For a `fixed_baseline` configuration, the baseline date range is resolved when that configuration version is created; its centerline, sample SD, and included-result count are then frozen on the version. Later backdated ingestion or inclusion changes replay evaluations without silently redefining those established limits.
+
+The prototype does not claim conformance with ASTM D6299, ISO 7870-2, or ISO 7870-6. Licensed standards and clause-level validation remain necessary before any conformance claim.
 Click chart points to resolve them (exclude from stats) or reinstate them.
 The unattended chart kiosk is available at `http://127.0.0.1:5177/kiosk/charts`; the refinery demo kiosk is at `http://127.0.0.1:5177/kiosk/refinery` after loading `scripts/load_chart_kiosk_suite.py`.
 The synthetic multi-domain demo kiosks are available at `/kiosk/demo`, `/kiosk/fuel`, `/kiosk/medical`, `/kiosk/pharma`, and `/kiosk/steel` after loading:

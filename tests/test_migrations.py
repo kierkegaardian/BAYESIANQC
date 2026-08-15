@@ -167,12 +167,15 @@ def test_alembic_upgrade_head_creates_current_schema(disposable_postgres_url: st
         "qcrecordquarantine",
         "streamconfig",
         "priorconfig",
+        "evaluationrun",
+        "qcrecordevaluation",
+        "alertevaluationreconciliation",
     } <= tables
 
     qcrecord_indexes = inspector.get_indexes("qcrecord")
     assert _index_columns(qcrecord_indexes, "ix_qcrecord_stream_timestamp") == ["stream_id", "timestamp"]
     qcrecord_columns = {column["name"] for column in inspector.get_columns("qcrecord")}
-    assert "qc_backlog_item_id" in qcrecord_columns
+    assert {"qc_backlog_item_id", "current_evaluation_id"} <= qcrecord_columns
     assert _index_columns(qcrecord_indexes, "ix_qcrecord_qc_backlog_item_id") == ["qc_backlog_item_id"]
 
     posterior_indexes = inspector.get_indexes("posteriorstate")
@@ -190,12 +193,21 @@ def test_alembic_upgrade_head_creates_current_schema(disposable_postgres_url: st
     assert {"stream_id", "api_key_id"} <= receipt_columns
     assert _index_columns(receipt_indexes, "ix_ingestionreceipt_stream_id") == ["stream_id"]
     assert _index_columns(receipt_indexes, "ix_ingestionreceipt_api_key_id") == ["api_key_id"]
+    stream_columns = {column["name"] for column in inspector.get_columns("streamconfig")}
+    assert {
+        "control_limit_source",
+        "baseline_centerline",
+        "baseline_sigma",
+        "baseline_count",
+    } <= stream_columns
     access_grant_indexes = inspector.get_indexes("accessgrant")
     assert _index_columns(access_grant_indexes, "ix_accessgrant_api_key_active") == ["api_key_id", "active"]
     assert _index_columns(access_grant_indexes, "ix_accessgrant_site_bench") == ["site", "lab_bench"]
 
     alert_indexes = inspector.get_indexes("alertrecord")
     assert _index_columns(alert_indexes, "ix_alertrecord_stream_created") == ["stream_id", "created_at"]
+    alert_columns = {column["name"] for column in inspector.get_columns("alertrecord")}
+    assert "source_evaluation_id" in alert_columns
 
     quarantine_indexes = inspector.get_indexes("qcrecordquarantine")
     assert _index_columns(quarantine_indexes, "ix_qcrecordquarantine_status_created") == ["status", "created_at"]
@@ -215,7 +227,12 @@ def test_alembic_upgrade_head_creates_current_schema(disposable_postgres_url: st
     instrument_columns = {column["name"] for column in inspector.get_columns("instrument")}
     stream_columns = {column["name"] for column in inspector.get_columns("streamconfig")}
     assert "lab_bench" in instrument_columns
-    assert {"lab_bench", "control_material_id"} <= stream_columns
+    assert {"lab_bench", "control_material_id", "control_limit_source"} <= stream_columns
+    evaluation_indexes = inspector.get_indexes("qcrecordevaluation")
+    assert _index_columns(evaluation_indexes, "ix_qcrecordevaluation_record_time") == [
+        "qc_record_id",
+        "evaluated_at",
+    ]
     kiosk_indexes = inspector.get_indexes("kioskpanel")
     assert _index_columns(kiosk_indexes, "ix_kioskpanel_kiosk_order") == ["kiosk_id", "display_order"]
     import_batch_indexes = inspector.get_indexes("importbatch")
@@ -227,12 +244,12 @@ def test_alembic_upgrade_head_creates_current_schema(disposable_postgres_url: st
 
     with engine.connect() as connection:
         version = connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-    assert version == "20260704_0006"
+    assert version == "20260715_0008"
 
 
 def test_rehearsal_revision_head_tracks_alembic_head() -> None:
     expected = ScriptDirectory.from_config(_alembic_config(app_db.DEFAULT_DB_URL)).get_current_head()
-    assert rehearsal.revision_head() == expected == "20260704_0006"
+    assert rehearsal.revision_head() == expected == "20260715_0008"
 
 
 def test_init_db_delegates_to_alembic(monkeypatch) -> None:

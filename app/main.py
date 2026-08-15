@@ -11,6 +11,7 @@ from typing import NoReturn, Optional
 
 from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, Response, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from fastapi.responses import HTMLResponse
 from sqlalchemy import and_, or_
@@ -28,6 +29,7 @@ from app.api_models import (
     ReportSummaryOut,
     StreamChartOut,
 )
+from app.api_errors import json_safe_request_validation_handler
 from app.db import get_engine, get_session, init_db
 from app.db_models import (
     AlertRecord,
@@ -46,7 +48,9 @@ from app.db_models import (
     StreamConfig,
 )
 from app.domain import Disposition
+from app.evaluation_models import EvaluationTrigger
 from app.evaluations import reprocess_stream_evaluations
+from app.math.prior import prior_beta_from_sigma
 from app.models import (
     AnalyteIn,
     AnalyteOut,
@@ -89,6 +93,7 @@ from app.models import (
 )
 from app.rbac import ROLE_PERMISSIONS, UserContext, require_permission
 from app.routers.control_materials import router as control_materials_router
+from app.routers.evaluation_reprocess import router as evaluation_reprocess_router
 from app.routers.imports import router as imports_router
 from app.routers.kiosks import router as kiosks_router
 from app.routers.qc_backlog import router as qc_backlog_router
@@ -108,6 +113,8 @@ from app.services.access_scopes import (
     stream_scope_predicate,
 )
 from app.services.locks import stream_write_lock
+from app.services.evaluation_provenance import record_evaluation_provenance
+from app.services.evaluation_pending import historical_reprocess_required
 from app.services.quarantine import quarantine_out
 from app.storage import (
     create_capa,
@@ -133,6 +140,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="Bayesian QC Prototype", version="0.2.0", docs_url=None, redoc_url=None, lifespan=lifespan)
+app.add_exception_handler(RequestValidationError, json_safe_request_validation_handler)
 
 cors_origins = [
     origin.strip()
@@ -158,6 +166,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(control_materials_router)
+app.include_router(evaluation_reprocess_router)
 app.include_router(imports_router)
 app.include_router(kiosks_router)
 app.include_router(qc_backlog_router)
@@ -335,8 +344,11 @@ def _lot_segments(records: Sequence[QCRecord]) -> list[LotSegmentOut]:
     return segments
 
 
-def _stream_out(config: StreamConfig) -> StreamConfigOut:
-    return StreamConfigOut(**config.model_dump())
+def _stream_out(config: StreamConfig, *, reprocess_required: bool = False) -> StreamConfigOut:
+    return StreamConfigOut(
+        **config.model_dump(),
+        evaluation_reprocess_required=reprocess_required,
+    )
 
 
 def _instrument_out(instrument: Instrument) -> InstrumentOut:
@@ -351,8 +363,11 @@ def _analyte_out(analyte: Analyte) -> AnalyteOut:
     return AnalyteOut(**analyte.model_dump())
 
 
-def _prior_out(config: PriorConfig) -> PriorConfigOut:
-    return PriorConfigOut(**config.model_dump())
+def _prior_out(config: PriorConfig, *, reprocess_required: bool = False) -> PriorConfigOut:
+    return PriorConfigOut(
+        **config.model_dump(),
+        evaluation_reprocess_required=reprocess_required,
+    )
 
 
 def _event_out(event: QCEvent) -> QCEventOut:
@@ -579,6 +594,14 @@ def resolve_qc_record(
     session: Session = Depends(get_session),
 ):
     record = require_record_access(session, user, record_id)
+    if historical_reprocess_required(session, record.stream_id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "A backdated configuration or prior requires administrator "
+                "evaluation preview/apply before changing statistical inclusion"
+            ),
+        )
     with stream_write_lock(session, record.stream_id):
         try:
             session.refresh(record)
@@ -612,7 +635,14 @@ def resolve_qc_record(
                 reason=reason,
                 commit=False,
             )
-            reprocess_stream_evaluations(session, record.stream_id, commit=False)
+            reprocess_stream_evaluations(
+                session,
+                record.stream_id,
+                trigger=EvaluationTrigger.RECORD_RESOLUTION,
+                actor=user.actor,
+                reason=reason or f"Resolution update for QC record {record.id}",
+                commit=False,
+            )
             session.commit()
             session.refresh(record)
             return _qc_record_resolution_out(record)
@@ -860,7 +890,13 @@ def list_streams(
     for cfg in configs:
         if cfg.stream_id not in latest:
             latest[cfg.stream_id] = cfg
-    return [_stream_out(cfg) for cfg in latest.values()]
+    return [
+        _stream_out(
+            cfg,
+            reprocess_required=historical_reprocess_required(session, cfg.stream_id),
+        )
+        for cfg in latest.values()
+    ]
 
 
 @app.get("/streams/{stream_id}/configs", response_model=list[StreamConfigOut])
@@ -870,7 +906,11 @@ def list_stream_versions(
     session: Session = Depends(get_session),
 ):
     require_stream_access(session, user, stream_id)
-    return [_stream_out(cfg) for cfg in list_stream_configs(session, stream_id)]
+    required = historical_reprocess_required(session, stream_id)
+    return [
+        _stream_out(cfg, reprocess_required=required)
+        for cfg in list_stream_configs(session, stream_id)
+    ]
 
 
 @app.post("/streams", response_model=StreamConfigOut)
@@ -902,7 +942,13 @@ def create_stream(
             )
             session.commit()
             session.refresh(config)
-            return _stream_out(config)
+            return _stream_out(
+                config,
+                reprocess_required=historical_reprocess_required(session, config.stream_id),
+            )
+        except ValueError as exc:
+            session.rollback()
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
         except IntegrityError as exc:
             session.rollback()
             raise_config_version_conflict(exc)
@@ -941,17 +987,15 @@ def create_stream_version(
                 reason=None,
                 commit=False,
             )
-            latest_ts = session.exec(
-                select(QCRecord.timestamp)
-                .where(QCRecord.stream_id == stream_id)
-                .order_by(col(QCRecord.timestamp).desc())
-                .limit(1)
-            ).first()
-            if latest_ts is not None and config.effective_from <= latest_ts:
-                reprocess_stream_evaluations(session, stream_id, commit=False)
             session.commit()
             session.refresh(config)
-            return _stream_out(config)
+            return _stream_out(
+                config,
+                reprocess_required=historical_reprocess_required(session, config.stream_id),
+            )
+        except ValueError as exc:
+            session.rollback()
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
         except IntegrityError as exc:
             session.rollback()
             raise_config_version_conflict(exc)
@@ -971,6 +1015,21 @@ def create_prior(
     payload = payload.model_copy(update={"stream_id": stream_id})
     with stream_write_lock(session, stream_id):
         try:
+            if payload.beta0 is None:
+                effective_at = payload.effective_from or datetime.now(timezone.utc)
+                effective_config = session.exec(
+                    select(StreamConfig)
+                    .where(StreamConfig.stream_id == stream_id, StreamConfig.effective_from <= effective_at)
+                    .order_by(col(StreamConfig.effective_from).desc(), col(StreamConfig.version).desc())
+                ).first()
+                if effective_config is None:
+                    raise HTTPException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail="beta0 is required when no stream configuration is effective at the prior timestamp",
+                    )
+                payload = payload.model_copy(
+                    update={"beta0": prior_beta_from_sigma(payload.alpha0, effective_config.sigma)}
+                )
             config = create_prior_config(session, stream_id, payload, user.actor, commit=False)
             record_audit(
                 session,
@@ -983,17 +1042,12 @@ def create_prior(
                 reason=None,
                 commit=False,
             )
-            latest_ts = session.exec(
-                select(QCRecord.timestamp)
-                .where(QCRecord.stream_id == stream_id)
-                .order_by(col(QCRecord.timestamp).desc())
-                .limit(1)
-            ).first()
-            if latest_ts is not None and config.effective_from <= latest_ts:
-                reprocess_stream_evaluations(session, stream_id, commit=False)
             session.commit()
             session.refresh(config)
-            return _prior_out(config)
+            return _prior_out(
+                config,
+                reprocess_required=historical_reprocess_required(session, stream_id),
+            )
         except IntegrityError as exc:
             session.rollback()
             raise_config_version_conflict(exc)
@@ -1014,7 +1068,8 @@ def list_priors(
         .where(PriorConfig.stream_id == stream_id)
         .order_by(col(PriorConfig.version).desc())
     ).all()
-    return [_prior_out(prior) for prior in priors]
+    required = historical_reprocess_required(session, stream_id)
+    return [_prior_out(prior, reprocess_required=required) for prior in priors]
 
 
 @app.post("/qc/events", response_model=QCEventOut)
@@ -1080,7 +1135,7 @@ def list_alerts(
         .order_by(col(AlertRecord.created_at).desc())
     ).all()
     return [
-        _alert_out(alert, qc_record_timestamp=qc_timestamp)
+        _alert_out(alert, qc_record_timestamp=qc_timestamp, session=session)
         for alert, qc_timestamp in rows
         if stream_is_accessible(session, user, alert.stream_id)
     ]
@@ -1123,7 +1178,7 @@ def update_alert_status(
         after=alert.model_dump(mode="json"),
         reason=reason,
     )
-    return _alert_out(alert)
+    return _alert_out(alert, session=session)
 
 
 @app.get("/investigations", response_model=list[InvestigationOut])
@@ -1407,6 +1462,11 @@ def stream_chart(
                 signals=signals,
                 bayesian_risk=record_risk,
                 disposition=disposition,
+                evaluation=(
+                    record_evaluation_provenance(session, record)
+                    if include_evaluations
+                    else None
+                ),
             )
         )
     lot_segments = _lot_segments(record_series)
@@ -1442,6 +1502,9 @@ def stream_chart(
     return StreamChartOut(
         records=record_points,
         events=[_event_out(event) for event in events[::-1]],
-        alerts=[_alert_out(alert, qc_record_timestamp=qc_timestamp) for alert, qc_timestamp in alert_rows[::-1]],
+        alerts=[
+            _alert_out(alert, qc_record_timestamp=qc_timestamp, session=session)
+            for alert, qc_timestamp in alert_rows[::-1]
+        ],
         lot_segments=lot_segments,
     )

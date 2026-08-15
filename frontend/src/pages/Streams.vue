@@ -169,6 +169,7 @@ const form = reactive<StreamConfigIn>({
   sigma: 0.1,
   warning_limit_sd: 2,
   action_limit_sd: 3,
+  control_limit_source: "configured",
   risk_threshold_warn: 50,
   risk_threshold_hold: 80,
   bayes_warn_prob_threshold: 0.25,

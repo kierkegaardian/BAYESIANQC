@@ -29,7 +29,7 @@ const props = withDefaults(
 const tone = computed(() => props.summary?.tone ?? "none");
 const tooltip = computed(() => {
   if (!props.summary) {
-    return "No Bayesian risk is available for the current stream.";
+    return "No Bayesian next-result risk is available for the current stream.";
   }
   return bayesianRiskHelpText("at the highlighted condition in the current chart window");
 });

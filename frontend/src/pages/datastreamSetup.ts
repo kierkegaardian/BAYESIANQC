@@ -22,6 +22,10 @@ export type DatastreamDraft = {
   action_limit_sd: number;
   min_value: number | null;
   max_value: number | null;
+  control_limit_source: "configured" | "fixed_baseline";
+  baseline_start: string;
+  baseline_end: string;
+  effective_from: string;
   config_reason: string;
   prior_mu0: number | null;
   prior_kappa0: number;
@@ -59,6 +63,10 @@ export function makeDraft(): DatastreamDraft {
     action_limit_sd: 3,
     min_value: null,
     max_value: null,
+    control_limit_source: "configured",
+    baseline_start: "",
+    baseline_end: "",
+    effective_from: "",
     config_reason: "",
     prior_mu0: null,
     prior_kappa0: 1,
@@ -130,6 +138,12 @@ export function buildSetupPayload(draft: DatastreamDraft): StreamSetupIn {
     action_limit_sd: draft.action_limit_sd,
     min_value: optionalNumber(draft.min_value),
     max_value: optionalNumber(draft.max_value),
+    control_limit_source: draft.control_limit_source,
+    baseline_start:
+      draft.control_limit_source === "fixed_baseline" ? optionalString(draft.baseline_start) : null,
+    baseline_end:
+      draft.control_limit_source === "fixed_baseline" ? optionalString(draft.baseline_end) : null,
+    effective_from: optionalString(draft.effective_from),
     risk_threshold_warn: 50,
     risk_threshold_hold: 80,
     bayes_warn_prob_threshold: 0.25,

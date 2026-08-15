@@ -3,8 +3,9 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, FiniteFloat, field_validator, model_validator
 
+from app.evaluation_models import ControlLimitSource
 from app.models import PriorConfigOut, StreamConfigOut
 
 
@@ -121,24 +122,27 @@ class StreamSetupIn(BaseModel):
     matrix: Optional[str] = None
     qc_level: str
     control_material_lot: str
-    target_value: float
-    sigma: float
-    warning_limit_sd: float = 2.0
-    action_limit_sd: float = 3.0
-    min_value: Optional[float] = None
-    max_value: Optional[float] = None
+    target_value: FiniteFloat
+    sigma: FiniteFloat
+    warning_limit_sd: FiniteFloat = 2.0
+    action_limit_sd: FiniteFloat = 3.0
+    min_value: Optional[FiniteFloat] = None
+    max_value: Optional[FiniteFloat] = None
+    control_limit_source: ControlLimitSource = ControlLimitSource.CONFIGURED
+    baseline_start: Optional[datetime] = None
+    baseline_end: Optional[datetime] = None
     risk_threshold_warn: int = 50
     risk_threshold_hold: int = 80
-    bayes_warn_prob_threshold: Optional[float] = 0.25
+    bayes_warn_prob_threshold: Optional[FiniteFloat] = 0.25
     bayes_warn_consecutive: Optional[int] = 1
-    bayes_hold_prob_threshold: Optional[float] = 0.8
+    bayes_hold_prob_threshold: Optional[FiniteFloat] = 0.8
     bayes_hold_consecutive: Optional[int] = 2
     effective_from: Optional[datetime] = None
     config_reason: Optional[str] = None
-    prior_mu0: Optional[float] = None
-    prior_kappa0: float = 1.0
-    prior_alpha0: float = 2.0
-    prior_beta0: Optional[float] = None
+    prior_mu0: Optional[FiniteFloat] = None
+    prior_kappa0: FiniteFloat = 1.0
+    prior_alpha0: FiniteFloat = 2.0
+    prior_beta0: Optional[FiniteFloat] = None
     prior_effective_from: Optional[datetime] = None
     kiosk: Optional[StreamSetupKioskAssignment] = None
 
@@ -172,6 +176,33 @@ class StreamSetupIn(BaseModel):
         if value <= 1:
             raise ValueError("prior_alpha0 must be > 1")
         return value
+
+    @model_validator(mode="after")
+    def statistical_bounds_are_ordered(self) -> "StreamSetupIn":
+        if self.action_limit_sd < self.warning_limit_sd:
+            raise ValueError("action_limit_sd must be >= warning_limit_sd")
+        if self.min_value is not None and self.max_value is not None and self.min_value > self.max_value:
+            raise ValueError("min_value must be <= max_value")
+        has_start = self.baseline_start is not None
+        has_end = self.baseline_end is not None
+        if has_start != has_end:
+            raise ValueError("baseline_start and baseline_end must be provided together")
+        if self.control_limit_source == ControlLimitSource.FIXED_BASELINE:
+            if not (has_start and has_end):
+                raise ValueError("fixed_baseline requires baseline_start and baseline_end")
+            if (
+                self.effective_from is not None
+                and self.baseline_end is not None
+                and self.baseline_end > self.effective_from
+            ):
+                raise ValueError("baseline_end must be <= effective_from")
+        elif has_start or has_end:
+            raise ValueError("configured control limits cannot include a baseline range")
+        has_warn_probability = self.bayes_warn_prob_threshold is not None
+        has_hold_probability = self.bayes_hold_prob_threshold is not None
+        if has_warn_probability != has_hold_probability:
+            raise ValueError("explicit Bayesian warning and hold probability thresholds must be provided together")
+        return self
 
 
 class StreamSetupBatchIn(BaseModel):

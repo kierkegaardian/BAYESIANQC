@@ -7,8 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "test": "vitest run",
     "typecheck": "vue-tsc --noEmit",
-    "check": "npm run typecheck && npm run build",
+    "check": "npm run test && npm run typecheck && npm run build",
     "gen:api": "../.venv/bin/python ../scripts/generate_openapi_json.py --out ../openapi.json && openapi-typescript ../openapi.json -o src/api/schema.ts"
   },
   "dependencies": {
@@ -22,6 +23,7 @@
     "openapi-typescript": "^7.6.1",
     "typescript": "^5.5.4",
     "vite": "^5.4.11",
+    "vitest": "3.2.7",
     "vue-tsc": "^2.0.28"
   }
 }

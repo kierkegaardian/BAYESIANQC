@@ -12,6 +12,8 @@ dependencies = [
   "uvicorn==0.30.3",
   "alembic==1.13.2",
   "openpyxl==3.1.5",
+  "scipy==1.16.3; python_version < '3.12'",
+  "scipy==1.18.0; python_version >= '3.12'",
 ]
 
 [dependency-groups]

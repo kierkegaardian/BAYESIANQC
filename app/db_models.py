@@ -6,6 +6,7 @@ from typing import Any, Optional
 from sqlalchemy import Column, Enum as SAEnum, Index, JSON, UniqueConstraint
 from sqlmodel import Field, SQLModel
 
+from app.evaluation_models import ControlLimitSource
 from app.models import (
     AlertStatus,
     CapaStatus,
@@ -27,7 +28,7 @@ def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
-DEFAULT_RULE_SET = {"rules": ["1-3s", "2-2s", "R-4s", "4-1s", "10x"]}
+DEFAULT_RULE_SET = {"rules": ["1-3s", "2-2s", "4-1s", "10x"]}
 
 
 class ApiKey(SQLModel, table=True):
@@ -139,8 +140,22 @@ class StreamConfig(SQLModel, table=True):
     max_value: Optional[float] = None
     allowed_units: Optional[list[str]] = Field(default=None, sa_column=Column(JSON))
     unit_conversions: Optional[dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
+    control_limit_source: ControlLimitSource = Field(
+        default=ControlLimitSource.CONFIGURED,
+        sa_column=Column(
+            SAEnum(
+                ControlLimitSource,
+                native_enum=False,
+                values_callable=lambda members: [member.value for member in members],
+            ),
+            nullable=False,
+        ),
+    )
     baseline_start: Optional[datetime] = None
     baseline_end: Optional[datetime] = None
+    baseline_centerline: Optional[float] = None
+    baseline_sigma: Optional[float] = None
+    baseline_count: Optional[int] = None
     risk_threshold_warn: int = 50
     risk_threshold_hold: int = 80
     bayes_warn_prob_threshold: Optional[float] = None
@@ -208,6 +223,10 @@ class QCRecord(SQLModel, table=True):
     signals: Optional[list[dict[str, Any]]] = Field(default=None, sa_column=Column(JSON))
     bayesian_risk: Optional[dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
     disposition: Optional[str] = None
+    current_evaluation_id: Optional[int] = Field(
+        default=None,
+        index=True,
+    )
     raw_payload: dict[str, Any] = Field(sa_column=Column(JSON))
     duplicate_status: DuplicateStatus = Field(sa_column=Column(SAEnum(DuplicateStatus)))
     created_at: datetime = Field(default_factory=utcnow)
@@ -364,6 +383,10 @@ class AlertRecord(SQLModel, table=True):
     acknowledged_by: Optional[str] = None
     assigned_to: Optional[str] = None
     due_at: Optional[datetime] = None
+    source_evaluation_id: Optional[int] = Field(
+        default=None,
+        index=True,
+    )
 
 
 class Investigation(SQLModel, table=True):

@@ -8,6 +8,7 @@ from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
 
 import app.db_models  # noqa: F401
+import app.evaluation_db_models  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:

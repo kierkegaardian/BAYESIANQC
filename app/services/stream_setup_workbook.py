@@ -29,6 +29,9 @@ STREAM_HEADERS = [
     "action_limit_sd",
     "min_value",
     "max_value",
+    "control_limit_source",
+    "baseline_start",
+    "baseline_end",
     "effective_from",
     "config_reason",
 ]

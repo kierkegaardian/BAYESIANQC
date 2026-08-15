@@ -25,12 +25,15 @@ from app.db_models import (
     QCRecord,
     StreamConfig,
 )
+from app.evaluation_models import ResolvedControlLimits
 from app.models import (
     DuplicateStatus,
     PriorConfigIn,
     Role,
     StreamConfigIn,
+    UnitConversionSpec,
 )
+from app.math.control_limits import resolve_control_limits
 from app.security import api_key_hash_needs_migration, api_key_lookup_hash, hash_api_key, legacy_sha256_hash, verify_api_key
 from app.stats import sample_mean_sd
 
@@ -47,6 +50,7 @@ def _seed_local_dev_key_enabled() -> bool:
 
 
 def seed_defaults(session: Session) -> None:
+    seed_effective_from = datetime(2000, 1, 1, tzinfo=timezone.utc)
     instrument = session.exec(select(Instrument).where(Instrument.name == "Architect")).first()
     if not instrument:
         instrument = Instrument(
@@ -118,6 +122,7 @@ def seed_defaults(session: Session) -> None:
             bayes_warn_consecutive=1,
             bayes_hold_prob_threshold=0.8,
             bayes_hold_consecutive=2,
+            effective_from=seed_effective_from,
             created_by="seed",
         )
         session.add(stream)
@@ -131,6 +136,7 @@ def seed_defaults(session: Session) -> None:
             kappa0=1.0,
             alpha0=2.0,
             beta0=0.25**2,
+            effective_from=seed_effective_from,
             created_by="seed",
         )
         session.add(prior)
@@ -179,6 +185,8 @@ def create_stream_config(
     *,
     commit: bool = True,
 ) -> StreamConfig:
+    effective_from = payload.effective_from or utcnow()
+    limits = validate_stream_control_limits(session, payload, effective_from=effective_from)
     current_version = session.exec(
         select(StreamConfig.version)
         .where(StreamConfig.stream_id == payload.stream_id)
@@ -204,9 +212,28 @@ def create_stream_config(
         min_value=payload.min_value,
         max_value=payload.max_value,
         allowed_units=payload.allowed_units,
-        unit_conversions=payload.unit_conversions,
+        unit_conversions=(
+            {
+                source_unit: (
+                    conversion.model_dump(mode="json")
+                    if isinstance(conversion, UnitConversionSpec)
+                    else conversion
+                )
+                for source_unit, conversion in payload.unit_conversions.items()
+            }
+            if payload.unit_conversions is not None
+            else None
+        ),
+        control_limit_source=payload.control_limit_source,
         baseline_start=payload.baseline_start,
         baseline_end=payload.baseline_end,
+        baseline_centerline=(
+            limits.centerline if payload.control_limit_source.value == "fixed_baseline" else None
+        ),
+        baseline_sigma=(
+            limits.sigma if payload.control_limit_source.value == "fixed_baseline" else None
+        ),
+        baseline_count=limits.baseline_count,
         risk_threshold_warn=payload.risk_threshold_warn,
         risk_threshold_hold=payload.risk_threshold_hold,
         bayes_warn_prob_threshold=payload.bayes_warn_prob_threshold,
@@ -214,7 +241,7 @@ def create_stream_config(
         bayes_hold_prob_threshold=payload.bayes_hold_prob_threshold,
         bayes_hold_consecutive=payload.bayes_hold_consecutive,
         rule_set=payload.rule_set or DEFAULT_RULE_SET.copy(),
-        effective_from=payload.effective_from or utcnow(),
+        effective_from=effective_from,
         version=next_version,
         created_by=created_by,
     )
@@ -227,19 +254,48 @@ def create_stream_config(
     return config
 
 
+def validate_stream_control_limits(
+    session: Session,
+    payload: StreamConfigIn,
+    *,
+    effective_from: datetime | None = None,
+) -> ResolvedControlLimits:
+    resolved_effective_from = effective_from or payload.effective_from or utcnow()
+    baseline_values: list[float] = []
+    if payload.control_limit_source.value == "fixed_baseline":
+        if payload.baseline_start is None or payload.baseline_end is None:
+            raise ValueError("fixed_baseline requires baseline_start and baseline_end")
+        if payload.baseline_end > resolved_effective_from:
+            raise ValueError("baseline_end must be <= effective_from")
+        baseline_values = list(
+            session.exec(
+                select(QCRecord.result_value).where(
+                    QCRecord.stream_id == payload.stream_id,
+                    QCRecord.include_in_stats == True,
+                    QCRecord.timestamp >= payload.baseline_start,
+                    QCRecord.timestamp <= payload.baseline_end,
+                )
+            ).all()
+        )
+    return resolve_control_limits(
+        source=payload.control_limit_source,
+        configured_target=payload.target_value,
+        configured_sigma=payload.sigma,
+        warning_limit_sd=payload.warning_limit_sd,
+        action_limit_sd=payload.action_limit_sd,
+        baseline_values=baseline_values,
+        baseline_start=payload.baseline_start,
+        baseline_end=payload.baseline_end,
+    )
+
+
 def get_active_stream_config(session: Session, stream_id: str, at_time: datetime) -> Optional[StreamConfig]:
     config = session.exec(
         select(StreamConfig)
         .where(StreamConfig.stream_id == stream_id, StreamConfig.effective_from <= at_time)
         .order_by(col(StreamConfig.effective_from).desc(), col(StreamConfig.version).desc())
     ).first()
-    if config:
-        return config
-    return session.exec(
-        select(StreamConfig)
-        .where(StreamConfig.stream_id == stream_id)
-        .order_by(col(StreamConfig.effective_from).asc(), col(StreamConfig.version).asc())
-    ).first()
+    return config
 
 
 def list_stream_configs(session: Session, stream_id: str) -> list[StreamConfig]:
@@ -260,6 +316,8 @@ def create_prior_config(
     *,
     commit: bool = True,
 ) -> PriorConfig:
+    if payload.beta0 is None:
+        raise ValueError("beta0 must be resolved before creating a prior config")
     current_version = session.exec(
         select(PriorConfig.version)
         .where(PriorConfig.stream_id == stream_id)
@@ -291,13 +349,7 @@ def get_active_prior(session: Session, stream_id: str, at_time: datetime) -> Opt
         .where(PriorConfig.stream_id == stream_id, PriorConfig.effective_from <= at_time)
         .order_by(col(PriorConfig.effective_from).desc(), col(PriorConfig.version).desc())
     ).first()
-    if prior:
-        return prior
-    return session.exec(
-        select(PriorConfig)
-        .where(PriorConfig.stream_id == stream_id)
-        .order_by(col(PriorConfig.effective_from).asc(), col(PriorConfig.version).asc())
-    ).first()
+    return prior
 
 
 def baseline_stats(session: Session, config: StreamConfig, at_time: datetime) -> Tuple[float, float]:

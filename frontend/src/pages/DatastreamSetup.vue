@@ -51,11 +51,33 @@
         <el-form-item label="Action Limit SD"><el-input-number v-model="draft.action_limit_sd" class="full-width" :step="0.1" /></el-form-item>
         <el-form-item label="Minimum Value"><el-input-number v-model="draft.min_value" class="full-width" :step="0.1" /></el-form-item>
         <el-form-item label="Maximum Value"><el-input-number v-model="draft.max_value" class="full-width" :step="0.1" /></el-form-item>
+        <el-form-item label="Control Limit Source">
+          <el-select v-model="draft.control_limit_source" class="full-width">
+            <el-option label="Configured target and sigma" value="configured" />
+            <el-option label="Fixed historical baseline" value="fixed_baseline" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="Effective From">
+          <el-date-picker v-model="draft.effective_from" type="datetime" value-format="YYYY-MM-DDTHH:mm:ssZ" class="full-width" />
+        </el-form-item>
+        <el-form-item v-if="draft.control_limit_source === 'fixed_baseline'" label="Baseline Start">
+          <el-date-picker v-model="draft.baseline_start" type="datetime" value-format="YYYY-MM-DDTHH:mm:ssZ" class="full-width" />
+        </el-form-item>
+        <el-form-item v-if="draft.control_limit_source === 'fixed_baseline'" label="Baseline End">
+          <el-date-picker v-model="draft.baseline_end" type="datetime" value-format="YYYY-MM-DDTHH:mm:ssZ" class="full-width" />
+        </el-form-item>
         <el-form-item label="Prior Mean"><el-input-number v-model="draft.prior_mu0" class="full-width" :placeholder="String(draft.target_value)" /></el-form-item>
         <el-form-item label="Prior Kappa"><el-input-number v-model="draft.prior_kappa0" class="full-width" :min="0.000001" /></el-form-item>
         <el-form-item label="Prior Alpha"><el-input-number v-model="draft.prior_alpha0" class="full-width" :min="1.000001" /></el-form-item>
         <el-form-item label="Prior Beta"><el-input-number v-model="draft.prior_beta0" class="full-width" :placeholder="String(defaultPriorBeta)" /></el-form-item>
       </div>
+      <el-alert
+        v-if="draft.control_limit_source === 'fixed_baseline'"
+        type="info"
+        :closable="false"
+        title="Limits use included results in the fixed baseline range; submitted sigma still initializes an omitted prior beta."
+        style="margin-bottom: 12px"
+      />
       <el-form-item label="Version Reason">
         <el-input v-model="draft.config_reason" />
       </el-form-item>
@@ -116,7 +138,7 @@ import { computed, defineComponent, h, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElTable, ElTableColumn, ElTag } from "element-plus";
 import type { UploadRequestOptions } from "element-plus/es/components/upload/src/upload";
 import { api, getApiBase, getApiKey } from "../api/client";
-import type { KioskLayoutOut, StreamSetupBatchIn, StreamSetupIn, StreamSetupPreviewOut, StreamSetupPreviewRow } from "../api/contracts";
+import type { KioskLayoutOut, StreamSetupApplyOut, StreamSetupBatchIn, StreamSetupIn, StreamSetupPreviewOut, StreamSetupPreviewRow } from "../api/contracts";
 import { buildSetupPayload, generatedStreamId, makeDraft, missingRequiredFields, validCanonicalRows } from "./datastreamSetup";
 
 const step = ref(0);
@@ -126,7 +148,7 @@ const importPreview = ref<StreamSetupPreviewOut | null>(null);
 const selectedImportRows = ref<StreamSetupPreviewRow[]>([]);
 const kiosks = ref<KioskLayoutOut[]>([]);
 const generatedId = computed(() => generatedStreamId(draft));
-const defaultPriorBeta = computed(() => Number((draft.sigma ** 2).toFixed(6)));
+const defaultPriorBeta = computed(() => Number(((draft.prior_alpha0 - 1) * draft.sigma ** 2).toFixed(6)));
 const selectedImportSetups = computed(() => selectedImportRows.value.map((row) => row.canonical).filter(Boolean) as StreamSetupIn[]);
 
 const PreviewTable = defineComponent({
@@ -176,8 +198,11 @@ async function previewSetup(): Promise<void> {
 
 async function applyRows(rows: StreamSetupIn[]): Promise<void> {
   const payload: StreamSetupBatchIn = { rows };
-  const result = await api.post<{ applied: number }>("/stream-setups/apply", payload);
+  const result = await api.post<StreamSetupApplyOut>("/stream-setups/apply", payload);
   ElMessage.success(`Applied ${result.applied} datastream${result.applied === 1 ? "" : "s"}`);
+  if (result.rows.some((row) => row.stream.evaluation_reprocess_required)) {
+    ElMessage.warning("Backdated configuration saved; an administrator must preview and apply historical evaluation reconciliation.");
+  }
   await loadKiosks();
 }
 

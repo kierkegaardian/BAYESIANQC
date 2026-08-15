@@ -75,13 +75,13 @@
           </div>
           <el-tooltip v-if="latestRisk" placement="top" :content="bayesianRiskTooltip">
             <div class="risk-grid" tabindex="0">
-              <div><span>Risk</span><strong>{{ latestRisk.risk_score }}</strong></div>
-              <div><span>P warn</span><strong>{{ formatPercent(latestRisk.probability_outside_warning) }}</strong></div>
-              <div><span>P action</span><strong>{{ formatPercent(latestRisk.probability_outside_limits) }}</strong></div>
+              <div><span>Next-result risk</span><strong>{{ latestRisk.risk_score }}</strong></div>
+              <div><span>P(next outside warn)</span><strong>{{ formatPercent(latestRisk.probability_outside_warning) }}</strong></div>
+              <div><span>P(next outside action)</span><strong>{{ formatPercent(latestRisk.probability_outside_limits) }}</strong></div>
               <div><span>Posterior mean</span><strong>{{ formatNumber(latestRisk.posterior_mean) }}</strong></div>
             </div>
           </el-tooltip>
-          <div v-else class="muted">No Bayesian risk is available for this stream.</div>
+          <div v-else class="muted">No Bayesian next-result risk is available for this stream.</div>
         </div>
       </div>
 
@@ -173,7 +173,7 @@ import type { BayesianRisk, CsvIngestResult, IngestionResult, QCBacklogItemOut, 
 import { canIngestQc } from "../api/session";
 import QCCommentThread from "../components/QCCommentThread.vue";
 import { bayesianRiskHelpText } from "./chartRisk";
-import { buildQcPayload, formatDateTime, formatNumber, formatPercent, latestChartRecord, limitValue, makeBatchRow, matchingLevelStreams, readManualRecent, statusTagType, type ManualBatchRow, type ManualCommonFields, validateManualRow, writeManualRecent } from "./ingestionWorkflow";
+import { buildQcPayload, formatDateTime, formatNumber, formatPercent, latestChartRecord, limitValue, makeBatchRow, matchingLevelStreams, readManualRecent, resetBatchRowForStream, statusTagType, type ManualBatchRow, type ManualCommonFields, validateManualRow, writeManualRecent } from "./ingestionWorkflow";
 
 const route = useRoute();
 const streams = ref<StreamConfigOut[]>([]);
@@ -293,10 +293,7 @@ function addMatchingRows(): void {
 }
 
 function syncRowToStream(row: ManualBatchRow): void {
-  const stream = streamFor(row);
-  row.result_value = stream?.target_value ?? null;
-  row.status = "draft";
-  row.message = "";
+  resetBatchRowForStream(row);
 }
 
 function removeRow(id: number): void {

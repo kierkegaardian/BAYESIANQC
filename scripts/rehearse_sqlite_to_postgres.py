@@ -4,6 +4,7 @@ import argparse
 import json
 import math
 import os
+import sys
 from collections.abc import Sequence
 from contextlib import contextmanager
 from pathlib import Path
@@ -16,12 +17,16 @@ from sqlalchemy import create_engine, func, inspect, text
 from sqlalchemy.engine import Engine
 from sqlmodel import SQLModel, Session, col, select
 
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 import app.db_models  # noqa: F401
-from app.bayesian import _update_posterior
+import app.evaluation_db_models  # noqa: F401
 from app.db_models import PosteriorState, PriorConfig, QCRecord
+from app.math.bayesian_nig import PosteriorParameters, update_posterior
 from app.timeutils import as_utc
 
-ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_POSTGRES_URL = "postgresql+psycopg://bayesianqc:bayesianqc@127.0.0.1:54329/bayesianqc"
 _POSTERIOR_TOLERANCE = 1e-9
 _DISPOSABLE_TARGET_MARKERS = ("disposable", "rehearsal", "test")
@@ -206,7 +211,16 @@ def _expected_posterior(records: Sequence[QCRecord], priors: Sequence[PriorConfi
                 current_prior.beta0,
             )
             n_obs = 0
-        mu_n, kappa_n, alpha_n, beta_n = _update_posterior(mu_n, kappa_n, alpha_n, beta_n, record.result_value)
+        posterior = update_posterior(
+            PosteriorParameters(mu=mu_n, kappa=kappa_n, alpha=alpha_n, beta=beta_n),
+            record.result_value,
+        )
+        mu_n, kappa_n, alpha_n, beta_n = (
+            posterior.mu,
+            posterior.kappa,
+            posterior.alpha,
+            posterior.beta,
+        )
         n_obs += 1
 
     return {

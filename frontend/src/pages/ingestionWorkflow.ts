@@ -104,12 +104,18 @@ export function makeBatchRow(stream: StreamConfigOut, id: number, backlogItemId:
   return {
     id,
     stream_id: stream.stream_id,
-    result_value: stream.target_value,
+    result_value: null,
     comments: "",
     status: "draft",
     message: "",
     qc_backlog_item_id: backlogItemId,
   };
+}
+
+export function resetBatchRowForStream(row: ManualBatchRow): void {
+  row.result_value = null;
+  row.status = "draft";
+  row.message = "";
 }
 
 export function validateManualRow(
@@ -165,9 +171,12 @@ function optionalText(value: string): string | null {
 }
 
 export function buildQcPayload(row: ManualBatchRow, stream: StreamConfigOut, common: ManualCommonFields): QCRecordIn {
+  if (row.result_value === null || !Number.isFinite(row.result_value)) {
+    throw new Error("A finite result is required before building a QC payload.");
+  }
   return {
     stream_id: stream.stream_id,
-    result_value: row.result_value ?? stream.target_value,
+    result_value: row.result_value,
     timestamp: new Date(common.timestamp).toISOString(),
     analyte: stream.analyte,
     qc_level: stream.qc_level,
