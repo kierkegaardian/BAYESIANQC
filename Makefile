@@ -7,7 +7,15 @@ POSTGRES_COPY_URL ?=
 IMPORT_ARCHIVE_ROOT ?= $(HOME)/.local/state/bayesianqc/import-archive
 DB_IMPORT_ARCHIVE_ROOT ?= $(IMPORT_ARCHIVE_ROOT)
 
-.PHONY: lint typecheck test build check postgres-up postgres-upgrade test-postgres migration-upgrade migration-rehearse migration-rehearse-postgres migration-rehearse-postgres-copy import-restore-proof check-postgres
+DEMO_VPS_HOST ?=
+DEMO_VPS_DOMAIN ?= qc.geoffsmiscellany.com
+DEMO_VPS_REMOTE_ROOT ?= /srv/bayesianqc
+DEMO_VPS_SSH_KEY ?=
+DEMO_VPS_SKIP_PUBLIC_SMOKE ?= 0
+DEMO_VPS_SSH_KEY_ARG := $(if $(DEMO_VPS_SSH_KEY),--ssh-key "$(DEMO_VPS_SSH_KEY)",)
+DEMO_VPS_SKIP_PUBLIC_SMOKE_ARG := $(if $(filter 1 true yes,$(DEMO_VPS_SKIP_PUBLIC_SMOKE)),--skip-public-smoke,)
+
+.PHONY: lint typecheck test build check postgres-up postgres-upgrade test-postgres migration-upgrade migration-rehearse migration-rehearse-postgres migration-rehearse-postgres-copy import-restore-proof check-postgres demo-vps-bootstrap demo-vps-deploy demo-vps-reset-data demo-vps-rotate-password demo-vps-smoke demo-vps-rollback
 
 lint:
 	$(PYTHON) -m ruff check app tests scripts
@@ -50,3 +58,28 @@ import-restore-proof:
 	BAYESIANQC_IMPORT_ARCHIVE_ROOT="$(IMPORT_ARCHIVE_ROOT)" $(PYTHON) scripts/prove_import_restore.py --source-url "$(POSTGRES_URL)" --archive-root "$(IMPORT_ARCHIVE_ROOT)" --db-archive-root "$(DB_IMPORT_ARCHIVE_ROOT)"
 
 check-postgres: postgres-up postgres-upgrade test-postgres migration-rehearse-postgres
+
+demo-vps-bootstrap:
+	test -n "$(DEMO_VPS_HOST)" || (echo "Set DEMO_VPS_HOST"; exit 2)
+	scripts/demo_vps.sh bootstrap --host "$(DEMO_VPS_HOST)" --domain "$(DEMO_VPS_DOMAIN)" --remote-root "$(DEMO_VPS_REMOTE_ROOT)" $(DEMO_VPS_SSH_KEY_ARG) $(DEMO_VPS_SKIP_PUBLIC_SMOKE_ARG)
+
+demo-vps-deploy:
+	test -n "$(DEMO_VPS_HOST)" || (echo "Set DEMO_VPS_HOST"; exit 2)
+	scripts/demo_vps.sh deploy --host "$(DEMO_VPS_HOST)" --domain "$(DEMO_VPS_DOMAIN)" --remote-root "$(DEMO_VPS_REMOTE_ROOT)" $(DEMO_VPS_SSH_KEY_ARG) $(DEMO_VPS_SKIP_PUBLIC_SMOKE_ARG)
+
+demo-vps-reset-data:
+	test -n "$(DEMO_VPS_HOST)" || (echo "Set DEMO_VPS_HOST"; exit 2)
+	scripts/demo_vps.sh reset-data --host "$(DEMO_VPS_HOST)" --domain "$(DEMO_VPS_DOMAIN)" --remote-root "$(DEMO_VPS_REMOTE_ROOT)" $(DEMO_VPS_SSH_KEY_ARG) $(DEMO_VPS_SKIP_PUBLIC_SMOKE_ARG)
+
+demo-vps-rotate-password:
+	test -n "$(DEMO_VPS_HOST)" || (echo "Set DEMO_VPS_HOST"; exit 2)
+	scripts/demo_vps.sh rotate-password --host "$(DEMO_VPS_HOST)" --domain "$(DEMO_VPS_DOMAIN)" --remote-root "$(DEMO_VPS_REMOTE_ROOT)" $(DEMO_VPS_SSH_KEY_ARG) $(DEMO_VPS_SKIP_PUBLIC_SMOKE_ARG)
+
+demo-vps-smoke:
+	test -n "$(DEMO_VPS_HOST)" || (echo "Set DEMO_VPS_HOST"; exit 2)
+	scripts/demo_vps.sh smoke --host "$(DEMO_VPS_HOST)" --domain "$(DEMO_VPS_DOMAIN)" --remote-root "$(DEMO_VPS_REMOTE_ROOT)" $(DEMO_VPS_SSH_KEY_ARG) $(DEMO_VPS_SKIP_PUBLIC_SMOKE_ARG)
+
+demo-vps-rollback:
+	test -n "$(DEMO_VPS_HOST)" || (echo "Set DEMO_VPS_HOST"; exit 2)
+	test -n "$(DEMO_VPS_RELEASE_ID)" || (echo "Set DEMO_VPS_RELEASE_ID"; exit 2)
+	scripts/demo_vps.sh rollback --host "$(DEMO_VPS_HOST)" --domain "$(DEMO_VPS_DOMAIN)" --remote-root "$(DEMO_VPS_REMOTE_ROOT)" --release-id "$(DEMO_VPS_RELEASE_ID)" $(DEMO_VPS_SSH_KEY_ARG) $(DEMO_VPS_SKIP_PUBLIC_SMOKE_ARG)

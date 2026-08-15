@@ -7,7 +7,7 @@ from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from io import StringIO
-from typing import NoReturn, Optional
+from typing import Any, NoReturn, Optional
 
 from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, Response, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -91,9 +91,11 @@ from app.rbac import ROLE_PERMISSIONS, UserContext, require_permission
 from app.routers.control_materials import router as control_materials_router
 from app.routers.imports import router as imports_router
 from app.routers.kiosks import router as kiosks_router
+from app.routers.locations import router as locations_router
 from app.routers.qc_backlog import router as qc_backlog_router
 from app.routers.qc_comments import router as qc_comments_router
 from app.routers.stream_setups import router as stream_setups_router
+from app.routers.tests import router as tests_router
 from app.services.ingestion import audit_out as _audit_out
 from app.services.ingestion import alert_out as _alert_out
 from app.services.ingestion import process_ingestion
@@ -105,8 +107,10 @@ from app.services.access_scopes import (
     require_stream_context_access,
     scope_summary_for_me,
     stream_is_accessible,
+    stream_context_is_accessible,
     stream_scope_predicate,
 )
+from app.services.locations import area_is_allowed, get_lab_area, get_site
 from app.services.locks import stream_write_lock
 from app.services.quarantine import quarantine_out
 from app.storage import (
@@ -160,9 +164,11 @@ app.add_middleware(
 app.include_router(control_materials_router)
 app.include_router(imports_router)
 app.include_router(kiosks_router)
+app.include_router(locations_router)
 app.include_router(qc_backlog_router)
 app.include_router(qc_comments_router)
 app.include_router(stream_setups_router)
+app.include_router(tests_router)
 
 
 def _help_button(content: str) -> str:
@@ -341,6 +347,40 @@ def _stream_out(config: StreamConfig) -> StreamConfigOut:
 
 def _instrument_out(instrument: Instrument) -> InstrumentOut:
     return InstrumentOut(**instrument.model_dump())
+
+
+def _normalize_instrument_location(session: Session, data: dict[str, Any]) -> dict[str, Any]:
+    normalized = dict(data)
+    area_id = normalized.get("lab_area_id")
+    site_id = normalized.get("site_id")
+    if area_id is not None:
+        area = get_lab_area(session, int(area_id))
+        if site_id is not None and int(site_id) != area.site_id:
+            raise HTTPException(status_code=422, detail="lab_area_id does not belong to site_id")
+        site = get_site(session, area.site_id)
+        normalized["site_id"] = area.site_id
+        normalized["lab_area_id"] = area.id
+        normalized["site"] = site.name
+        normalized["lab_bench"] = area.name
+    elif site_id is not None:
+        site = get_site(session, int(site_id))
+        normalized["site_id"] = site.id
+        normalized["site"] = site.name
+    return normalized
+
+
+def _require_instrument_context_access(session: Session, user: UserContext, data: dict[str, Any]) -> None:
+    site = data.get("site")
+    lab_bench = data.get("lab_bench")
+    if stream_context_is_accessible(
+        session,
+        user,
+        stream_id="",
+        site=str(site) if site is not None else None,
+        lab_bench=str(lab_bench) if lab_bench is not None else None,
+    ):
+        return
+    raise HTTPException(status_code=403, detail="Target instrument scope is not allowed")
 
 
 def _method_out(method: Method) -> MethodOut:
@@ -624,13 +664,30 @@ def resolve_qc_record(
 @app.get("/instruments", response_model=list[InstrumentOut])
 def list_instruments(
     active: Optional[bool] = None,
+    site_id: Optional[int] = None,
+    lab_area_id: Optional[int] = None,
+    site: Optional[str] = None,
+    lab_bench: Optional[str] = None,
     user: UserContext = Depends(require_permission(Permission.READ)),
     session: Session = Depends(get_session),
 ):
     query = select(Instrument).order_by(col(Instrument.name).asc())
     if active is not None:
         query = query.where(Instrument.active == active)
-    instruments = session.exec(query).all()
+    if site_id is not None:
+        query = query.where(Instrument.site_id == site_id)
+    if lab_area_id is not None:
+        query = query.where(Instrument.lab_area_id == lab_area_id)
+    if site:
+        query = query.where(Instrument.site == site)
+    if lab_bench:
+        query = query.where(Instrument.lab_bench == lab_bench)
+    scope = effective_scope(session, user)
+    instruments = [
+        instrument
+        for instrument in session.exec(query).all()
+        if area_is_allowed(scope, instrument.site, instrument.lab_bench)
+    ]
     return [_instrument_out(instrument) for instrument in instruments]
 
 
@@ -640,7 +697,9 @@ def create_instrument(
     user: UserContext = Depends(require_permission(Permission.EDIT_CONFIG)),
     session: Session = Depends(get_session),
 ):
-    instrument = Instrument(**payload.model_dump(), created_by=user.actor)
+    data = _normalize_instrument_location(session, payload.model_dump())
+    _require_instrument_context_access(session, user, data)
+    instrument = Instrument(**data, created_by=user.actor)
     session.add(instrument)
     session.commit()
     session.refresh(instrument)
@@ -668,7 +727,9 @@ def update_instrument(
     if not instrument:
         raise HTTPException(status_code=404, detail="Instrument not found")
     before = instrument.model_dump(mode="json")
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    data = _normalize_instrument_location(session, payload.model_dump(exclude_unset=True))
+    _require_instrument_context_access(session, user, {**instrument.model_dump(), **data})
+    for field, value in data.items():
         setattr(instrument, field, value)
     session.add(instrument)
     session.commit()

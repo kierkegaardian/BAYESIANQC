@@ -143,6 +143,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/enterprise-sites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Enterprise Sites */
+        get: operations["list_enterprise_sites_enterprise_sites_get"];
+        put?: never;
+        /** Create Enterprise Site */
+        post: operations["create_enterprise_site_enterprise_sites_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/enterprise-sites/{site_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Enterprise Site */
+        patch: operations["update_enterprise_site_enterprise_sites__site_id__patch"];
+        trace?: never;
+    };
     "/instruments": {
         parameters: {
             query?: never;
@@ -263,6 +298,41 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/lab-areas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Lab Areas */
+        get: operations["list_lab_areas_lab_areas_get"];
+        put?: never;
+        /** Create Lab Area */
+        post: operations["create_lab_area_lab_areas_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/lab-areas/{area_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Lab Area */
+        patch: operations["update_lab_area_lab_areas__area_id__patch"];
         trace?: never;
     };
     "/me": {
@@ -751,6 +821,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Test */
+        post: operations["create_test_tests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -822,10 +909,14 @@ export interface components {
              * @default true
              */
             active: boolean;
+            /** Description */
+            description?: string | null;
             /** Method Id */
             method_id: number;
             /** Name */
             name: string;
+            /** Result Resolution */
+            result_resolution?: number | null;
             /** Units */
             units?: string | null;
         };
@@ -843,12 +934,16 @@ export interface components {
             created_at: string;
             /** Created By */
             created_by: string;
+            /** Description */
+            description?: string | null;
             /** Id */
             id: number;
             /** Method Id */
             method_id: number;
             /** Name */
             name: string;
+            /** Result Resolution */
+            result_resolution?: number | null;
             /** Units */
             units?: string | null;
         };
@@ -856,10 +951,14 @@ export interface components {
         AnalyteUpdate: {
             /** Active */
             active?: boolean | null;
+            /** Description */
+            description?: string | null;
             /** Method Id */
             method_id?: number | null;
             /** Name */
             name?: string | null;
+            /** Result Resolution */
+            result_resolution?: number | null;
             /** Units */
             units?: string | null;
         };
@@ -1198,6 +1297,54 @@ export interface components {
             /** Unrestricted */
             unrestricted: boolean;
         };
+        /** EnterpriseSiteIn */
+        EnterpriseSiteIn: {
+            /**
+             * Active
+             * @default true
+             */
+            active: boolean;
+            /** Code */
+            code?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Name */
+            name: string;
+        };
+        /** EnterpriseSiteOut */
+        EnterpriseSiteOut: {
+            /**
+             * Active
+             * @default true
+             */
+            active: boolean;
+            /** Code */
+            code?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /** Description */
+            description?: string | null;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+        };
+        /** EnterpriseSiteUpdate */
+        EnterpriseSiteUpdate: {
+            /** Active */
+            active?: boolean | null;
+            /** Code */
+            code?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Name */
+            name?: string | null;
+        };
         /**
          * EntrySource
          * @enum {string}
@@ -1427,6 +1574,8 @@ export interface components {
              * @default true
              */
             active: boolean;
+            /** Lab Area Id */
+            lab_area_id?: number | null;
             /** Lab Bench */
             lab_bench?: string | null;
             /** Manufacturer */
@@ -1437,6 +1586,8 @@ export interface components {
             name: string;
             /** Site */
             site?: string | null;
+            /** Site Id */
+            site_id?: number | null;
         };
         /** InstrumentOut */
         InstrumentOut: {
@@ -1454,6 +1605,8 @@ export interface components {
             created_by: string;
             /** Id */
             id: number;
+            /** Lab Area Id */
+            lab_area_id?: number | null;
             /** Lab Bench */
             lab_bench?: string | null;
             /** Manufacturer */
@@ -1464,6 +1617,8 @@ export interface components {
             name: string;
             /** Site */
             site?: string | null;
+            /** Site Id */
+            site_id?: number | null;
         };
         /** InstrumentPeakOut */
         InstrumentPeakOut: {
@@ -1518,6 +1673,8 @@ export interface components {
         InstrumentUpdate: {
             /** Active */
             active?: boolean | null;
+            /** Lab Area Id */
+            lab_area_id?: number | null;
             /** Lab Bench */
             lab_bench?: string | null;
             /** Manufacturer */
@@ -1528,6 +1685,8 @@ export interface components {
             name?: string | null;
             /** Site */
             site?: string | null;
+            /** Site Id */
+            site_id?: number | null;
         };
         /** InvestigationIn */
         InvestigationIn: {
@@ -1703,6 +1862,56 @@ export interface components {
             /** Window Label */
             window_label?: string | null;
         };
+        /** LabAreaIn */
+        LabAreaIn: {
+            /**
+             * Active
+             * @default true
+             */
+            active: boolean;
+            /** Description */
+            description?: string | null;
+            /** Name */
+            name: string;
+            /** Site Id */
+            site_id: number;
+        };
+        /** LabAreaOut */
+        LabAreaOut: {
+            /**
+             * Active
+             * @default true
+             */
+            active: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /** Description */
+            description?: string | null;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Site Id */
+            site_id: number;
+            /** Site Name */
+            site_name: string;
+        };
+        /** LabAreaUpdate */
+        LabAreaUpdate: {
+            /** Active */
+            active?: boolean | null;
+            /** Description */
+            description?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Site Id */
+            site_id?: number | null;
+        };
         /** LotSegmentOut */
         LotSegmentOut: {
             /** Control Material Lot */
@@ -1727,6 +1936,8 @@ export interface components {
              * @default true
              */
             active: boolean;
+            /** Description */
+            description?: string | null;
             /** Instrument Id */
             instrument_id: number;
             /** Name */
@@ -1748,6 +1959,8 @@ export interface components {
             created_at: string;
             /** Created By */
             created_by: string;
+            /** Description */
+            description?: string | null;
             /** Id */
             id: number;
             /** Instrument Id */
@@ -1761,6 +1974,8 @@ export interface components {
         MethodUpdate: {
             /** Active */
             active?: boolean | null;
+            /** Description */
+            description?: string | null;
             /** Instrument Id */
             instrument_id?: number | null;
             /** Name */
@@ -2548,6 +2763,8 @@ export interface components {
              * @default 3
              */
             action_limit_sd: number;
+            /** Analyte Id */
+            analyte_id?: number | null;
             /**
              * Bayes Hold Consecutive
              * @default 2
@@ -2570,10 +2787,14 @@ export interface components {
             bayes_warn_prob_threshold: number | null;
             /** Config Reason */
             config_reason?: string | null;
+            /** Control Material Id */
+            control_material_id?: number | null;
             /** Control Material Lot */
             control_material_lot: string;
             /** Effective From */
             effective_from?: string | null;
+            /** Instrument Id */
+            instrument_id?: number | null;
             /** Instrument Manufacturer */
             instrument_manufacturer?: string | null;
             /** Instrument Model */
@@ -2581,6 +2802,8 @@ export interface components {
             /** Instrument Name */
             instrument_name: string;
             kiosk?: components["schemas"]["StreamSetupKioskAssignment"] | null;
+            /** Lab Area Id */
+            lab_area_id?: number | null;
             /** Lab Bench */
             lab_bench?: string | null;
             /** Material Manufacturer */
@@ -2591,6 +2814,8 @@ export interface components {
             matrix?: string | null;
             /** Max Value */
             max_value?: number | null;
+            /** Method Id */
+            method_id?: number | null;
             /** Method Name */
             method_name: string;
             /** Method Technique */
@@ -2631,6 +2856,8 @@ export interface components {
             sigma: number;
             /** Site */
             site?: string | null;
+            /** Site Id */
+            site_id?: number | null;
             /** Stream Id */
             stream_id: string;
             /** Target Value */
@@ -2686,6 +2913,35 @@ export interface components {
             stream_id: string;
             /** Valid */
             valid: boolean;
+        };
+        /** TestCreateIn */
+        TestCreateIn: {
+            /**
+             * Active
+             * @default true
+             */
+            active: boolean;
+            /** Analyte Description */
+            analyte_description?: string | null;
+            /** Analyte Name */
+            analyte_name: string;
+            /** Analyte Result Resolution */
+            analyte_result_resolution: number;
+            /** Analyte Units */
+            analyte_units: string;
+            /** Description */
+            description?: string | null;
+            /** Instrument Id */
+            instrument_id: number;
+            /** Name */
+            name: string;
+            /** Technique */
+            technique?: string | null;
+        };
+        /** TestCreateOut */
+        TestCreateOut: {
+            analyte: components["schemas"]["AnalyteOut"];
+            method: components["schemas"]["MethodOut"];
         };
         /** ValidationError */
         ValidationError: {
@@ -3083,10 +3339,119 @@ export interface operations {
             };
         };
     };
+    list_enterprise_sites_enterprise_sites_get: {
+        parameters: {
+            query?: {
+                active?: boolean | null;
+            };
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnterpriseSiteOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_enterprise_site_enterprise_sites_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnterpriseSiteIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnterpriseSiteOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_enterprise_site_enterprise_sites__site_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                site_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnterpriseSiteUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnterpriseSiteOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_instruments_instruments_get: {
         parameters: {
             query?: {
                 active?: boolean | null;
+                site_id?: number | null;
+                lab_area_id?: number | null;
+                site?: string | null;
+                lab_bench?: string | null;
             };
             header?: {
                 "X-API-Key"?: string | null;
@@ -3420,6 +3785,112 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["KioskLayoutOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_lab_areas_lab_areas_get: {
+        parameters: {
+            query?: {
+                site_id?: number | null;
+                active?: boolean | null;
+            };
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabAreaOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_lab_area_lab_areas_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LabAreaIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabAreaOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_lab_area_lab_areas__area_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                area_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LabAreaUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabAreaOut"];
                 };
             };
             /** @description Validation Error */
@@ -4755,6 +5226,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PriorConfigOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_test_tests_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestCreateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestCreateOut"];
                 };
             };
             /** @description Validation Error */

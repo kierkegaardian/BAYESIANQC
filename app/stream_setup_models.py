@@ -107,15 +107,21 @@ class StreamSetupKioskAssignment(BaseModel):
 
 class StreamSetupIn(BaseModel):
     stream_id: str
+    site_id: Optional[int] = None
+    lab_area_id: Optional[int] = None
     site: Optional[str] = None
     lab_bench: Optional[str] = None
+    instrument_id: Optional[int] = None
     instrument_name: str
     instrument_manufacturer: Optional[str] = None
     instrument_model: Optional[str] = None
+    method_id: Optional[int] = None
     method_name: str
     method_technique: Optional[str] = None
+    analyte_id: Optional[int] = None
     parameter_name: str
     units: str
+    control_material_id: Optional[int] = None
     material_name: str
     material_manufacturer: Optional[str] = None
     matrix: Optional[str] = None

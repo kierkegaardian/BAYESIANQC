@@ -1,6 +1,12 @@
 import type { StreamSetupIn, StreamSetupPreviewOut } from "../api/contracts";
 
 export type DatastreamDraft = {
+  site_id: number | null;
+  lab_area_id: number | null;
+  instrument_id: number | null;
+  method_id: number | null;
+  analyte_id: number | null;
+  control_material_id: number | null;
   site: string;
   lab_bench: string;
   instrument_name: string;
@@ -36,8 +42,25 @@ export type DatastreamDraft = {
   panel_window_label: string;
 };
 
+export type CreatedSelection =
+  | { kind: "site"; site_id: number }
+  | { kind: "area"; site_id: number; lab_area_id: number }
+  | { kind: "instrument"; site_id: number | null; lab_area_id: number | null; instrument_id: number }
+  | { kind: "test"; instrument_id: number; method_id: number; analyte_id: number }
+  | { kind: "analyte"; method_id: number; analyte_id: number }
+  | { kind: "material"; control_material_id: number };
+
+const DRAFT_KEY_PREFIX = "bayesianqc.datastream.draft";
+const SELECTION_KEY_PREFIX = "bayesianqc.datastream.created";
+
 export function makeDraft(): DatastreamDraft {
   return {
+    site_id: null,
+    lab_area_id: null,
+    instrument_id: null,
+    method_id: null,
+    analyte_id: null,
+    control_material_id: null,
     site: "",
     lab_bench: "",
     instrument_name: "",
@@ -110,15 +133,21 @@ export function buildSetupPayload(draft: DatastreamDraft): StreamSetupIn {
   const streamId = optionalString(draft.stream_id) ?? generatedStreamId(draft);
   const payload: StreamSetupIn = {
     stream_id: streamId,
+    site_id: draft.site_id,
+    lab_area_id: draft.lab_area_id,
     site: optionalString(draft.site),
     lab_bench: optionalString(draft.lab_bench),
+    instrument_id: draft.instrument_id,
     instrument_name: draft.instrument_name.trim(),
     instrument_manufacturer: optionalString(draft.instrument_manufacturer),
     instrument_model: optionalString(draft.instrument_model),
+    method_id: draft.method_id,
     method_name: draft.method_name.trim(),
     method_technique: optionalString(draft.method_technique),
+    analyte_id: draft.analyte_id,
     parameter_name: draft.parameter_name.trim(),
     units: draft.units.trim(),
+    control_material_id: draft.control_material_id,
     material_name: draft.material_name.trim(),
     material_manufacturer: optionalString(draft.material_manufacturer),
     matrix: optionalString(draft.matrix),
@@ -158,6 +187,12 @@ export function buildSetupPayload(draft: DatastreamDraft): StreamSetupIn {
 
 export function missingRequiredFields(draft: DatastreamDraft): string[] {
   return [
+    ["Site", draft.site_id],
+    ["Lab area", draft.lab_area_id],
+    ["Instrument", draft.instrument_id],
+    ["Test", draft.method_id],
+    ["Analyte", draft.analyte_id],
+    ["Control material", draft.control_material_id],
     ["Instrument", draft.instrument_name],
     ["Method", draft.method_name],
     ["Parameter", draft.parameter_name],
@@ -166,12 +201,54 @@ export function missingRequiredFields(draft: DatastreamDraft): string[] {
     ["QC level", draft.qc_level],
     ["Control lot", draft.control_material_lot],
   ]
-    .filter(([, value]) => !String(value).trim())
-    .map(([label]) => label);
+    .filter(([, value]) => value === null || value === undefined || !String(value).trim())
+    .map(([label]) => String(label));
 }
 
 export function validCanonicalRows(preview: StreamSetupPreviewOut | null): StreamSetupIn[] {
   return (preview?.rows ?? [])
     .filter((row) => row.valid && row.canonical)
     .map((row) => row.canonical as StreamSetupIn);
+}
+
+function draftStorageKey(key: string): string {
+  return `${DRAFT_KEY_PREFIX}.${key}`;
+}
+
+function selectionStorageKey(key: string): string {
+  return `${SELECTION_KEY_PREFIX}.${key}`;
+}
+
+export function saveDatastreamDraft(key: string, draft: DatastreamDraft): void {
+  window.sessionStorage.setItem(draftStorageKey(key), JSON.stringify(draft));
+}
+
+export function loadDatastreamDraft(key: string): Partial<DatastreamDraft> | null {
+  const raw = window.sessionStorage.getItem(draftStorageKey(key));
+  if (!raw) {
+    return null;
+  }
+  try {
+    return JSON.parse(raw) as Partial<DatastreamDraft>;
+  } catch {
+    return null;
+  }
+}
+
+export function saveCreatedSelection(key: string, selection: CreatedSelection): void {
+  window.sessionStorage.setItem(selectionStorageKey(key), JSON.stringify(selection));
+}
+
+export function consumeCreatedSelection(key: string): CreatedSelection | null {
+  const storageKey = selectionStorageKey(key);
+  const raw = window.sessionStorage.getItem(storageKey);
+  window.sessionStorage.removeItem(storageKey);
+  if (!raw) {
+    return null;
+  }
+  try {
+    return JSON.parse(raw) as CreatedSelection;
+  } catch {
+    return null;
+  }
 }

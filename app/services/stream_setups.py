@@ -10,6 +10,7 @@ from app.services.kiosks import kiosk_layout_out
 from app.services.locks import stream_write_lock
 from app.services.stream_setup_assets import (
     audit_create,
+    canonicalize_setup,
     control_material_out,
     ensure_assets,
     match_analyte,
@@ -18,6 +19,7 @@ from app.services.stream_setup_assets import (
     match_method,
     persisted_id,
 )
+from app.services.access_scopes import require_stream_context_access
 from app.storage import create_prior_config, create_stream_config, record_audit
 from app.stream_setup_models import (
     KioskLayoutOut,
@@ -114,6 +116,7 @@ def _prior_matches(existing: PriorConfig, payload: PriorConfigIn) -> bool:
 
 
 def _preview_one(session: Session, setup: StreamSetupIn, row_number: int) -> StreamSetupPreviewRow:
+    setup = canonicalize_setup(session, setup)
     errors: list[str] = []
     actions: list[StreamSetupAction] = []
     instrument = match_instrument(session, setup)
@@ -159,8 +162,23 @@ def _preview_one(session: Session, setup: StreamSetupIn, row_number: int) -> Str
     )
 
 
-def preview_stream_setups(session: Session, payload: StreamSetupBatchIn) -> StreamSetupPreviewOut:
-    rows = [_preview_one(session, setup, index) for index, setup in enumerate(payload.rows, start=1)]
+def preview_stream_setups(
+    session: Session,
+    payload: StreamSetupBatchIn,
+    user: UserContext | None = None,
+) -> StreamSetupPreviewOut:
+    rows: list[StreamSetupPreviewRow] = []
+    for index, setup in enumerate(payload.rows, start=1):
+        canonical = canonicalize_setup(session, setup)
+        if user is not None:
+            require_stream_context_access(
+                session,
+                user,
+                stream_id=canonical.stream_id,
+                site=canonical.site,
+                lab_bench=canonical.lab_bench,
+            )
+        rows.append(_preview_one(session, canonical, index))
     return StreamSetupPreviewOut(
         valid=sum(1 for row in rows if row.valid),
         invalid=sum(1 for row in rows if not row.valid),
@@ -242,13 +260,14 @@ def _ensure_kiosk(session: Session, setup: StreamSetupIn, user: UserContext) -> 
 
 
 def apply_stream_setups(session: Session, payload: StreamSetupBatchIn, user: UserContext) -> StreamSetupApplyOut:
-    preview = preview_stream_setups(session, payload)
+    preview = preview_stream_setups(session, payload, user)
     invalid = [row for row in preview.rows if not row.valid]
     if invalid:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=[row.model_dump() for row in invalid])
     applied: list[StreamSetupApplyRow] = []
     try:
         for row_number, setup in enumerate(payload.rows, start=1):
+            setup = canonicalize_setup(session, setup)
             preview_actions = preview.rows[row_number - 1].actions
             with stream_write_lock(session, setup.stream_id):
                 _, _, _, material = ensure_assets(session, setup, user)

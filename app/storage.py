@@ -15,6 +15,7 @@ from app.db_models import (
     Capa,
     CapaLink,
     DEFAULT_RULE_SET,
+    EnterpriseSite,
     IngestionReceipt,
     Instrument,
     Investigation,
@@ -47,18 +48,33 @@ def _seed_local_dev_key_enabled() -> bool:
 
 
 def seed_defaults(session: Session) -> None:
+    site = session.exec(select(EnterpriseSite).where(EnterpriseSite.name == "Main Lab")).first()
+    if not site:
+        site = EnterpriseSite(name="Main Lab", created_by="seed")
+        session.add(site)
+        session.commit()
+        session.refresh(site)
+    if site.id is None:
+        raise RuntimeError("Seed site missing id")
+
     instrument = session.exec(select(Instrument).where(Instrument.name == "Architect")).first()
     if not instrument:
         instrument = Instrument(
             name="Architect",
             manufacturer="Abbott",
             model="Architect",
+            site_id=site.id,
             site="Main Lab",
             created_by="seed",
         )
         session.add(instrument)
         session.commit()
         session.refresh(instrument)
+    elif instrument.site_id is None:
+        instrument.site_id = site.id
+        instrument.site = instrument.site or site.name
+        session.add(instrument)
+        session.commit()
 
     instrument_id = instrument.id
     if instrument_id is None:

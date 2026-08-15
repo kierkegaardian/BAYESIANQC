@@ -20,8 +20,9 @@ import ChartView from "../pages/ChartView.vue";
 import ChartKiosk from "../pages/ChartKiosk.vue";
 import KioskBuilder from "../pages/KioskBuilder.vue";
 import DatastreamSetup from "../pages/DatastreamSetup.vue";
+import ConfigCreate from "../pages/ConfigCreate.vue";
 import ImportProfiles from "../pages/ImportProfiles.vue";
-import { getApiKey } from "../api/client";
+import { getApiKey, usesEdgeAuth } from "../api/client";
 
 const routes = [
   {
@@ -125,6 +126,14 @@ const routes = [
           helpTitle: "Add Datastream",
           helpText:
             "Create or reuse instrument, method, parameter, material, stream, prior, and optional kiosk assignment.",
+        },
+      },
+      {
+        path: "config/create/:kind",
+        component: ConfigCreate,
+        meta: {
+          helpTitle: "Add Configuration",
+          helpText: "Create a governed configuration record and return to datastream setup.",
         },
       },
       {
@@ -281,6 +290,9 @@ const router = createRouter({
 });
 
 router.beforeEach((to) => {
+  if (usesEdgeAuth()) {
+    return to.path === "/login" ? "/" : true;
+  }
   if (to.path === "/login") {
     return true;
   }

@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
+from alembic import command
 from alembic.config import Config
 from alembic.script import ScriptDirectory
 from fastapi.testclient import TestClient
@@ -32,6 +33,11 @@ def _alembic_config(db_url: str) -> Config:
     config.set_main_option("script_location", str(ROOT / "migrations"))
     config.set_main_option("sqlalchemy.url", db_url)
     return config
+
+
+def _run_alembic_revision(db_url: str, revision: str) -> None:
+    with rehearsal._migration_url(db_url):
+        command.upgrade(_alembic_config(db_url), revision)
 
 
 def _index_columns(indexes: Sequence[Mapping[str, object]], index_name: str) -> list[str]:
@@ -165,6 +171,8 @@ def test_alembic_upgrade_head_creates_current_schema(disposable_postgres_url: st
         "qcbacklogitem",
         "qcrecord",
         "qcrecordquarantine",
+        "enterprisesite",
+        "labarea",
         "streamconfig",
         "priorconfig",
     } <= tables
@@ -213,9 +221,17 @@ def test_alembic_upgrade_head_creates_current_schema(disposable_postgres_url: st
     assert _index_columns(comment_indexes, "ix_qccomment_qc_record_created") == ["qc_record_id", "created_at"]
     assert _index_columns(comment_indexes, "ix_qccomment_alert_created") == ["alert_id", "created_at"]
     instrument_columns = {column["name"] for column in inspector.get_columns("instrument")}
+    method_columns = {column["name"] for column in inspector.get_columns("method")}
+    analyte_columns = {column["name"] for column in inspector.get_columns("analyte")}
     stream_columns = {column["name"] for column in inspector.get_columns("streamconfig")}
-    assert "lab_bench" in instrument_columns
+    assert {"lab_bench", "site_id", "lab_area_id"} <= instrument_columns
+    assert "description" in method_columns
+    assert {"result_resolution", "description"} <= analyte_columns
     assert {"lab_bench", "control_material_id"} <= stream_columns
+    site_indexes = inspector.get_indexes("enterprisesite")
+    area_indexes = inspector.get_indexes("labarea")
+    assert _index_columns(site_indexes, "ix_enterprisesite_name") == ["name"]
+    assert _index_columns(area_indexes, "ix_labarea_site_id") == ["site_id"]
     kiosk_indexes = inspector.get_indexes("kioskpanel")
     assert _index_columns(kiosk_indexes, "ix_kioskpanel_kiosk_order") == ["kiosk_id", "display_order"]
     import_batch_indexes = inspector.get_indexes("importbatch")
@@ -227,12 +243,12 @@ def test_alembic_upgrade_head_creates_current_schema(disposable_postgres_url: st
 
     with engine.connect() as connection:
         version = connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-    assert version == "20260704_0006"
+    assert version == "20260704_0007"
 
 
 def test_rehearsal_revision_head_tracks_alembic_head() -> None:
     expected = ScriptDirectory.from_config(_alembic_config(app_db.DEFAULT_DB_URL)).get_current_head()
-    assert rehearsal.revision_head() == expected == "20260704_0006"
+    assert rehearsal.revision_head() == expected == "20260704_0007"
 
 
 def test_init_db_delegates_to_alembic(monkeypatch) -> None:
@@ -259,6 +275,9 @@ def test_postgres_alembic_upgrade_creates_current_schema(disposable_postgres_url
     assert schema["qcrecord_stream_timestamp"] == ["stream_id", "timestamp"]
     assert schema["qccomment_target_created"] == ["target_type", "target_id", "created_at"]
     assert schema["instrument_lab_bench"] is True
+    assert schema["instrument_location_ids"] is True
+    assert schema["analyte_metadata"] is True
+    assert schema["location_tables"] is True
     assert schema["streamconfig_lab_bench"] is True
     assert schema["streamconfig_control_material_id"] is True
     assert schema["kioskpanel_kiosk_order"] == ["kiosk_id", "display_order"]
@@ -276,6 +295,8 @@ def test_postgres_downgrade_to_previous_revision_and_reupgrade(disposable_postgr
     engine = create_engine(disposable_postgres_url)
     inspector = inspect(engine)
 
+    assert "enterprisesite" not in set(inspector.get_table_names())
+    assert "labarea" not in set(inspector.get_table_names())
     assert "controlmaterial" not in set(inspector.get_table_names())
     assert "kiosklayout" not in set(inspector.get_table_names())
     assert "kioskpanel" not in set(inspector.get_table_names())
@@ -315,6 +336,70 @@ def test_postgres_downgrade_to_previous_revision_and_reupgrade(disposable_postgr
     rehearsal.run_upgrade(disposable_postgres_url)
     engine = create_engine(disposable_postgres_url)
     assert rehearsal.schema_checks(engine)["alembic_version"] == rehearsal.revision_head()
+    engine.dispose()
+
+
+def test_location_config_migration_backfills_sites_and_areas(disposable_postgres_url: str) -> None:
+    _run_alembic_revision(disposable_postgres_url, "20260704_0006")
+    engine = create_engine(disposable_postgres_url)
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                INSERT INTO instrument (name, site, lab_bench, active, created_at, created_by)
+                VALUES ('Legacy OES', 'Legacy Site', 'Bench A', TRUE, CURRENT_TIMESTAMP, 'test')
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                INSERT INTO streamconfig (
+                    stream_id, version, effective_from, created_at, created_by, analyte, method,
+                    instrument, site, lab_bench, qc_level, control_material_lot, units,
+                    target_value, sigma, action_limit_sd, warning_limit_sd,
+                    risk_threshold_warn, risk_threshold_hold, rule_set
+                )
+                VALUES (
+                    'legacy-stream', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'test',
+                    'Carbon', 'Combustion', 'Legacy OES', 'Legacy Site', 'Bench B',
+                    'Level 1', 'LOT-1', '%', 0.15, 0.01, 3, 2, 50, 80, '{}'
+                )
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                INSERT INTO kiosklayout (slug, label, site, lab_bench, active, created_at, created_by)
+                VALUES ('legacy-kiosk', 'Legacy Kiosk', 'Other Site', 'Bench C', TRUE, CURRENT_TIMESTAMP, 'test')
+                """
+            )
+        )
+    engine.dispose()
+
+    rehearsal.run_upgrade(disposable_postgres_url)
+    engine = create_engine(disposable_postgres_url)
+    with engine.connect() as connection:
+        sites = set(connection.execute(text("SELECT name FROM enterprisesite")).scalars().all())
+        areas = set(
+            connection.execute(
+                text(
+                    """
+                    SELECT site.name || ':' || area.name
+                    FROM labarea area
+                    JOIN enterprisesite site ON site.id = area.site_id
+                    """
+                )
+            ).scalars().all()
+        )
+        instrument = connection.execute(
+            text("SELECT site_id, lab_area_id FROM instrument WHERE name = 'Legacy OES'")
+        ).one()
+    assert {"Legacy Site", "Other Site"} <= sites
+    assert {"Legacy Site:Bench A", "Legacy Site:Bench B", "Other Site:Bench C"} <= areas
+    assert instrument.site_id is not None
+    assert instrument.lab_area_id is not None
     engine.dispose()
 
 

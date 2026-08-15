@@ -1,0 +1,29 @@
+{$BAYESIANQC_DOMAIN}, http://caddy {
+	encode zstd gzip
+
+	basic_auth {
+		admin {$BAYESIANQC_BASIC_AUTH_HASH}
+	}
+
+	handle /api/docs* {
+		respond 404
+	}
+
+	handle /api/redoc* {
+		respond 404
+	}
+
+	handle /api/openapi.json* {
+		respond 404
+	}
+
+	handle_path /api/* {
+		reverse_proxy api:8010 {
+			header_up X-API-Key {$BAYESIANQC_EDGE_ADMIN_API_KEY}
+		}
+	}
+
+	handle {
+		reverse_proxy web:80
+	}
+}
